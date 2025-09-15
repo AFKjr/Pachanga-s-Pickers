@@ -130,6 +130,32 @@ export type Database = {
           downvotes?: number;
         };
       };
+      game_schedules: {
+        Row: {
+          id: string;
+          week: number;
+          season: number;
+          games: any[]; // Array of ESPNGame objects
+          last_updated: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          week: number;
+          season: number;
+          games: any[];
+          last_updated?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          week?: number;
+          season?: number;
+          games?: any[];
+          last_updated?: string;
+          created_at?: string;
+        };
+      };
     };
   };
 };

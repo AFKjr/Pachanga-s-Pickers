@@ -3,6 +3,7 @@ import PickCard from './PickCard';
 import Comment from './Comment';
 import { Pick, Comment as CommentType } from '../types';
 import { picksApi, commentsApi } from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const HomePage = () => {
   const [picks, setPicks] = useState<Pick[]>([]);
@@ -13,21 +14,45 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const { loading: authLoading } = useAuth();
+
   useEffect(() => {
+    // Wait for auth to finish loading before fetching data
+    if (authLoading) {
+      console.log('Auth still loading, waiting...');
+      return;
+    }
+
+    console.log('Auth loaded, fetching data...');
+
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [picksResult, pinnedResult] = await Promise.all([
+        console.log('Making API calls...');
+
+        // Add a timeout to prevent infinite loading
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Request timeout')), 10000)
+        );
+
+        const apiPromise = Promise.all([
           picksApi.getAll(),
           picksApi.getPinned()
         ]);
+
+        const [picksResult, pinnedResult] = await Promise.race([apiPromise, timeoutPromise]) as any;
+
+        console.log('Picks result:', picksResult);
+        console.log('Pinned result:', pinnedResult);
 
         if (picksResult.error) throw picksResult.error;
         if (pinnedResult.error) throw pinnedResult.error;
 
         setPicks(picksResult.data || []);
         setPinnedPicks(pinnedResult.data || []);
+        console.log('Data loaded successfully');
       } catch (err: any) {
+        console.error('Error fetching data:', err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -35,7 +60,7 @@ const HomePage = () => {
     };
 
     fetchData();
-  }, []);
+  }, [authLoading]);
 
   const handlePickClick = async (pick: Pick) => {
     setSelectedPick(pick);
@@ -64,9 +89,12 @@ const HomePage = () => {
         <p className="text-gray-400">Expert analysis and betting recommendations for this week's games</p>
       </div>
 
-      {loading && (
+      {(loading || authLoading) && (
         <div className="text-center py-8">
           <div className="text-gray-400">Loading picks...</div>
+          <div className="text-sm text-gray-500 mt-2">
+            Auth loading: {authLoading ? 'true' : 'false'} | Data loading: {loading ? 'true' : 'false'}
+          </div>
         </div>
       )}
 
@@ -76,7 +104,7 @@ const HomePage = () => {
         </div>
       )}
 
-      {!loading && !error && (
+      {!loading && !authLoading && !error && (
         <>
           {/* Pinned Picks Section */}
           {pinnedPicks.length > 0 && (
@@ -97,7 +125,14 @@ const HomePage = () => {
             <h2 className="text-xl font-semibold mb-4">All Picks</h2>
             {picks.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
-                No picks available yet. Check back soon!
+                <p>No picks available yet.</p>
+                <p className="text-sm mt-2">Try adding some sample data to your Supabase database!</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-md text-white text-sm"
+                >
+                  Refresh Page
+                </button>
               </div>
             ) : (
               picks.map((pick) => (
