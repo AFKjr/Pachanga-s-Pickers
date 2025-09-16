@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import PickCard from './PickCard';
 import Comment from './Comment';
+import MatchupThread from './MatchupThread';
 import { Pick, Comment as CommentType } from '../types';
-import { picksApi, commentsApi } from '../lib/api';
+import { picksApi, commentsApi, matchupThreadsApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const HomePage = () => {
   const [picks, setPicks] = useState<Pick[]>([]);
   const [pinnedPicks, setPinnedPicks] = useState<Pick[]>([]);
+  const [matchupThreads, setMatchupThreads] = useState<any[]>([]);
   const [comments, setComments] = useState<CommentType[]>([]);
   const [selectedPick, setSelectedPick] = useState<Pick | null>(null);
   const [showComments, setShowComments] = useState(false);
@@ -37,19 +39,23 @@ const HomePage = () => {
 
         const apiPromise = Promise.all([
           picksApi.getAll(),
-          picksApi.getPinned()
+          picksApi.getPinned(),
+          matchupThreadsApi.getAllMatchupThreads()
         ]);
 
-        const [picksResult, pinnedResult] = await Promise.race([apiPromise, timeoutPromise]) as any;
+        const [picksResult, pinnedResult, threadsResult] = await Promise.race([apiPromise, timeoutPromise]) as any;
 
         console.log('Picks result:', picksResult);
         console.log('Pinned result:', pinnedResult);
+        console.log('Threads result:', threadsResult);
 
         if (picksResult.error) throw picksResult.error;
         if (pinnedResult.error) throw pinnedResult.error;
+        if (threadsResult.error) throw threadsResult.error;
 
         setPicks(picksResult.data || []);
         setPinnedPicks(pinnedResult.data || []);
+        setMatchupThreads(threadsResult.data || []);
         console.log('Data loaded successfully');
       } catch (err: any) {
         console.error('Error fetching data:', err);
@@ -85,8 +91,12 @@ const HomePage = () => {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Official Picks</h1>
-        <p className="text-gray-400">Expert analysis and betting recommendations for this week's games</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Official Picks</h1>
+            <p className="text-gray-400">Expert analysis and betting recommendations for this week's games</p>
+          </div>
+        </div>
       </div>
 
       {(loading || authLoading) && (
@@ -143,6 +153,46 @@ const HomePage = () => {
                 />
               ))
             )}
+          </div>
+
+          {/* Matchup Threads Section */}
+          {matchupThreads.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold mb-4 text-green-400">🏈 Game Threads</h2>
+              {matchupThreads.map((thread) => (
+                <MatchupThread
+                  key={thread.id}
+                  thread={thread}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Generate Matchup Threads Button */}
+          <div className="mb-8 text-center">
+            <button
+              onClick={async () => {
+                try {
+                  setLoading(true);
+                  const { data, error } = await matchupThreadsApi.generateMatchupThreads();
+                  if (error) throw error;
+                  setMatchupThreads(data || []);
+                  console.log('Matchup threads generated successfully');
+                } catch (err: any) {
+                  console.error('Error generating matchup threads:', err);
+                  setError('Failed to generate matchup threads: ' + err.message);
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              className="px-6 py-3 bg-green-600 hover:bg-green-700 rounded-md text-white font-medium"
+              disabled={loading}
+            >
+              {loading ? 'Generating...' : '🔄 Generate Game Threads'}
+            </button>
+            <p className="text-sm text-gray-400 mt-2">
+              Create discussion threads for this week's matchups using real schedule data
+            </p>
           </div>
         </>
       )}

@@ -24,17 +24,11 @@ const Header = () => {
               <Link to="/" className="text-gray-300 hover:text-white transition-colors">
                 Home
               </Link>
-              <Link to="/picks" className="text-gray-300 hover:text-white transition-colors">
-                Official Picks
-              </Link>
               <Link to="/forum" className="text-gray-300 hover:text-white transition-colors">
                 Forum
               </Link>
               <Link to="/archive" className="text-gray-300 hover:text-white transition-colors">
                 Archive
-              </Link>
-              <Link to="/admin" className="text-gray-300 hover:text-white transition-colors">
-                Admin
               </Link>
             </nav>
 

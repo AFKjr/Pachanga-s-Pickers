@@ -13,8 +13,17 @@ class ESPNAPI {
       }
       const seasonData = await seasonResponse.json();
 
-      // Get current week
-      const currentWeek = seasonData.week?.number || 1;
+      // Get current week - calculate based on date since API might not have week property
+      const currentDate = new Date();
+      const seasonStart = new Date('2025-09-04'); // NFL season starts
+      const daysSinceStart = Math.floor((currentDate.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24));
+      const calculatedWeek = Math.max(1, Math.min(18, Math.floor(daysSinceStart / 7) + 1));
+      const currentWeek = seasonData.week?.number || calculatedWeek;
+      
+      console.log(`Using week ${currentWeek} (calculated: ${calculatedWeek}, API: ${seasonData.week?.number})`);
+
+      // Add small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Fetch events for current week
       const eventsResponse = await fetch(
@@ -32,17 +41,29 @@ class ESPNAPI {
 
       for (const eventRef of eventsData.items.slice(0, 10)) { // Limit to first 10 for performance
         try {
-          const eventResponse = await fetch(eventRef.$ref);
-          if (!eventResponse.ok) continue;
+          // Use the event ID to fetch detailed information
+          const eventResponse = await fetch(`${this.baseUrl}/events/${eventRef.id}?lang=en&region=us`);
+          if (!eventResponse.ok) {
+            console.warn(`Failed to fetch details for event ${eventRef.id}: ${eventResponse.status}`);
+            continue;
+          }
 
           const eventData = await eventResponse.json();
 
           // Extract game information
-          const competition = eventData.competitions[0];
-          const homeTeam = competition.competitors.find((c: any) => c.homeAway === 'home');
-          const awayTeam = competition.competitors.find((c: any) => c.homeAway === 'away');
+          const competition = eventData.competitions?.[0];
+          if (!competition) {
+            console.warn(`No competition data for event ${eventRef.id}`);
+            continue;
+          }
 
-          if (!homeTeam || !awayTeam) continue;
+          const homeTeam = competition.competitors?.find((c: any) => c.homeAway === 'home');
+          const awayTeam = competition.competitors?.find((c: any) => c.homeAway === 'away');
+
+          if (!homeTeam || !awayTeam) {
+            console.warn(`Missing team data for event ${eventRef.id}`);
+            continue;
+          }
 
           const game: ESPNGame = {
             id: eventData.id,
@@ -62,8 +83,11 @@ class ESPNAPI {
           };
 
           games.push(game);
+          
+          // Add delay between requests to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 200));
         } catch (error) {
-          console.warn(`Failed to fetch details for event ${eventRef.$ref}:`, error);
+          console.warn(`Failed to fetch details for event ${eventRef.id}:`, error);
         }
       }
 

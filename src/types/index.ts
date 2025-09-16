@@ -8,6 +8,12 @@ export interface Pick {
   result?: 'win' | 'loss' | 'push' | 'pending';
   created_at: string;
   updated_at?: string;
+  is_pinned?: boolean;
+  user_id?: string;
+  author_username?: string;
+  upvotes?: number;
+  downvotes?: number;
+  comments_count?: number;
 }
 
 export interface GameInfo {
