@@ -25,28 +25,6 @@ export interface GameInfo {
   over_under?: number;
 }
 
-export interface ESPNGame {
-  id: string;
-  name: string;
-  date: string;
-  homeTeam: string;
-  awayTeam: string;
-  venue: string;
-  location: string;
-  weather?: {
-    temperature: number;
-    condition: string;
-    windSpeed: number;
-  };
-}
-
-export interface GameSchedule {
-  week: number;
-  season: number;
-  games: ESPNGame[];
-  lastUpdated: string;
-}
-
 // UI Component Props
 export interface PickCardProps {
   pick: Pick;

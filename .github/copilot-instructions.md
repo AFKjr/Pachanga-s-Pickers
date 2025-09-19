@@ -50,11 +50,6 @@
 # Required env vars (prefix with VITE_ for client access)
 VITE_SUPABASE_URL=your-project-url
 VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_OPENAI_API_KEY=your-openai-key
-VITE_GOOGLE_CSE_ID=your-search-engine-id
-VITE_GOOGLE_API_KEY=your-google-api-key
-VITE_OPENWEATHER_API_KEY=your-weather-key
-VITE_RELEVANCE_API_KEY=your-relevance-key  # Optional
 VITE_RELEVANCE_AGENT_ID=your-agent-id      # Optional
 ```
 
@@ -72,13 +67,7 @@ npm run preview  # Preview production build
 3. Agent automatically saves predictions to `picks` table
 4. Predictions include: game analysis, confidence %, reasoning
 
-### Testing AI Integration
-```bash
-# Test LLM sports API
-node test-llm-api.js
 
-# Test LLM sports service
-node test-llm-simple.js
 ```
 
 ## Component Architecture Patterns
