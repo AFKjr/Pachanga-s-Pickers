@@ -1,6 +1,10 @@
 -- Pachanga Picks Database Schema Migration
 -- Run this in your Supabase SQL Editor
 
+-- ⚠️ NOTE: This migration is MISSING the 'week' column in the picks table!
+-- The complete schema with the week column is in supabase-schema.sql
+-- Do NOT use this file for new installations - use supabase-schema.sql instead
+
 -- Enable Row Level Security
 ALTER DATABASE postgres SET "app.jwt_secret" TO 'your-jwt-secret';
 

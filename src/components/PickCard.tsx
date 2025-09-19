@@ -1,12 +1,6 @@
 import { PickCardProps } from '../types';
 
 const PickCard = ({ pick, showComments = true, onCommentClick }: PickCardProps) => {
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 80) return 'text-green-400';
-    if (confidence >= 60) return 'text-yellow-400';
-    return 'text-red-400';
-  };
-
   const getResultColor = (result?: string) => {
     switch (result) {
       case 'win': return 'text-green-400';
@@ -17,7 +11,6 @@ const PickCard = ({ pick, showComments = true, onCommentClick }: PickCardProps) 
   };
 
   const score = (pick.upvotes || 0) - (pick.downvotes || 0);
-  const commentsCount = pick.comments_count || 0;
 
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-lg mb-4 hover:border-gray-600 transition-colors">
@@ -54,13 +47,10 @@ const PickCard = ({ pick, showComments = true, onCommentClick }: PickCardProps) 
             </div>
           </div>
 
-          {/* Prediction and confidence */}
+          {/* Prediction */}
           <div className="mb-3">
             <p className="text-gray-300 mb-2">{pick.prediction}</p>
             <div className="flex items-center space-x-4">
-              <span className={`font-medium ${getConfidenceColor(pick.confidence)}`}>
-                {pick.confidence}% Confidence
-              </span>
               {pick.result && (
                 <span className={`text-sm ${getResultColor(pick.result)}`}>
                   {pick.result.toUpperCase()}
@@ -83,7 +73,7 @@ const PickCard = ({ pick, showComments = true, onCommentClick }: PickCardProps) 
                 className="flex items-center space-x-1 text-gray-400 hover:text-primary-400 transition-colors"
               >
                 <span>💬</span>
-                <span>{commentsCount} comments</span>
+                <span>Join Discussion</span>
               </button>
             )}
           </div>

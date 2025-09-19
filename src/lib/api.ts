@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { Pick, Post, Comment } from '../types';
+import type { Pick } from '../types';
 
 // Profile type for updates
 interface ProfileUpdate {
@@ -128,20 +128,24 @@ export const picksApi = {
   },
 
   update: async (id: string, updates: Partial<Pick>) => {
+    console.log(`🔄 Updating pick ${id} with:`, updates);
     const { data, error } = await supabase
       .from('picks')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single();
+    console.log(`🔄 Update result for ${id}:`, { data, error });
     return { data, error };
   },
 
   delete: async (id: string) => {
+    console.log(`🗑️ Deleting pick ${id}`);
     const { error } = await supabase
       .from('picks')
       .delete()
       .eq('id', id);
+    console.log(`🗑️ Delete result for ${id}:`, { error });
     return { error };
   },
 
@@ -153,103 +157,51 @@ export const picksApi = {
   }
 };
 
-// Posts API
-export const postsApi = {
-  getAll: async () => {
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
+// Agent Statistics API
+export const agentStatsApi = {
+  getOverallStats: async () => {
+    console.log('📊 Fetching overall stats from database...');
+    // Get all picks to calculate statistics
+    const { data: picks, error } = await supabase
+      .from('picks')
+      .select('result, created_at')
       .order('created_at', { ascending: false });
-    return { data, error };
+
+    console.log('📊 Raw picks data:', picks);
+    console.log('📊 Stats query error:', error);
+
+    if (error) return { data: null, error };
+
+    // Calculate statistics
+    const stats = {
+      totalPicks: picks?.length || 0,
+      wins: picks?.filter(pick => pick.result === 'win').length || 0,
+      losses: picks?.filter(pick => pick.result === 'loss').length || 0,
+      pushes: picks?.filter(pick => pick.result === 'push').length || 0,
+      pending: picks?.filter(pick => pick.result === 'pending').length || 0,
+      winRate: 0,
+      totalResolved: 0
+    };
+
+    stats.totalResolved = stats.wins + stats.losses + stats.pushes;
+    stats.winRate = stats.totalResolved > 0 ? (stats.wins / stats.totalResolved) * 100 : 0;
+
+    console.log('📊 Calculated stats:', stats);
+    return { data: stats, error: null };
   },
 
-  getById: async (id: string) => {
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .eq('id', id)
-      .single();
-    return { data, error };
-  },
+  getRecentPerformance: async (limit: number = 10) => {
+    // Get recent picks with results
+    const { data: picks, error } = await supabase
+      .from('picks')
+      .select('result, created_at, game_info')
+      .not('result', 'eq', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
-  create: async (post: Omit<Post, 'id' | 'created_at' | 'updated_at'>) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    if (error) return { data: null, error };
 
-    const { data, error } = await supabase
-      .from('posts')
-      .insert([{ ...post, user_id: user.id }])
-      .select()
-      .single();
-    return { data, error };
-  },
-
-  update: async (id: string, updates: Partial<Post>) => {
-    const { data, error } = await supabase
-      .from('posts')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data, error };
-  },
-
-  delete: async (id: string) => {
-    const { error } = await supabase
-      .from('posts')
-      .delete()
-      .eq('id', id);
-    return { error };
-  }
-};
-
-// Comments API
-export const commentsApi = {
-  getByPostId: async (postId: string) => {
-    const { data, error } = await supabase
-      .from('comments')
-      .select('*')
-      .eq('post_id', postId)
-      .order('created_at', { ascending: true });
-    return { data, error };
-  },
-
-  create: async (comment: Omit<Comment, 'id' | 'created_at'>) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const { data, error } = await supabase
-      .from('comments')
-      .insert([{ ...comment, user_id: user.id }])
-      .select()
-      .single();
-    return { data, error };
-  },
-
-  update: async (id: string, updates: Partial<Comment>) => {
-    const { data, error } = await supabase
-      .from('comments')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    return { data, error };
-  },
-
-  delete: async (id: string) => {
-    const { error } = await supabase
-      .from('comments')
-      .delete()
-      .eq('id', id);
-    return { error };
-  },
-
-  vote: async (id: string, voteType: 'upvote' | 'downvote') => {
-    const { data, error } = await supabase.rpc('vote_comment', {
-      comment_id: id,
-      vote_type: voteType
-    });
-    return { data, error };
+    return { data: picks, error: null };
   }
 };
 
@@ -278,193 +230,5 @@ export const profilesApi = {
       .select()
       .single();
     return { data, error };
-  }
-};
-
-// Matchup Threads API
-export const matchupThreadsApi = {
-  // Generate threads for current week matchups
-  async generateMatchupThreads(): Promise<{ data: any[], error: any }> {
-    try {
-      // Get current week schedule from real data (not mock)
-      const { llmSportsAPI } = await import('./llmSportsAPI');
-      const schedule = await llmSportsAPI.fetchCurrentWeekSchedule();
-
-      if (!schedule.games || schedule.games.length === 0) {
-        return { data: [], error: 'No games found in schedule' };
-      }
-
-      const threads = [];
-
-      for (const game of schedule.games) {
-        // Check if thread already exists for this game
-        const existingThread = await this.getThreadByGameId(game.id);
-        if (existingThread.data) {
-          threads.push(existingThread.data);
-          continue;
-        }
-
-        // Create new thread for this matchup
-        const threadData = {
-          title: `${game.awayTeam} @ ${game.homeTeam} - Game Thread`,
-          content: `## ${game.awayTeam} vs ${game.homeTeam}
-
-**Date:** ${new Date(game.date).toLocaleDateString('en-US', {
-  weekday: 'long',
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric'
-})}
-
-**Time:** ${new Date(game.date).toLocaleTimeString('en-US', {
-  hour: 'numeric',
-  minute: '2-digit',
-  timeZoneName: 'short'
-})}
-
-**Venue:** ${game.venue}
-**Location:** ${game.location}
-
-### Discussion
-Share your thoughts, predictions, and analysis for this matchup!
-
-### Betting Lines (if available)
-- Spread: TBD
-- Over/Under: TBD
-
-*This thread was automatically generated for the matchup.*`,
-          game_id: game.id,
-          game_info: {
-            home_team: game.homeTeam,
-            away_team: game.awayTeam,
-            league: 'NFL',
-            game_date: game.date,
-            venue: game.venue,
-            location: game.location
-          }
-        };
-
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          return { data: [], error: 'User not authenticated' };
-        }
-
-        const { data, error } = await supabase
-          .from('posts')
-          .insert([{
-            ...threadData,
-            user_id: user.id,
-            title: threadData.title,
-            content: threadData.content
-          }])
-          .select(`
-            *
-          `)
-          .single();
-
-        if (error) {
-          console.error('Error creating thread for game:', game.id, error);
-          continue;
-        }
-
-        // Get the user profile separately
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('id', user.id)
-          .single();
-
-        threads.push({
-          ...data,
-          author_username: profile?.username || 'System'
-        });
-      }
-
-      return { data: threads, error: null };
-    } catch (error) {
-      console.error('Error generating matchup threads:', error);
-      return { data: [], error };
-    }
-  },
-
-  // Get thread by game ID
-  async getThreadByGameId(gameId: string): Promise<{ data: any, error: any }> {
-    const { data, error } = await supabase
-      .from('posts')
-      .select(`
-        *
-      `)
-      .eq('content', `%${gameId}%`)
-      .single();
-
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-      return { data: [], error };
-    }
-
-    return {
-      data: data ? {
-        ...data,
-        author_username: data.profiles?.username || 'System'
-      } : null,
-      error: null
-    };
-  },
-
-  // Get all matchup threads
-  async getAllMatchupThreads(): Promise<{ data: any[], error: any }> {
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .ilike('title', '%@%') // Threads with @ symbol (matchup format)
-      .order('created_at', { ascending: false });
-
-    if (error) return { data: [], error };
-
-    // Get profile information for each thread
-    const threadsWithProfiles = await Promise.all(
-      (data || []).map(async (thread) => {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('id', thread.user_id)
-          .single();
-        
-        return {
-          ...thread,
-          author_username: profile?.username || 'System'
-        };
-      })
-    );
-
-    return { data: threadsWithProfiles, error: null };
-  },
-
-  // Get comments for a matchup thread
-  async getThreadComments(threadId: string): Promise<{ data: any[], error: any }> {
-    const { data, error } = await supabase
-      .from('comments')
-      .select('*')
-      .eq('post_id', threadId)
-      .order('created_at', { ascending: true });
-
-    if (error) return { data: [], error };
-
-    // Get profile information for each comment
-    const commentsWithProfiles = await Promise.all(
-      (data || []).map(async (comment) => {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('id', comment.user_id)
-          .single();
-        
-        return {
-          ...comment,
-          author_username: profile?.username || 'Anonymous'
-        };
-      })
-    );
-
-    return { data: commentsWithProfiles, error: null };
   }
 };

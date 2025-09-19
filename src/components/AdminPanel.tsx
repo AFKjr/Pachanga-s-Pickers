@@ -2,6 +2,9 @@
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import RelevanceAIAgentEmbed from './RelevanceAIAgentEmbed';
+import AdminDataEntry from './AdminDataEntry';
+import AdminPickResults from './AdminPickResults';
+import AutoUpdateResults from './AutoUpdateResults';
 
 const AdminPanel: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -80,15 +83,17 @@ const AdminPanel: React.FC = () => {
 
   return (
     <div className='max-w-7xl mx-auto p-6'>
-      <div className='mb-8'>
-        <h1 className='text-3xl font-bold mb-2'>🤖 AI Admin Dashboard</h1>
-        <p className='text-gray-400'>
-          Use the Relevance AI agent below to generate predictions, analyze games, and research teams
-        </p>
-      </div>
-
       {/* Relevance AI Agent Embed */}
       <RelevanceAIAgentEmbed />
+
+      {/* Admin Data Entry */}
+      <AdminDataEntry />
+
+      {/* Admin Pick Results */}
+      <AdminPickResults />
+
+      {/* Auto Update Results */}
+      <AutoUpdateResults />
 
       <div className='mt-8 bg-blue-900 border border-blue-700 text-blue-200 px-4 py-3 rounded'>
         <h4 className='font-semibold mb-2'>💡 How to Use the AI Agent:</h4>
@@ -97,8 +102,8 @@ const AdminPanel: React.FC = () => {
           <li><strong>Game Analysis:</strong> Ask 'Analyze the Chiefs vs Bills matchup'</li>
           <li><strong>Team Research:</strong> Ask 'Research injuries for the Kansas City Chiefs'</li>
           <li><strong>Betting Analysis:</strong> Ask 'What\'s the betting analysis for tonight\'s games?'</li>
-          <li><strong>Save Predictions:</strong> The agent automatically saves predictions to the database</li>
-          <li><strong>User Comments:</strong> Users can comment on AI-generated predictions on the home page</li>
+          <li><strong>Process Output:</strong> Copy agent responses and paste them in the "Process Agent Output" section below</li>
+          <li><strong>Save Predictions:</strong> Click "Parse & Preview" then "Save Predictions" to add to the database</li>
         </ul>
       </div>
     </div>

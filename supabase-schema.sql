@@ -19,7 +19,8 @@ CREATE TABLE picks (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  is_pinned BOOLEAN DEFAULT FALSE
+  is_pinned BOOLEAN DEFAULT FALSE,
+  week INTEGER CHECK (week >= 1 AND week <= 18)
 );
 
 -- Create posts table (for forum threads)
@@ -102,6 +103,14 @@ CREATE POLICY "Authenticated users can create posts" ON posts
 CREATE POLICY "Users can update their own posts" ON posts
   FOR UPDATE USING (auth.uid() = user_id);
 
+CREATE POLICY "Admins can delete any post" ON posts
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND is_admin = true
+    )
+  );
+
 -- Create policies for comments
 CREATE POLICY "Comments are viewable by everyone" ON comments
   FOR SELECT USING (true);
@@ -111,6 +120,14 @@ CREATE POLICY "Authenticated users can create comments" ON comments
 
 CREATE POLICY "Users can update their own comments" ON comments
   FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Admins can delete any comment" ON comments
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND is_admin = true
+    )
+  );
 
 -- Create policies for profiles
 CREATE POLICY "Profiles are viewable by everyone" ON profiles

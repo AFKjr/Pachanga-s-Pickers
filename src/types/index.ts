@@ -47,47 +47,11 @@ export interface GameSchedule {
   lastUpdated: string;
 }
 
-export interface Post {
-  id: string;
-  title: string;
-  content: string;
-  pick_id?: string;
-  user_name: string;
-  created_at: string;
-  updated_at?: string;
-  upvotes?: number;
-  downvotes?: number;
-}
-
-export interface Comment {
-  id: string;
-  content: string;
-  post_id: string;
-  user_name: string;
-  created_at: string;
-  parent_comment_id?: string;
-  upvotes?: number;
-  downvotes?: number;
-}
-
 // UI Component Props
 export interface PickCardProps {
   pick: Pick;
   showComments?: boolean;
   onCommentClick?: () => void;
-}
-
-export interface ForumThreadProps {
-  post: Post;
-  comments: Comment[];
-  onReply?: (commentId: string, content: string) => void;
-}
-
-export interface CommentProps {
-  comment: Comment;
-  replies?: Comment[];
-  depth?: number;
-  onReply?: (content: string) => void;
 }
 
 // Mock Data Types
