@@ -13,6 +13,18 @@ export const AgentTextInput: React.FC<AgentTextInputProps> = ({
   disabled,
   placeholder = "Paste agent output here..."
 }) => {
+  if (disabled) {
+    return (
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Agent Output
+        </label>
+        <div className="bg-gray-700 animate-pulse h-64 rounded-md"></div>
+        <p className="text-xs text-gray-500 mt-1">Processing...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="mb-4">
       <label className="block text-sm font-medium text-gray-300 mb-2">

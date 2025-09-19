@@ -1,8 +1,9 @@
 import React from 'react';
+import { NFLWeek } from '../../types/index';
 
 interface WeekSelectorProps {
-  selectedWeek: number | null;
-  onChange: (week: number | null) => void;
+  selectedWeek: NFLWeek | null;
+  onChange: (week: NFLWeek | null) => void;
   disabled?: boolean;
 }
 
@@ -18,7 +19,7 @@ export const WeekSelector: React.FC<WeekSelectorProps> = ({
       </label>
       <select
         value={selectedWeek || ''}
-        onChange={(e) => onChange(e.target.value ? parseInt(e.target.value) : null)}
+        onChange={(e) => onChange(e.target.value ? parseInt(e.target.value) as NFLWeek : null)}
         disabled={disabled}
         className="bg-gray-900 border border-gray-600 rounded-md px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
         aria-describedby="week-help"

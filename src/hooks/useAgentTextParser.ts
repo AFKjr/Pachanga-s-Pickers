@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { ParsedPrediction, AgentTextParserResult } from '../types/predictions';
+import type { ParsedPrediction, AgentTextParserResult, ConfidenceLevel, NFLWeek } from '../types/predictions';
 import {
   parseGameDate,
   parseWeekFromHeader,
@@ -17,7 +17,7 @@ export const useAgentTextParser = (): AgentTextParserResult => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const parseAgentText = useCallback((text: string, selectedWeek?: number): ParsedPrediction[] => {
+  const parseAgentText = useCallback((text: string, selectedWeek?: NFLWeek): ParsedPrediction[] => {
     if (!text || typeof text !== 'string') {
       throw new Error('Invalid text input');
     }
@@ -27,12 +27,12 @@ export const useAgentTextParser = (): AgentTextParserResult => {
 
     let currentGame = '';
     let currentPrediction = '';
-    let currentConfidence = 0;
+    let currentConfidence: ConfidenceLevel = 50; // Default to 50%
     let currentReasoning = '';
     let homeTeam = '';
     let awayTeam = '';
-    let currentGameDate = new Date().toISOString().split('T')[0]; // fallback to today
-    let currentWeek = selectedWeek || 1; // Use selected week or default to 1
+    let currentGameDate = new Date(); // Default to current date
+    let currentWeek: NFLWeek = selectedWeek || 1; // Use selected week or default to 1
     let isCollectingFactors = false;
 
     console.log('Starting to parse agent text with', lines.length, 'lines');
@@ -42,15 +42,22 @@ export const useAgentTextParser = (): AgentTextParserResult => {
 
       // Parse week from header like "Week 3 Game Predictions"
       const parsedWeek = parseWeekFromHeader(line);
-      if (parsedWeek) {
-        currentWeek = parsedWeek;
+      if (parsedWeek && parsedWeek >= 1 && parsedWeek <= 18) {
+        currentWeek = parsedWeek as NFLWeek;
         console.log('Parsed week from AI output:', currentWeek);
       }
 
       // Look for date indicators (should be processed before game lines)
       if (hasDateIndicators(line)) {
-        currentGameDate = parseGameDate(line);
-        console.log('Parsed date from line:', line, '->', currentGameDate);
+        const parsedDateStr = parseGameDate(line);
+        if (parsedDateStr) {
+          // Convert string to Date object
+          const parsedDate = new Date(parsedDateStr);
+          if (!isNaN(parsedDate.getTime())) {
+            currentGameDate = parsedDate;
+            console.log('Parsed date from line:', line, '->', currentGameDate.toISOString().split('T')[0]);
+          }
+        }
       }
 
       // Look for game lines that contain "@" (like "Miami Dolphins @ Buffalo Bills")
@@ -64,10 +71,10 @@ export const useAgentTextParser = (): AgentTextParserResult => {
             homeTeam: homeTeam,
             awayTeam: awayTeam,
             prediction: currentPrediction,
-            confidence: currentConfidence,
+            confidence: currentConfidence as ConfidenceLevel,
             reasoning: currentReasoning.trim(),
             gameDate: currentGameDate,
-            week: currentWeek
+            week: currentWeek as NFLWeek
           });
         }
 
@@ -80,7 +87,7 @@ export const useAgentTextParser = (): AgentTextParserResult => {
           console.log('Parsed teams - Away:', awayTeam, 'Home:', homeTeam);
         }
         currentPrediction = '';
-        currentConfidence = 0;
+        currentConfidence = 50; // Reset to default 50%
         currentReasoning = '';
         isCollectingFactors = false;
       }
@@ -95,7 +102,9 @@ export const useAgentTextParser = (): AgentTextParserResult => {
       // Look for recommended play (contains confidence)
       const confidence = extractConfidence(line);
       if (confidence !== null) {
-        currentConfidence = confidence;
+        // Ensure confidence is a valid ConfidenceLevel (round to nearest 10)
+        const validConfidence = Math.round(confidence / 10) * 10;
+        currentConfidence = Math.max(0, Math.min(100, validConfidence)) as ConfidenceLevel;
         console.log('Found confidence:', currentConfidence, 'from:', line);
       }
 
@@ -129,10 +138,10 @@ export const useAgentTextParser = (): AgentTextParserResult => {
         homeTeam: homeTeam,
         awayTeam: awayTeam,
         prediction: currentPrediction,
-        confidence: currentConfidence,
+        confidence: currentConfidence as ConfidenceLevel,
         reasoning: currentReasoning.trim(),
         gameDate: currentGameDate,
-        week: currentWeek
+        week: currentWeek as NFLWeek
       });
     }
 
@@ -140,7 +149,7 @@ export const useAgentTextParser = (): AgentTextParserResult => {
     return predictions;
   }, []);
 
-  const processText = useCallback(async (text: string, selectedWeek?: number) => {
+  const processText = useCallback(async (text: string, selectedWeek?: NFLWeek) => {
     try {
       setIsProcessing(true);
       setError(null);

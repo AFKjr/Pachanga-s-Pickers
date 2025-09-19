@@ -60,7 +60,7 @@ export const usePredictionManager = (): PredictionManagerResult => {
             home_team: pred.homeTeam,
             away_team: pred.awayTeam,
             league: 'NFL' as const,
-            game_date: pred.gameDate,
+            game_date: pred.gameDate.toISOString().split('T')[0], // Convert Date to YYYY-MM-DD string
             spread: 0, // Default values
             over_under: 40
           },

@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import RelevanceAIAgentEmbed from './RelevanceAIAgentEmbed';
 import AdminDataEntry from './AdminDataEntry';
 import AdminPickResults from './AdminPickResults';
-import AutoUpdateResults from './AutoUpdateResults';
 
 const AdminPanel: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -91,9 +90,6 @@ const AdminPanel: React.FC = () => {
 
       {/* Admin Pick Results */}
       <AdminPickResults />
-
-      {/* Auto Update Results */}
-      <AutoUpdateResults />
 
       <div className='mt-8 bg-blue-900 border border-blue-700 text-blue-200 px-4 py-3 rounded'>
         <h4 className='font-semibold mb-2'>💡 How to Use the AI Agent:</h4>

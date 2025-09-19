@@ -2,6 +2,11 @@
  * Utility functions for parsing dates from various formats in agent text
  */
 
+import { NFLWeek } from '../types/index';
+
+/**
+ * Parse game date from various text formats
+ */
 export const parseGameDate = (dateText: string): string => {
   const today = new Date();
   const currentYear = today.getFullYear();
@@ -79,9 +84,16 @@ export const parseConfidence = (playText: string): number => {
 /**
  * Extract week number from header text like "Week 3 Game Predictions"
  */
-export const parseWeekFromHeader = (line: string): number | null => {
+export const parseWeekFromHeader = (line: string): NFLWeek | null => {
   const weekMatch = line.match(/week\s+(\d+)/i);
-  return weekMatch ? parseInt(weekMatch[1]) : null;
+  if (weekMatch) {
+    const weekNum = parseInt(weekMatch[1]);
+    // Validate that week is within NFL range (1-18)
+    if (weekNum >= 1 && weekNum <= 18) {
+      return weekNum as NFLWeek;
+    }
+  }
+  return null;
 };
 
 /**

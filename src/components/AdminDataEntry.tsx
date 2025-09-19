@@ -5,10 +5,11 @@ import { ProcessingActions } from './admin/ProcessingActions';
 import { StatusMessage } from './admin/StatusMessage';
 import { useAgentTextParser } from '../hooks/useAgentTextParser';
 import { usePredictionManager } from '../hooks/usePredictionManager';
+import { NFLWeek } from '../types/index';
 
 const AdminDataEntry: React.FC = () => {
   const [agentText, setAgentText] = useState('');
-  const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
+  const [selectedWeek, setSelectedWeek] = useState<NFLWeek | null>(null);
 
   const {
     processText,

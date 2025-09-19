@@ -1,22 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { picksApi, agentStatsApi } from '../lib/api';
 import { globalEvents } from '../lib/events';
-
-interface Pick {
-  id: string;
-  game_info: {
-    home_team: string;
-    away_team: string;
-    league: string;
-    game_date: string;
-  };
-  prediction: string;
-  confidence: number;
-  result: 'pending' | 'win' | 'loss' | 'push';
-  created_at: string;
-  author_username?: string;
-  week?: number;
-}
+import { Pick, NFLWeek } from '../types/index';
 
 interface PendingChange {
   id: string;
@@ -30,13 +15,13 @@ const AdminPickResults: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [updating, ] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
-  const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
+  const [selectedWeek, setSelectedWeek] = useState<NFLWeek | null>(null);
+  const [availableWeeks, setAvailableWeeks] = useState<NFLWeek[]>([]);
   const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([]);
   const [saving, setSaving] = useState(false);
 
   // Get NFL week from stored week data or fallback to date calculation
-  const getNFLWeek = (pick: Pick): number => {
+  const getNFLWeek = (pick: Pick): NFLWeek => {
     // Use stored week if available
     if (pick.week) {
       console.log(`Using stored week ${pick.week} for ${pick.game_info.away_team} @ ${pick.game_info.home_team}`);
@@ -53,7 +38,7 @@ const AdminPickResults: React.FC = () => {
     // NFL weeks are typically 7 days, with some adjustments for byes and scheduling
     const week = Math.floor(daysDiff / 7) + 1;
 
-    const calculatedWeek = Math.max(1, Math.min(18, week));
+    const calculatedWeek = Math.max(1, Math.min(18, week)) as NFLWeek;
     console.log(`Calculated week ${calculatedWeek} for ${pick.game_info.away_team} @ ${pick.game_info.home_team} (date: ${pick.game_info.game_date}, daysDiff: ${daysDiff})`);
 
     return calculatedWeek;
@@ -61,7 +46,7 @@ const AdminPickResults: React.FC = () => {
 
   // Group picks by week
   const getPicksByWeek = (picks: Pick[]) => {
-    const weekGroups: { [week: number]: Pick[] } = {};
+    const weekGroups: Record<NFLWeek, Pick[]> = {} as Record<NFLWeek, Pick[]>;
 
     picks.forEach(pick => {
       const week = getNFLWeek(pick);
@@ -98,7 +83,7 @@ const AdminPickResults: React.FC = () => {
 
       // Calculate available weeks from all picks
       const weekGroups = getPicksByWeek(allPicks);
-      const weeks = Object.keys(weekGroups).map(w => parseInt(w)).sort((a, b) => b - a); // Most recent first
+      const weeks = Object.keys(weekGroups).map(w => parseInt(w)).sort((a, b) => b - a) as NFLWeek[]; // Most recent first
       setAvailableWeeks(weeks);
 
       // Set default to most recent week if not set
@@ -440,7 +425,7 @@ const AdminPickResults: React.FC = () => {
           </label>
           <select
             value={selectedWeek || ''}
-            onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
+            onChange={(e) => setSelectedWeek(parseInt(e.target.value) as NFLWeek)}
             className='bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
           >
             {availableWeeks.map(week => (

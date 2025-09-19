@@ -1,50 +1,6 @@
 import { supabase } from './supabase';
 import type { Pick } from '../types';
 
-// Profile type for updates
-interface ProfileUpdate {
-  username?: string;
-  full_name?: string;
-  avatar_url?: string;
-  bio?: string;
-}
-
-// Authentication functions
-export const auth = {
-  signUp: async (email: string, password: string, username: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { username }
-      }
-    });
-    return { data, error };
-  },
-
-  signIn: async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    return { data, error };
-  },
-
-  signOut: async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
-  },
-
-  getCurrentUser: async () => {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    return { user, error };
-  },
-
-  onAuthStateChange: (callback: (event: string, session: any) => void) => {
-    return supabase.auth.onAuthStateChange(callback);
-  }
-};
-
 // Picks API
 export const picksApi = {
   getAll: async () => {
@@ -64,7 +20,7 @@ export const picksApi = {
           .select('username')
           .eq('id', pick.user_id)
           .single();
-        
+
         return {
           ...pick,
           author_username: profile?.username || 'Anonymous',
@@ -94,7 +50,7 @@ export const picksApi = {
           .select('username')
           .eq('id', pick.user_id)
           .single();
-        
+
         return {
           ...pick,
           author_username: profile?.username || 'Anonymous',
@@ -205,30 +161,8 @@ export const agentStatsApi = {
   }
 };
 
-// Profiles API
-export const profilesApi = {
-  getCurrentProfile: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: null };
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-    return { data, error };
-  },
-
-  updateProfile: async (updates: ProfileUpdate) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', user.id)
-      .select()
-      .single();
-    return { data, error };
-  }
+// Simplified API export - only what you actually use
+export const api = {
+  picks: picksApi,
+  stats: agentStatsApi
 };

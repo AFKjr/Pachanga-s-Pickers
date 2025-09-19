@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { NFLWeek, ConfidenceLevel } from '../types/index';
 
 // These would normally come from environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
@@ -22,11 +23,12 @@ export type Database = {
             over_under?: number;
           };
           prediction: string;
-          confidence: number;
+          confidence: ConfidenceLevel;
           reasoning: string;
           result?: 'win' | 'loss' | 'push' | 'pending';
           created_at: string;
           updated_at?: string;
+          week?: NFLWeek;
         };
         Insert: {
           id?: string;
@@ -39,11 +41,12 @@ export type Database = {
             over_under?: number;
           };
           prediction: string;
-          confidence: number;
+          confidence: ConfidenceLevel;
           reasoning: string;
           result?: 'win' | 'loss' | 'push' | 'pending';
           created_at?: string;
           updated_at?: string;
+          week?: NFLWeek;
         };
         Update: {
           id?: string;
@@ -56,11 +59,12 @@ export type Database = {
             over_under?: number;
           };
           prediction?: string;
-          confidence?: number;
+          confidence?: ConfidenceLevel;
           reasoning?: string;
           result?: 'win' | 'loss' | 'push' | 'pending';
           created_at?: string;
           updated_at?: string;
+          week?: NFLWeek;
         };
       };
       posts: {
@@ -133,7 +137,7 @@ export type Database = {
       game_schedules: {
         Row: {
           id: string;
-          week: number;
+          week: NFLWeek;
           season: number;
           games: any[]; // Array of ESPNGame objects
           last_updated: string;
@@ -141,7 +145,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          week: number;
+          week: NFLWeek;
           season: number;
           games: any[];
           last_updated?: string;
@@ -149,7 +153,7 @@ export type Database = {
         };
         Update: {
           id?: string;
-          week?: number;
+          week?: NFLWeek;
           season?: number;
           games?: any[];
           last_updated?: string;
