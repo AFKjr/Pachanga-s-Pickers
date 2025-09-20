@@ -36,6 +36,9 @@ export const useAgentTextParser = (): AgentTextParserResult => {
     let isCollectingFactors = false;
 
     console.log('Starting to parse agent text with', lines.length, 'lines');
+    
+    // Add tracking for duplicates
+    const savedGames: string[] = [];
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -66,16 +69,27 @@ export const useAgentTextParser = (): AgentTextParserResult => {
 
         // Save previous game if we have one
         if (currentGame && currentPrediction) {
-          console.log('Saving previous game:', currentGame, 'with prediction:', currentPrediction);
-          predictions.push({
-            homeTeam: homeTeam,
-            awayTeam: awayTeam,
-            prediction: currentPrediction,
-            confidence: currentConfidence as ConfidenceLevel,
-            reasoning: currentReasoning.trim(),
-            gameDate: currentGameDate,
-            week: currentWeek as NFLWeek
-          });
+          const gameId = `${awayTeam} @ ${homeTeam}`;
+          
+          console.log('🎯 SAVE ATTEMPT #1 (next game found):', gameId);
+          console.log('🎯 Already saved games:', savedGames);
+          
+          if (savedGames.includes(gameId)) {
+            console.log('🚨 DUPLICATE SAVE DETECTED! Skipping:', gameId);
+          } else {
+            console.log('✅ Saving new game:', gameId);
+            savedGames.push(gameId);
+            
+            predictions.push({
+              homeTeam: homeTeam,
+              awayTeam: awayTeam,
+              prediction: currentPrediction,
+              confidence: currentConfidence as ConfidenceLevel,
+              reasoning: currentReasoning.trim(),
+              gameDate: currentGameDate,
+              week: currentWeek as NFLWeek
+            });
+          }
         }
 
         // Parse new game
@@ -133,19 +147,32 @@ export const useAgentTextParser = (): AgentTextParserResult => {
 
     // Save the last game
     if (currentGame && currentPrediction) {
-      console.log('Saving last game:', currentGame, 'with prediction:', currentPrediction);
-      predictions.push({
-        homeTeam: homeTeam,
-        awayTeam: awayTeam,
-        prediction: currentPrediction,
-        confidence: currentConfidence as ConfidenceLevel,
-        reasoning: currentReasoning.trim(),
-        gameDate: currentGameDate,
-        week: currentWeek as NFLWeek
-      });
+      const gameId = `${awayTeam} @ ${homeTeam}`;
+      
+      console.log('🎯 SAVE ATTEMPT #2 (end of parsing):', gameId);
+      console.log('🎯 Already saved games:', savedGames);
+      
+      if (savedGames.includes(gameId)) {
+        console.log('🚨 DUPLICATE SAVE DETECTED! Skipping:', gameId);
+      } else {
+        console.log('✅ Saving last game:', gameId);
+        savedGames.push(gameId);
+        
+        predictions.push({
+          homeTeam: homeTeam,
+          awayTeam: awayTeam,
+          prediction: currentPrediction,
+          confidence: currentConfidence as ConfidenceLevel,
+          reasoning: currentReasoning.trim(),
+          gameDate: currentGameDate,
+          week: currentWeek as NFLWeek
+        });
+      }
     }
 
     console.log('Parsed', predictions.length, 'predictions total');
+    console.log('📊 Final saved games list:', savedGames);
+    
     return predictions;
   }, []);
 

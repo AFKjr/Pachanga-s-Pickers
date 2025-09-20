@@ -92,15 +92,13 @@ const AdminPanel: React.FC = () => {
       <AdminPickResults />
 
       <div className='mt-8 bg-blue-900 border border-blue-700 text-blue-200 px-4 py-3 rounded'>
-        <h4 className='font-semibold mb-2'>💡 How to Use the AI Agent:</h4>
-        <ul className='list-disc list-inside space-y-1 text-sm'>
-          <li><strong>Generate Predictions:</strong> Ask 'Generate predictions for this week\'s NFL games'</li>
-          <li><strong>Game Analysis:</strong> Ask 'Analyze the Chiefs vs Bills matchup'</li>
-          <li><strong>Team Research:</strong> Ask 'Research injuries for the Kansas City Chiefs'</li>
-          <li><strong>Betting Analysis:</strong> Ask 'What\'s the betting analysis for tonight\'s games?'</li>
-          <li><strong>Process Output:</strong> Copy agent responses and paste them in the "Process Agent Output" section below</li>
-          <li><strong>Save Predictions:</strong> Click "Parse & Preview" then "Save Predictions" to add to the database</li>
-        </ul>
+        <h4 className='font-semibold mb-2'>Admin Workflow:</h4>
+        <ol className='list-decimal list-inside space-y-1 text-sm'>
+          <li>Use the AI agent above to generate NFL predictions</li>
+          <li>Copy the agent's response and paste it in "Process Agent Output"</li>
+          <li>Click "Process & Publish" to add predictions to the database</li>
+          <li>Update pick results in the "Update Pick Results" section as games finish</li>
+        </ol>
       </div>
     </div>
   );

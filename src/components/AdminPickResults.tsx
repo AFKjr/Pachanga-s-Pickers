@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { picksApi, agentStatsApi } from '../lib/api';
+import { picksApi } from '../lib/api';
 import { globalEvents } from '../lib/events';
 import { Pick, NFLWeek } from '../types/index';
 
@@ -253,9 +253,9 @@ const AdminPickResults: React.FC = () => {
       console.log(`Successfully saved ${successCount}/${pendingChanges.length} changes`);
 
       if (successCount === pendingChanges.length) {
-        alert(`✅ Successfully saved all ${successCount} changes!`);
+        alert(`Successfully saved all ${successCount} changes!`);
       } else {
-        alert(`⚠️ Saved ${successCount}/${pendingChanges.length} changes. Check console for details.`);
+        alert(`Saved ${successCount}/${pendingChanges.length} changes. Check console for details.`);
       }
 
     } catch (err: any) {
@@ -295,53 +295,6 @@ const AdminPickResults: React.FC = () => {
       setError('Failed to clear picks: ' + err.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const testDatabaseConnection = async () => {
-    console.log('🧪 Testing database connection...');
-
-    try {
-      // Test getting all picks
-      const { data: picks, error: getError } = await picksApi.getAll();
-      console.log('📋 Current picks in database:', picks?.length || 0);
-      console.log('📋 Sample pick:', picks?.[0]);
-
-      if (getError) {
-        console.error('❌ Failed to get picks:', getError);
-        return;
-      }
-
-      // Test updating a pick (if any exist)
-      if (picks && picks.length > 0) {
-        const testPick = picks[0];
-        console.log('🔄 Testing update on pick:', testPick.id);
-
-        const { data: updatedPick, error: updateError } = await picksApi.update(testPick.id, {
-          result: testPick.result === 'win' ? 'loss' : 'win'
-        });
-
-        if (updateError) {
-          console.error('❌ Failed to update pick:', updateError);
-        } else {
-          console.log('✅ Successfully updated pick:', updatedPick);
-
-          // Revert the change
-          await picksApi.update(testPick.id, { result: testPick.result });
-          console.log('🔄 Reverted test change');
-        }
-      }
-
-      // Test stats calculation
-      const { data: stats, error: statsError } = await agentStatsApi.getOverallStats();
-      console.log('📊 Current stats:', stats);
-
-      if (statsError) {
-        console.error('❌ Failed to get stats:', statsError);
-      }
-
-    } catch (err) {
-      console.error('❌ Database test failed:', err);
     }
   };
 
@@ -395,24 +348,6 @@ const AdminPickResults: React.FC = () => {
             className='px-3 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-md text-white text-sm font-medium transition-colors'
           >
             🗑️ Clear All
-          </button>
-          <button
-            onClick={() => {
-              console.log('🔔 Testing global events...');
-              globalEvents.emit('refreshStats');
-              alert('Global refresh event emitted! Check console for stats reload.');
-            }}
-            disabled={loading}
-            className='px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 rounded-md text-white text-sm font-medium transition-colors'
-          >
-            🔔 Test Events
-          </button>
-          <button
-            onClick={testDatabaseConnection}
-            disabled={loading}
-            className='px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-md text-white text-sm font-medium transition-colors'
-          >
-            🧪 Test DB
           </button>
         </div>
       </div>
@@ -494,10 +429,10 @@ const AdminPickResults: React.FC = () => {
                       currentResult === 'push' ? 'bg-yellow-900 text-yellow-200' :
                       'bg-gray-600 text-gray-300'
                     }`}>
-                      {currentResult === 'win' ? '✅ Win' :
-                       currentResult === 'loss' ? '❌ Loss' :
-                       currentResult === 'push' ? '⚖️ Push' :
-                       '⏳ Pending'}
+                      {currentResult === 'win' ? 'Win' :
+                       currentResult === 'loss' ? 'Loss' :
+                       currentResult === 'push' ? 'Push' :
+                       'Pending'}
                     </span>
                   </div>
 
@@ -539,7 +474,7 @@ const AdminPickResults: React.FC = () => {
                           currentResult === 'win' ? 'bg-green-700 text-white ring-2 ring-green-400' : 'bg-green-600 hover:bg-green-700 disabled:opacity-50'
                         }`}
                       >
-                        {updating === pick.id ? '...' : '✅ Win'}
+                        {updating === pick.id ? '...' : 'Win'}
                       </button>
                       <button
                         onClick={() => updatePickResult(pick.id, 'loss')}
@@ -548,7 +483,7 @@ const AdminPickResults: React.FC = () => {
                           currentResult === 'loss' ? 'bg-red-700 text-white ring-2 ring-red-400' : 'bg-red-600 hover:bg-red-700 disabled:opacity-50'
                         }`}
                       >
-                        {updating === pick.id ? '...' : '❌ Loss'}
+                        {updating === pick.id ? '...' : 'Loss'}
                       </button>
                       <button
                         onClick={() => updatePickResult(pick.id, 'push')}
@@ -557,7 +492,7 @@ const AdminPickResults: React.FC = () => {
                           currentResult === 'push' ? 'bg-yellow-700 text-white ring-2 ring-yellow-400' : 'bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50'
                         }`}
                       >
-                        {updating === pick.id ? '...' : '⚖️ Push'}
+                        {updating === pick.id ? '...' : 'Push'}
                       </button>
                     </div>
                   </div>
@@ -585,10 +520,10 @@ const AdminPickResults: React.FC = () => {
               return (
                 <div key={index} className='flex items-center justify-between'>
                   <span>
-                    {change.type === 'delete' ? '🗑️' : '📝'} {pick.game_info.away_team} @ {pick.game_info.home_team}
+                    {change.type === 'delete' ? '🗑️ DELETE:' : '📝 UPDATE:'} {pick.game_info.away_team} @ {pick.game_info.home_team}
                     {change.type === 'update' && change.result && (
                       <span className='ml-2 text-yellow-300'>
-                        → {change.result === 'win' ? '✅ Win' : change.result === 'loss' ? '❌ Loss' : '⚖️ Push'}
+                        → {change.result === 'win' ? 'Win' : change.result === 'loss' ? 'Loss' : 'Push'}
                       </span>
                     )}
                   </span>

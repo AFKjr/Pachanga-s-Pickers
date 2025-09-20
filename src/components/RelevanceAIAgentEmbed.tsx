@@ -19,17 +19,6 @@ const RelevanceAIAgentEmbed: React.FC = () => {
           />
         </div>
       </div>
-
-      {/* Instructions */}
-      <div className="mt-6 bg-blue-900 border border-blue-700 text-blue-200 px-4 py-3 rounded">
-        <h4 className="font-semibold mb-2">📋 How to Use:</h4>
-        <ol className="list-decimal list-inside space-y-1 text-sm">
-          <li>Use the chat interface above to ask the agent for NFL data</li>
-          <li>The agent can fetch schedules, analyze games, research teams, etc.</li>
-          <li>Data will be automatically saved to the database for user display</li>
-          <li>The main page will show the agent-generated content to users</li>
-        </ol>
-      </div>
     </div>
   );
 };
