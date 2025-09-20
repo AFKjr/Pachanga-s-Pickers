@@ -16,7 +16,7 @@ const HomePage = () => {
     <div className="max-w-6xl mx-auto space-y-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Pachanga's Picks</h1>
-        <p className="text-gray-400">AI-powered NFL analysis and predictions</p>
+        <p className="text-gray-400">Making outright winning predictions (Moneyline). No parlays. </p>
       </div>
 
       {/* Performance Stats */}
@@ -29,7 +29,7 @@ const HomePage = () => {
       <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
         <p className="text-gray-400 text-sm">
           <strong>Disclaimer:</strong> All predictions are for entertainment and analysis purposes only.
-          Past performance does not guarantee future results. Please gamble responsibly.
+          Past performance does not guarantee future results. Please play responsibly. Good Luck!
         </p>
       </div>
     </div>

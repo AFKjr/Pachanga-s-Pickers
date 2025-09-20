@@ -73,6 +73,11 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
 
   const displayPicks = filteredPicks.slice(0, maxPicks);
 
+  console.log('Displaying picks:', displayPicks.map(p => ({ 
+  teams: `${p.game_info.away_team} @ ${p.game_info.home_team}`,
+  prediction: p.prediction 
+})));
+
   if (loading) {
     return (
       <div className="bg-gray-800 rounded-lg p-6">
@@ -128,7 +133,7 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
               <div className="mb-3">
                 <div className="text-green-400 font-medium text-sm mb-1">
                   {pick.prediction}
-                  
+
                 </div>
                 <div className="text-gray-400 text-xs">
                   {pick.confidence}% confidence
@@ -137,7 +142,7 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
 
               {/* Key reasoning (shortened and cleaned) */}
               <div className="text-gray-300 text-sm mb-3 line-clamp-2">
-                {pick.reasoning.replace(/AI-generated\s*/i, '').trim()}
+                
               </div>
 
               {/* Footer */}
