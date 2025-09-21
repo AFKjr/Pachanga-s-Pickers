@@ -24,4 +24,33 @@
   .card {
     @apply bg-gray-800 border border-gray-700 rounded-lg p-6 shadow-lg;
   }
+
+  /* Scrollable results container for Recent Results modal */
+  .results-scroll-container {
+    height: 300px;
+    overflow-y: auto;
+    padding: 8px;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    background-color: #1f2937;
+  }
+
+  /* Style the scrollbar to match dark theme */
+  .results-scroll-container::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .results-scroll-container::-webkit-scrollbar-track {
+    background: #374151;
+    border-radius: 4px;
+  }
+
+  .results-scroll-container::-webkit-scrollbar-thumb {
+    background: #6b7280;
+    border-radius: 4px;
+  }
+
+  .results-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
 }

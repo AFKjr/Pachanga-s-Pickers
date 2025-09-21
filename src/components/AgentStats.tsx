@@ -15,8 +15,11 @@ interface AgentStatsData {
 const AgentStats: React.FC = () => {
   const [stats, setStats] = useState<AgentStatsData | null>(null);
   const [recentPicks, setRecentPicks] = useState<any[]>([]);
+  const [allRecentPicks, setAllRecentPicks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [modalLoading, setModalLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showRecentResultsModal, setShowRecentResultsModal] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -34,6 +37,25 @@ const AgentStats: React.FC = () => {
       globalEvents.off('refreshStats', handleRefresh);
     };
   }, []);
+
+  const loadAllRecentPicks = async () => {
+    setModalLoading(true);
+    try {
+      const result = await agentStatsApi.getRecentPerformance(20); // Load more picks for modal
+      if (result.data) {
+        setAllRecentPicks(result.data);
+      }
+    } catch (err) {
+      console.error('Failed to load all recent picks:', err);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const openRecentResultsModal = () => {
+    setShowRecentResultsModal(true);
+    loadAllRecentPicks();
+  };
 
   const loadStats = async () => {
     console.log('Loading agent stats...');
@@ -174,7 +196,15 @@ const AgentStats: React.FC = () => {
       {/* Recent Performance */}
       {recentPicks.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold text-white mb-3">Recent Results</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-white">Recent Results</h3>
+            <button
+              onClick={openRecentResultsModal}
+              className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
+            >
+              View All →
+            </button>
+          </div>
           <div className="space-y-2">
             {recentPicks.map((pick, index) => (
               <div key={index} className="bg-gray-700 rounded-lg p-3 flex items-center justify-between">
@@ -205,6 +235,79 @@ const AgentStats: React.FC = () => {
           Past results do not guarantee future outcomes. Always play responsibly.
         </p>
       </div>
+
+      {/* Recent Results Modal */}
+      {showRecentResultsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-700">
+              <h2 className="text-xl font-bold text-white">All Recent Results</h2>
+              <button
+                onClick={() => setShowRecentResultsModal(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body with Scrollable Content */}
+            <div className="p-6">
+              {modalLoading ? (
+                <div className="text-center py-8">
+                  <div className="text-gray-400">Loading recent results...</div>
+                </div>
+              ) : (
+                <div className="results-scroll-container">
+                  <div className="space-y-3">
+                    {allRecentPicks.length > 0 ? (
+                      allRecentPicks.map((pick, index) => (
+                        <div key={index} className="bg-gray-700 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-3">
+                              <span className="text-lg">{getResultIcon(pick.result)}</span>
+                              <div>
+                                <div className="text-white font-medium">
+                                  {pick.game_info?.away_team} vs {pick.game_info?.home_team}
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  {new Date(pick.created_at).toLocaleDateString()}
+                                </div>
+                              </div>
+                            </div>
+                            <div className={`text-sm font-medium px-2 py-1 rounded ${getResultColor(pick.result)} bg-opacity-20`}>
+                              {pick.result?.toUpperCase()}
+                            </div>
+                          </div>
+                          
+                          {/* Additional details for modal view */}
+                          {pick.prediction && (
+                            <div className="text-sm text-gray-300 mb-1">
+                              <strong>Prediction:</strong> {pick.prediction}
+                            </div>
+                          )}
+                          
+                          {pick.confidence && (
+                            <div className="text-sm text-gray-400">
+                              <strong>Confidence:</strong> {pick.confidence}%
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-gray-400">
+                        No recent results available
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
