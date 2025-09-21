@@ -2,54 +2,46 @@ import React, { useState, useEffect } from 'react';
 import { picksApi } from '../lib/api';
 import { globalEvents } from '../lib/events';
 import { Pick, NFLWeek } from '../types/index';
-
-interface PendingChange {
-  id: string;
-  type: 'update' | 'delete';
-  result?: 'win' | 'loss' | 'push';
-  originalPick?: Pick;
-}
+import { useSecureConfirmation } from './SecureConfirmationModal';
+import { getPickWeek } from '../utils/nflWeeks';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useOptimisticUpdates } from '../hooks/useOptimisticUpdates';
+import { executeAtomicOperations, createOperationSummary } from '../lib/atomicOperations';
+import { formatGameDate } from '../utils/dateValidation';
+import ErrorNotification from './ErrorNotification';
 
 const AdminPickResults: React.FC = () => {
-  const [allPicks, setAllPicks] = useState<Pick[]>([]);
   const [loading, setLoading] = useState(true);
-  const [updating, ] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [selectedWeek, setSelectedWeek] = useState<NFLWeek | null>(null);
   const [availableWeeks, setAvailableWeeks] = useState<NFLWeek[]>([]);
-  const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([]);
-  const [saving, setSaving] = useState(false);
+  
+  // Add secure confirmation state
+  const { showConfirmation, confirmationModal } = useSecureConfirmation();
+  
+  // Add error handling
+  const { error, clearError, executeWithErrorHandling } = useErrorHandler();
 
-  // Get NFL week from stored week data or fallback to date calculation
-  const getNFLWeek = (pick: Pick): NFLWeek => {
-    // Use stored week if available
-    if (pick.week) {
-      console.log(`Using stored week ${pick.week} for ${pick.game_info.away_team} @ ${pick.game_info.home_team}`);
-      return pick.week;
-    }
+  // Use optimistic updates for robust state management
+  const {
+    state: optimisticState,
+    optimisticUpdate,
+    optimisticDelete,
+    commitOperations,
+    rollbackAllOperations,
+    setData,
+    hasPendingChanges,
+    getPendingOperation
+  } = useOptimisticUpdates<Pick>();
 
-    // Fallback to date calculation if week not stored
-    const gameDateObj = new Date(pick.game_info.game_date);
-    const seasonStart = new Date('2025-09-05'); // NFL Season starts Thursday, September 5, 2025 (Week 1)
-
-    // Calculate days since season start
-    const daysDiff = Math.floor((gameDateObj.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24));
-
-    // NFL weeks are typically 7 days, with some adjustments for byes and scheduling
-    const week = Math.floor(daysDiff / 7) + 1;
-
-    const calculatedWeek = Math.max(1, Math.min(18, week)) as NFLWeek;
-    console.log(`Calculated week ${calculatedWeek} for ${pick.game_info.away_team} @ ${pick.game_info.home_team} (date: ${pick.game_info.game_date}, daysDiff: ${daysDiff})`);
-
-    return calculatedWeek;
-  };
+  // Destructure optimistic state
+  const { data: allPicks, pendingOperations, isOperationPending } = optimisticState;
 
   // Group picks by week
   const getPicksByWeek = (picks: Pick[]) => {
     const weekGroups: Record<NFLWeek, Pick[]> = {} as Record<NFLWeek, Pick[]>;
 
     picks.forEach(pick => {
-      const week = getNFLWeek(pick);
+      const week = getPickWeek(pick);
       if (!weekGroups[week]) {
         weekGroups[week] = [];
       }
@@ -64,25 +56,21 @@ const AdminPickResults: React.FC = () => {
   }, []);
 
   const loadAllPicks = async () => {
-    try {
+    const result = await executeWithErrorHandling(async () => {
       setLoading(true);
-      setError(null);
       const { data, error } = await picksApi.getAll();
 
       if (error) {
-        throw new Error('Failed to load picks: ' + error.message);
+        throw error; // AppError from API
       }
 
       // Filter for picks that haven't been processed yet (pending) OR show all picks for admin management
       // This allows admins to see all picks and their current status
-      const allPicks = data || [];
-      setAllPicks(allPicks);
-
-      // Clear any pending changes since we're loading fresh data
-      setPendingChanges([]);
+      const allPicksData = data || [];
+      setData(allPicksData);
 
       // Calculate available weeks from all picks
-      const weekGroups = getPicksByWeek(allPicks);
+      const weekGroups = getPicksByWeek(allPicksData);
       const weeks = Object.keys(weekGroups).map(w => parseInt(w)).sort((a, b) => b - a) as NFLWeek[]; // Most recent first
       setAvailableWeeks(weeks);
 
@@ -90,43 +78,23 @@ const AdminPickResults: React.FC = () => {
       if (!selectedWeek && weeks.length > 0) {
         setSelectedWeek(weeks[0]);
       }
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+
+      return true;
+    }, {
+      operation: 'loadAllPicks',
+      component: 'AdminPickResults'
+    });
+
+    setLoading(false);
+    return result;
   };
 
   const queueUpdateResult = (pickId: string, result: 'win' | 'loss' | 'push') => {
     const pick = allPicks.find(p => p.id === pickId);
     if (!pick) return;
 
-    // Check if this pick already has a pending change
-    const existingChangeIndex = pendingChanges.findIndex(change => change.id === pickId);
-
-    if (existingChangeIndex >= 0) {
-      // Update existing change
-      const updatedChanges = [...pendingChanges];
-      updatedChanges[existingChangeIndex] = {
-        ...updatedChanges[existingChangeIndex],
-        type: 'update',
-        result
-      };
-      setPendingChanges(updatedChanges);
-    } else {
-      // Add new change
-      setPendingChanges(prev => [...prev, {
-        id: pickId,
-        type: 'update',
-        result,
-        originalPick: pick
-      }]);
-    }
-
-    // Update local state optimistically
-    setAllPicks(prev => prev.map(p =>
-      p.id === pickId ? { ...p, result } : p
-    ));
+    // Use optimistic update
+    optimisticUpdate(pickId, { result }, pick);
 
     console.log(`Queued result update: ${pick.game_info.away_team} @ ${pick.game_info.home_team} -> ${result}`);
   };
@@ -135,174 +103,115 @@ const AdminPickResults: React.FC = () => {
     const pick = allPicks.find(p => p.id === pickId);
     if (!pick) return;
 
-    // Check if this pick already has a pending change
-    const existingChangeIndex = pendingChanges.findIndex(change => change.id === pickId);
-
-    if (existingChangeIndex >= 0) {
-      // If it was an update, change to delete
-      const updatedChanges = [...pendingChanges];
-      updatedChanges[existingChangeIndex] = {
-        ...updatedChanges[existingChangeIndex],
-        type: 'delete'
-      };
-      setPendingChanges(updatedChanges);
-    } else {
-      // Add new delete change
-      setPendingChanges(prev => [...prev, {
-        id: pickId,
-        type: 'delete',
-        originalPick: pick
-      }]);
-    }
-
-    // Remove from local state optimistically
-    setAllPicks(prev => prev.filter(p => p.id !== pickId));
+    // Use optimistic delete
+    optimisticDelete(pickId, pick);
 
     console.log(`Queued deletion: ${pick.game_info.away_team} @ ${pick.game_info.home_team}`);
   };
 
   const discardAllChanges = () => {
-    if (!confirm('Discard all pending changes? This will revert all queued updates and deletions.')) {
-      return;
-    }
+    if (!hasPendingChanges()) return;
 
-    // Restore original picks that were deleted
-    const deletedPicks = pendingChanges
-      .filter(change => change.type === 'delete' && change.originalPick)
-      .map(change => change.originalPick!);
-
-    // Restore original results for updated picks
-    const updatedPicks = pendingChanges
-      .filter(change => change.type === 'update' && change.originalPick)
-      .map(change => change.originalPick!);
-
-    // Restore all picks to their original state
-    setAllPicks(prev => {
-      const restored = [...prev];
-      
-      // Add back deleted picks
-      deletedPicks.forEach(pick => {
-        if (!restored.find(p => p.id === pick.id)) {
-          restored.push(pick);
-        }
-      });
-
-      // Restore original results for updated picks
-      updatedPicks.forEach(originalPick => {
-        const index = restored.findIndex(p => p.id === originalPick.id);
-        if (index >= 0) {
-          restored[index] = originalPick;
-        }
-      });
-
-      return restored;
+    showConfirmation({
+      title: 'Discard Changes',
+      message: `Discard all ${pendingOperations.length} pending changes? This will revert all queued updates and deletions.`,
+      confirmText: 'Discard Changes',
+      level: 'medium'
+    }, () => {
+      rollbackAllOperations();
+      clearError();
+      console.log('Discarded all pending changes');
     });
-
-    // Clear pending changes
-    setPendingChanges([]);
-    setError(null);
-
-    console.log('Discarded all pending changes');
   };
 
   const saveAllChanges = async () => {
-    if (pendingChanges.length === 0) return;
+    if (!hasPendingChanges()) return;
 
-    if (!confirm(`Save ${pendingChanges.length} change(s)? This will update the database and statistics.`)) {
-      return;
-    }
+    showConfirmation({
+      title: 'Save Changes',
+      message: `Save ${pendingOperations.length} change(s)? This will update the database and statistics.`,
+      confirmText: 'Save Changes',
+      level: 'medium'
+    }, async () => {
+      const result = await commitOperations(async (operations) => {
+        // Use atomic operations for reliable batch processing
+        const atomicResult = await executeAtomicOperations(operations, {
+          continueOnError: true, // Try to save as many as possible
+          validateBeforeCommit: true
+        });
 
-    try {
-      setSaving(true);
-      setError(null);
-      let successCount = 0;
-
-      for (const change of pendingChanges) {
-        try {
-          if (change.type === 'update' && change.result) {
-            console.log(`Updating pick ${change.id} to result: ${change.result}`);
-            const { data, error } = await picksApi.update(change.id, { result: change.result });
-            if (error) {
-              console.error(`Update failed for pick ${change.id}:`, error);
-              throw error;
-            } else {
-              console.log(`Successfully updated pick ${change.id}:`, data);
-            }
-          } else if (change.type === 'delete') {
-            console.log(`Deleting pick ${change.id}`);
-            const { error } = await picksApi.delete(change.id);
-            if (error) {
-              console.error(`Delete failed for pick ${change.id}:`, error);
-              throw error;
-            } else {
-              console.log(`Successfully deleted pick ${change.id}`);
-            }
+        if (!atomicResult.success) {
+          // If some operations failed, show detailed feedback
+          const summary = createOperationSummary(atomicResult);
+          console.warn('Atomic operations completed with failures:', summary);
+          
+          if (atomicResult.successfulOperations.length > 0) {
+            alert(`Partially successful: ${summary}`);
+          } else {
+            throw atomicResult.error || new Error('All operations failed');
           }
-          successCount++;
-        } catch (err) {
-          console.error(`Failed to ${change.type} pick ${change.id}:`, err);
+        } else {
+          console.log(`✅ All ${operations.length} operations completed successfully`);
+          alert(`Successfully saved all ${operations.length} changes!`);
         }
+
+        // Notify other components to refresh stats
+        globalEvents.emit('refreshStats');
+        return atomicResult;
+      });
+
+      if (!result.success) {
+        console.error('Commit operations failed, state has been rolled back');
       }
-
-      // Clear pending changes
-      setPendingChanges([]);
-
-      // Notify other components to refresh stats
-      globalEvents.emit('refreshStats');
-
-      console.log(`Successfully saved ${successCount}/${pendingChanges.length} changes`);
-
-      if (successCount === pendingChanges.length) {
-        alert(`Successfully saved all ${successCount} changes!`);
-      } else {
-        alert(`Saved ${successCount}/${pendingChanges.length} changes. Check console for details.`);
-      }
-
-    } catch (err: any) {
-      setError('Failed to save changes: ' + err.message);
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   const clearAllPicks = async () => {
-    if (!confirm('Are you sure you want to delete ALL picks? This cannot be undone.')) {
-      return;
-    }
+    showConfirmation({
+      title: 'Delete ALL Picks',
+      message: 'Are you absolutely sure you want to delete ALL picks? This action cannot be undone and will permanently remove all prediction data, statistics, and history.',
+      confirmText: 'Delete Everything',
+      level: 'critical',
+      requireTyping: true,
+      expectedText: 'DELETE ALL PICKS'
+    }, async () => {
+      await executeWithErrorHandling(async () => {
+        setLoading(true);
 
-    try {
-      setLoading(true);
-      setError(null);
+        // Get all picks
+        const { data: allPicksData, error: fetchError } = await picksApi.getAll();
+        if (fetchError) throw fetchError;
 
-      // Get all picks
-      const { data: allPicks, error: fetchError } = await picksApi.getAll();
-      if (fetchError) throw fetchError;
-
-      // Delete all picks
-      if (allPicks) {
-        for (const pick of allPicks) {
-          await picksApi.delete(pick.id);
+        // Delete all picks
+        if (allPicksData) {
+          for (const pick of allPicksData) {
+            await picksApi.delete(pick.id);
+          }
         }
-      }
 
-      setAllPicks([]);
-      setAvailableWeeks([]);
-      setSelectedWeek(null);
-      setPendingChanges([]);
+        setData([]);
+        setAvailableWeeks([]);
+        setSelectedWeek(null);
 
-      console.log(`Deleted ${allPicks?.length || 0} picks`);
-    } catch (err: any) {
-      setError('Failed to clear picks: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
+        console.log(`Deleted ${allPicksData?.length || 0} picks`);
+        setLoading(false);
+        return true;
+      }, {
+        operation: 'clearAllPicks',
+        component: 'AdminPickResults'
+      });
+    });
   };
 
   const deletePick = async (pickId: string, homeTeam: string, awayTeam: string) => {
-    if (!confirm(`Are you sure you want to delete the pick for ${awayTeam} @ ${homeTeam}? This will be queued for saving.`)) {
-      return;
-    }
-    queueDeletePick(pickId);
+    showConfirmation({
+      title: 'Delete Pick',
+      message: `Are you sure you want to delete the pick for ${awayTeam} @ ${homeTeam}? This will be queued for saving.`,
+      confirmText: 'Delete Pick',
+      level: 'high'
+    }, () => {
+      queueDeletePick(pickId);
+    });
   };
 
   const updatePickResult = async (pickId: string, result: 'win' | 'loss' | 'push') => {
@@ -324,18 +233,18 @@ const AdminPickResults: React.FC = () => {
       <div className='flex items-center justify-between mb-4'>
         <h2 className='text-xl font-semibold text-white'>📊 Update Pick Results</h2>
         <div className='flex space-x-2'>
-          {pendingChanges.length > 0 && (
+          {hasPendingChanges() && (
             <>
               <button
                 onClick={saveAllChanges}
-                disabled={saving || loading}
+                disabled={isOperationPending || loading}
                 className='px-3 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 rounded-md text-white text-sm font-medium transition-colors'
               >
-                {saving ? '💾 Saving...' : `💾 Save ${pendingChanges.length} Change(s)`}
+                {isOperationPending ? '💾 Saving...' : `💾 Save ${pendingOperations.length} Change(s)`}
               </button>
               <button
                 onClick={discardAllChanges}
-                disabled={saving || loading}
+                disabled={isOperationPending || loading}
                 className='px-3 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-md text-white text-sm font-medium transition-colors'
               >
                 🗑️ Discard Changes
@@ -372,11 +281,11 @@ const AdminPickResults: React.FC = () => {
         </div>
       )}
 
-      {error && (
-        <div className='bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded mb-4'>
-          {error}
-        </div>
-      )}
+      <ErrorNotification 
+        error={error} 
+        onClose={clearError}
+        onRetry={error?.retryable ? loadAllPicks : undefined}
+      />
 
       <div className='mb-4'>
         <p className='text-gray-400 text-sm'>
@@ -406,9 +315,10 @@ const AdminPickResults: React.FC = () => {
         return (
           <div className='space-y-4 max-h-96 overflow-y-auto'>
             {currentWeekPicks.map((pick) => {
-              const hasPendingChange = pendingChanges.some(change => change.id === pick.id);
-              const currentResult = hasPendingChange
-                ? pendingChanges.find(change => change.id === pick.id)?.result || pick.result
+              const pendingOperation = getPendingOperation(pick.id);
+              const hasPendingChange = !!pendingOperation;
+              const currentResult = hasPendingChange && pendingOperation.type === 'update'
+                ? pendingOperation.payload?.result || pick.result
                 : pick.result;
 
               return (
@@ -443,10 +353,10 @@ const AdminPickResults: React.FC = () => {
                           {pick.game_info.away_team} @ {pick.game_info.home_team}
                         </span>
                         <span className='text-gray-400 text-sm'>
-                          {new Date(pick.game_info.game_date).toLocaleDateString()}
+                          {formatGameDate(pick.game_info.game_date)}
                         </span>
                         <span className='bg-blue-600 text-white text-xs px-2 py-1 rounded-full'>
-                          Week {getNFLWeek(pick)}
+                          Week {getPickWeek(pick)}
                         </span>
                       </div>
 
@@ -462,37 +372,37 @@ const AdminPickResults: React.FC = () => {
                     <div className='flex space-x-2 ml-4'>
                       <button
                         onClick={() => deletePick(pick.id, pick.game_info.home_team, pick.game_info.away_team)}
-                        disabled={updating === pick.id}
+                        disabled={isOperationPending}
                         className='px-3 py-1 bg-gray-600 hover:bg-gray-700 disabled:opacity-50 rounded text-xs font-medium transition-colors'
                       >
-                        {updating === pick.id ? '...' : '🗑️ Delete'}
+                        {isOperationPending ? '...' : '🗑️ Delete'}
                       </button>
                       <button
                         onClick={() => updatePickResult(pick.id, 'win')}
-                        disabled={updating === pick.id}
+                        disabled={isOperationPending}
                         className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                           currentResult === 'win' ? 'bg-green-700 text-white ring-2 ring-green-400' : 'bg-green-600 hover:bg-green-700 disabled:opacity-50'
                         }`}
                       >
-                        {updating === pick.id ? '...' : 'Win'}
+                        {isOperationPending ? '...' : 'Win'}
                       </button>
                       <button
                         onClick={() => updatePickResult(pick.id, 'loss')}
-                        disabled={updating === pick.id}
+                        disabled={isOperationPending}
                         className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                           currentResult === 'loss' ? 'bg-red-700 text-white ring-2 ring-red-400' : 'bg-red-600 hover:bg-red-700 disabled:opacity-50'
                         }`}
                       >
-                        {updating === pick.id ? '...' : 'Loss'}
+                        {isOperationPending ? '...' : 'Loss'}
                       </button>
                       <button
                         onClick={() => updatePickResult(pick.id, 'push')}
-                        disabled={updating === pick.id}
+                        disabled={isOperationPending}
                         className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                           currentResult === 'push' ? 'bg-yellow-700 text-white ring-2 ring-yellow-400' : 'bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50'
                         }`}
                       >
-                        {updating === pick.id ? '...' : 'Push'}
+                        {isOperationPending ? '...' : 'Push'}
                       </button>
                     </div>
                   </div>
@@ -509,21 +419,21 @@ const AdminPickResults: React.FC = () => {
         </div>
       )}
 
-      {pendingChanges.length > 0 && (
+      {hasPendingChanges() && (
         <div className='mt-4 p-4 bg-yellow-900 border border-yellow-700 rounded-lg'>
-          <h3 className='text-yellow-200 font-medium mb-2'>📝 Pending Changes ({pendingChanges.length})</h3>
+          <h3 className='text-yellow-200 font-medium mb-2'>📝 Pending Changes ({pendingOperations.length})</h3>
           <div className='space-y-1 text-sm text-yellow-100'>
-            {pendingChanges.map((change, index) => {
-              const pick = allPicks.find(p => p.id === change.id) || change.originalPick;
+            {pendingOperations.map((operation, index) => {
+              const pick = allPicks.find(p => p.id === operation.id) || operation.originalData;
               if (!pick) return null;
 
               return (
                 <div key={index} className='flex items-center justify-between'>
                   <span>
-                    {change.type === 'delete' ? '🗑️ DELETE:' : '📝 UPDATE:'} {pick.game_info.away_team} @ {pick.game_info.home_team}
-                    {change.type === 'update' && change.result && (
+                    {operation.type === 'delete' ? '🗑️ DELETE:' : '📝 UPDATE:'} {pick.game_info.away_team} @ {pick.game_info.home_team}
+                    {operation.type === 'update' && operation.payload?.result && (
                       <span className='ml-2 text-yellow-300'>
-                        → {change.result === 'win' ? 'Win' : change.result === 'loss' ? 'Loss' : 'Push'}
+                        → {operation.payload.result === 'win' ? 'Win' : operation.payload.result === 'loss' ? 'Loss' : 'Push'}
                       </span>
                     )}
                   </span>
@@ -536,6 +446,7 @@ const AdminPickResults: React.FC = () => {
           </div>
         </div>
       )}
+      {confirmationModal}
     </div>
   );
 };

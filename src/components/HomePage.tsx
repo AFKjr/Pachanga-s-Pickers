@@ -16,7 +16,7 @@ const HomePage = () => {
     <div className="max-w-6xl mx-auto space-y-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Pachanga's Picks</h1>
-        <p className="text-gray-400">Making outright winning predictions (Moneyline). No parlays. </p>
+        <p className="text-gray-400">Making outright winning predictions (Moneyline). No parlays (yet). </p>
       </div>
 
       {/* Performance Stats */}

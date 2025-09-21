@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { ParsedPrediction, AgentTextParserResult, ConfidenceLevel, NFLWeek } from '../types/predictions';
+import { validateAgentText } from '../utils/inputValidation';
 import {
   parseGameDate,
   parseWeekFromHeader,
@@ -18,12 +19,17 @@ export const useAgentTextParser = (): AgentTextParserResult => {
   const [error, setError] = useState<string | null>(null);
 
   const parseAgentText = useCallback((text: string, selectedWeek?: NFLWeek): ParsedPrediction[] => {
-    if (!text || typeof text !== 'string') {
-      throw new Error('Invalid text input');
+    // Validate and sanitize input text
+    const validation = validateAgentText(text);
+    if (!validation.isValid) {
+      throw new Error(validation.error || 'Invalid input text');
     }
 
+    // Use sanitized text for processing
+    const sanitizedText = validation.sanitized;
+    
     const predictions: ParsedPrediction[] = [];
-    const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+    const lines = sanitizedText.split('\n').map(line => line.trim()).filter(line => line);
 
     let currentGame = '';
     let currentPrediction = '';

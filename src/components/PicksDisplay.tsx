@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { picksApi } from '../lib/api';
 import type { Pick } from '../types';
+import { getPickWeek } from '../utils/nflWeeks';
+import { formatGameDate } from '../utils/dateValidation';
 
 interface PicksDisplayProps {
   maxPicks?: number;
@@ -33,8 +35,8 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
       const allPicks = data || [];
       setPicks(allPicks);
 
-      // Get available weeks
-      const weeks = [...new Set(allPicks.map(pick => pick.week).filter(Boolean))]
+      // Get available weeks (use getPickWeek for picks without stored week)
+      const weeks = [...new Set(allPicks.map(pick => pick.week || getPickWeek(pick)).filter(Boolean))]
         .sort((a, b) => b - a); // Most recent first
       setAvailableWeeks(weeks);
       
@@ -68,7 +70,7 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
   };
 
   const filteredPicks = selectedWeek 
-    ? picks.filter(pick => pick.week === selectedWeek)
+    ? picks.filter(pick => (pick.week || getPickWeek(pick)) === selectedWeek)
     : picks;
 
   const displayPicks = filteredPicks.slice(0, maxPicks);
@@ -147,7 +149,7 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
 
               {/* Footer */}
               <div className="flex items-center justify-end text-xs text-gray-400">
-                <span>{new Date(pick.game_info.game_date).toLocaleDateString()}</span>
+                <span>{formatGameDate(pick.game_info.game_date, true)}</span>
               </div>
             </div>
           ))}

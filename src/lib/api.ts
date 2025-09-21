@@ -1,35 +1,107 @@
 import { supabase } from './supabase';
+import { validatePickData } from '../utils/inputValidation';
+import { handleSupabaseError, createAppError, AppError } from '../utils/errorHandling';
 import type { Pick } from '../types';
+
+// Admin verification helper function
+const verifyAdminUser = async (): Promise<{ isAdmin: boolean; user: any; error?: AppError }> => {
+  try {
+    // Get current authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      const appError = handleSupabaseError(authError, {
+        operation: 'verifyAdminUser',
+        component: 'api.verifyAdminUser'
+      });
+      return { isAdmin: false, user: null, error: appError };
+    }
+
+    // Check if user is admin
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError) {
+      const appError = handleSupabaseError(profileError, {
+        operation: 'getProfile',
+        component: 'api.verifyAdminUser',
+        metadata: { userId: user.id }
+      });
+      return { isAdmin: false, user, error: appError };
+    }
+
+    const isAdmin = profile?.is_admin || false;
+    if (!isAdmin) {
+      const appError = createAppError(
+        new Error('Admin privileges required'),
+        {
+          operation: 'checkAdminPrivileges',
+          component: 'api.verifyAdminUser',
+          metadata: { userId: user.id }
+        },
+        'ADMIN_REQUIRED'
+      );
+      return { isAdmin: false, user, error: appError };
+    }
+
+    return { isAdmin, user };
+  } catch (err) {
+    const appError = createAppError(err, {
+      operation: 'verifyAdminUser',
+      component: 'api.verifyAdminUser'
+    });
+    return { isAdmin: false, user: null, error: appError };
+  }
+};
 
 // Picks API
 export const picksApi = {
   getAll: async () => {
-    // First get all picks
-    const { data: picksData, error: picksError } = await supabase
-      .from('picks')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      // First get all picks
+      const { data: picksData, error: picksError } = await supabase
+        .from('picks')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (picksError) return { data: null, error: picksError };
+      if (picksError) {
+        throw handleSupabaseError(picksError, {
+          operation: 'getAllPicks',
+          component: 'api.getAll'
+        });
+      }
 
-    // Then get profile information for each pick
-    const picksWithProfiles = await Promise.all(
-      (picksData || []).map(async (pick) => {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('id', pick.user_id)
-          .single();
+      // Then get profile information for each pick
+      const picksWithProfiles = await Promise.all(
+        (picksData || []).map(async (pick) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', pick.user_id)
+            .single();
 
-        return {
-          ...pick,
-          author_username: profile?.username || 'Anonymous',
-          comments_count: 0 // We'll add this later if needed
-        };
-      })
-    );
+          return {
+            ...pick,
+            author_username: profile?.username || 'Anonymous',
+            comments_count: 0 // We'll add this later if needed
+          };
+        })
+      );
 
-    return { data: picksWithProfiles, error: null };
+      return { data: picksWithProfiles, error: null };
+    } catch (error) {
+      if (error instanceof AppError) {
+        return { data: null, error };
+      }
+      const appError = createAppError(error, {
+        operation: 'getAllPicks',
+        component: 'api.getAll'
+      }, 'PICK_LOAD_FAILED');
+      return { data: null, error: appError };
+    }
   },
 
   getPinned: async () => {
@@ -72,37 +144,163 @@ export const picksApi = {
   },
 
   create: async (pick: Omit<Pick, 'id' | 'created_at' | 'updated_at'>) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    try {
+      // Verify admin privileges
+      const { isAdmin, user, error: adminError } = await verifyAdminUser();
+      if (!isAdmin) {
+        const error = adminError || createAppError(
+          new Error('Admin privileges required'),
+          { operation: 'createPick', component: 'api.create' },
+          'ADMIN_REQUIRED'
+        );
+        return { data: null, error };
+      }
 
-    const { data, error } = await supabase
-      .from('picks')
-      .insert([{ ...pick, user_id: user.id }])
-      .select()
-      .single();
-    return { data, error };
+      // Validate pick data
+      const validation = validatePickData({
+        homeTeam: pick.game_info.home_team,
+        awayTeam: pick.game_info.away_team,
+        prediction: pick.prediction,
+        reasoning: pick.reasoning,
+        confidence: pick.confidence as number,
+        week: pick.week as number,
+        gameDate: pick.game_info.game_date
+      });
+
+      if (!validation.isValid) {
+        const error = createAppError(
+          new Error(`Invalid pick data: ${validation.errors.join(', ')}`),
+          { 
+            operation: 'createPick', 
+            component: 'api.create',
+            metadata: { validationErrors: validation.errors }
+          },
+          'VALIDATION_FAILED'
+        );
+        return { data: null, error };
+      }
+
+      // Use sanitized data for database insertion
+      const sanitizedPick = {
+        ...pick,
+        game_info: {
+          ...pick.game_info,
+          home_team: validation.sanitizedData.homeTeam,
+          away_team: validation.sanitizedData.awayTeam,
+          game_date: validation.sanitizedData.gameDate
+        },
+        prediction: validation.sanitizedData.prediction,
+        reasoning: validation.sanitizedData.reasoning,
+        confidence: validation.sanitizedData.confidence as any,
+        week: validation.sanitizedData.week as any,
+        user_id: user.id
+      };
+
+      const { data, error } = await supabase
+        .from('picks')
+        .insert([sanitizedPick])
+        .select()
+        .single();
+
+      if (error) {
+        const appError = handleSupabaseError(error, {
+          operation: 'createPick',
+          component: 'api.create',
+          metadata: { pickData: sanitizedPick }
+        });
+        return { data: null, error: appError };
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      const appError = error instanceof AppError ? error : createAppError(error, {
+        operation: 'createPick',
+        component: 'api.create'
+      }, 'PICK_SAVE_FAILED');
+      return { data: null, error: appError };
+    }
   },
 
   update: async (id: string, updates: Partial<Pick>) => {
-    console.log(`🔄 Updating pick ${id} with:`, updates);
-    const { data, error } = await supabase
-      .from('picks')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    console.log(`🔄 Update result for ${id}:`, { data, error });
-    return { data, error };
+    try {
+      // Verify admin privileges
+      const { isAdmin, error: adminError } = await verifyAdminUser();
+      if (!isAdmin) {
+        const error = adminError || createAppError(
+          new Error('Admin privileges required'),
+          { operation: 'updatePick', component: 'api.update', metadata: { pickId: id } },
+          'ADMIN_REQUIRED'
+        );
+        return { data: null, error };
+      }
+
+      console.log(`🔄 Updating pick ${id} with:`, updates);
+      const { data, error } = await supabase
+        .from('picks')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        const appError = handleSupabaseError(error, {
+          operation: 'updatePick',
+          component: 'api.update',
+          metadata: { pickId: id, updates }
+        });
+        return { data: null, error: appError };
+      }
+
+      console.log(`🔄 Update result for ${id}:`, { data, error });
+      return { data, error: null };
+    } catch (error) {
+      const appError = error instanceof AppError ? error : createAppError(error, {
+        operation: 'updatePick',
+        component: 'api.update',
+        metadata: { pickId: id }
+      }, 'PICK_UPDATE_FAILED');
+      return { data: null, error: appError };
+    }
   },
 
   delete: async (id: string) => {
-    console.log(`🗑️ Deleting pick ${id}`);
-    const { error } = await supabase
-      .from('picks')
-      .delete()
-      .eq('id', id);
-    console.log(`🗑️ Delete result for ${id}:`, { error });
-    return { error };
+    try {
+      // Verify admin privileges
+      const { isAdmin, error: adminError } = await verifyAdminUser();
+      if (!isAdmin) {
+        const error = adminError || createAppError(
+          new Error('Admin privileges required'),
+          { operation: 'deletePick', component: 'api.delete', metadata: { pickId: id } },
+          'ADMIN_REQUIRED'
+        );
+        return { error };
+      }
+
+      console.log(`🗑️ Deleting pick ${id}`);
+      const { error } = await supabase
+        .from('picks')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        const appError = handleSupabaseError(error, {
+          operation: 'deletePick',
+          component: 'api.delete',
+          metadata: { pickId: id }
+        });
+        return { error: appError };
+      }
+
+      console.log(`🗑️ Delete result for ${id}:`, { error });
+      return { error: null };
+    } catch (error) {
+      const appError = error instanceof AppError ? error : createAppError(error, {
+        operation: 'deletePick',
+        component: 'api.delete',
+        metadata: { pickId: id }
+      }, 'PICK_DELETE_FAILED');
+      return { error: appError };
+    }
   },
 
   subscribeToPicks: (callback: (payload: any) => void) => {

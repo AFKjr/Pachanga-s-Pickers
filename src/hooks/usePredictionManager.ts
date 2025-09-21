@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { picksApi } from '../lib/api';
+import { validatePickData } from '../utils/inputValidation';
 import type { ParsedPrediction, PredictionManagerResult, PredictionSaveResult } from '../types/predictions';
 
 export const usePredictionManager = (): PredictionManagerResult => {
@@ -71,10 +72,44 @@ export const usePredictionManager = (): PredictionManagerResult => {
           week: pred.week
         };
 
-        const { error } = await picksApi.create(pickData);
+        // Validate pick data before saving
+        const validation = validatePickData({
+          homeTeam: pickData.game_info.home_team,
+          awayTeam: pickData.game_info.away_team,
+          prediction: pickData.prediction,
+          reasoning: pickData.reasoning,
+          confidence: pickData.confidence,
+          week: pickData.week,
+          gameDate: pickData.game_info.game_date
+        });
+
+        if (!validation.isValid) {
+          console.error(`Validation failed for ${pred.homeTeam}:`, validation.errors);
+          throw new Error(`Invalid data for ${pred.homeTeam}: ${validation.errors.join(', ')}`);
+        }
+
+        // Use sanitized data
+        const sanitizedPickData = {
+          game_info: {
+            home_team: validation.sanitizedData.homeTeam,
+            away_team: validation.sanitizedData.awayTeam,
+            league: 'NFL' as const,
+            game_date: validation.sanitizedData.gameDate,
+            spread: 0,
+            over_under: 40
+          },
+          prediction: validation.sanitizedData.prediction,
+          confidence: validation.sanitizedData.confidence as any, // Type assertion for ConfidenceLevel
+          reasoning: validation.sanitizedData.reasoning,
+          result: 'pending' as const,
+          week: validation.sanitizedData.week as any // Type assertion for NFLWeek
+        };
+
+        const { error } = await picksApi.create(sanitizedPickData);
         if (error) {
           console.error(`Failed to save prediction for ${pred.homeTeam}:`, error);
-          throw new Error(`Failed to save prediction for ${pred.homeTeam}: ${error.message}`);
+          // error is now an AppError with proper structure
+          throw new Error(`Failed to save prediction for ${pred.homeTeam}: ${error.userMessage || 'Unknown error'}`);
         } else {
           savedCount++;
         }

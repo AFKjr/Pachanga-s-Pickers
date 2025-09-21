@@ -1,4 +1,5 @@
 import { PickCardProps } from '../types';
+import { safeDateFormat } from '../utils/dateValidation';
 
 const PickCard = ({ pick, showComments = true, onCommentClick }: PickCardProps) => {
   const getResultColor = (result?: string) => {
@@ -35,7 +36,7 @@ const PickCard = ({ pick, showComments = true, onCommentClick }: PickCardProps) 
               <div className="flex items-center space-x-2 text-sm text-gray-400 mb-2">
                 <span>Posted by u/{pick.author_username || 'Anonymous'}</span>
                 <span>•</span>
-                <span>{new Date(pick.created_at).toLocaleDateString()}</span>
+                <span>{safeDateFormat(pick.created_at)}</span>
                 <span>•</span>
                 <span className="text-sm text-gray-400">{pick.game_info.league}</span>
                 {pick.is_pinned && pick.reasoning?.includes('AI-generated') && (
