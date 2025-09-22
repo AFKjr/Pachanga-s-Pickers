@@ -211,6 +211,18 @@ npm install
 npm run webhook:dev
 ```
 
+### Local Development with Ngrok (External Access)
+
+For testing with external services like Relevance AI:
+
+1. **Get ngrok auth token**: Visit [ngrok dashboard](https://dashboard.ngrok.com/get-started/your-authtoken)
+2. **Configure ngrok**: `ngrok config add-authtoken YOUR_ACTUAL_TOKEN`
+3. **Start webhook server**: `npm run webhook`
+4. **Start ngrok tunnel**: `ngrok http 3001`
+5. **Update agent URL**: Use the ngrok HTTPS URL in your Relevance AI agent
+
+See `NGROK_SETUP.md` for detailed ngrok configuration instructions.
+
 ### Production Deployment
 
 ```bash
