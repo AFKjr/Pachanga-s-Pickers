@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { picksApi } from '../lib/api';
+import { globalEvents } from '../lib/events';
 import { Pick, GameInfo, ConfidenceLevel, NFLWeek } from '../types/index';
 import { useSecureConfirmation } from './SecureConfirmationModal';
 import { useErrorHandler } from '../hooks/useErrorHandler';
@@ -105,6 +106,11 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
     const { data, error } = await picksApi.update(pick.id, updates);
     if (error) throw error;
 
+    // Emit events to refresh other components
+    globalEvents.emit('refreshStats');
+    globalEvents.emit('refreshPicks');
+    console.log('📡 Emitted refresh events after pick revision');
+
     return data;
   };
 
@@ -158,11 +164,11 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
     <div className="bg-gray-800 rounded-lg p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-white">
-          ✏️ Revise Pick: {formData.awayTeam} @ {formData.homeTeam}
+          Revise Pick: {formData.awayTeam} @ {formData.homeTeam}
         </h2>
         {hasChanges && (
           <span className="bg-yellow-600 text-white text-xs px-2 py-1 rounded-full">
-            ⚠️ Unsaved Changes
+            Unsaved Changes
           </span>
         )}
       </div>
@@ -327,7 +333,7 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
             onChange={(e) => handleInputChange('isPinned', e.target.checked)}
             className="rounded border-gray-600 bg-gray-700 text-blue-600"
           />
-          <span className="text-sm text-gray-300">📌 Pin this pick</span>
+          <span className="text-sm text-gray-300">Pin this pick</span>
         </label>
       </div>
 
@@ -345,14 +351,14 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
           disabled={!hasChanges || saving}
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-md text-white text-sm font-medium transition-colors"
         >
-          {saving ? '💾 Saving...' : hasChanges ? '💾 Save Changes' : '✅ No Changes'}
+          {saving ? 'Saving...' : hasChanges ? 'Save Changes' : 'No Changes'}
         </button>
       </div>
 
       {/* Change Summary */}
       {hasChanges && (
         <div className="bg-yellow-900 border border-yellow-700 rounded-lg p-3">
-          <h4 className="text-yellow-200 font-medium text-sm mb-2">📝 Pending Changes:</h4>
+          <h4 className="text-yellow-200 font-medium text-sm mb-2">Pending Changes:</h4>
           <ul className="text-yellow-100 text-xs space-y-1">
             {formData.prediction !== pick.prediction && (
               <li>• Prediction: "{pick.prediction}" → "{formData.prediction}"</li>

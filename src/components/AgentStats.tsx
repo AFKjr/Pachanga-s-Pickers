@@ -109,10 +109,10 @@ const AgentStats: React.FC = () => {
 
   const getResultIcon = (result: string) => {
     switch (result) {
-      case 'win': return '✅';
-      case 'loss': return '❌';
-      case 'push': return '➖';
-      default: return '⏳';
+      case 'win': return 'W';
+      case 'loss': return 'L';
+      case 'push': return 'P';
+      default: return '-';
     }
   };
 
@@ -231,7 +231,7 @@ const AgentStats: React.FC = () => {
       {/* Disclaimer */}
       <div className="mt-6 bg-blue-900 border border-blue-700 text-blue-200 px-4 py-3 rounded">
         <p className="text-sm">
-          <strong>📊 Performance Tracking:</strong> These statistics represent my personal historical performance.
+          <strong>Performance Tracking:</strong> These statistics represent my personal historical performance.
           Past results do not guarantee future outcomes. Always play responsibly.
         </p>
       </div>

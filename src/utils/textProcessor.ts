@@ -26,7 +26,11 @@ export const parseGameDate = (dateText: string): string => {
     const monday = new Date(today);
     monday.setDate(today.getDate() + (1 - today.getDay() + 7) % 7);
     if (monday <= today) monday.setDate(monday.getDate() + 7);
-    return monday.toISOString().split('T')[0];
+    // Format using local date components to avoid timezone issues
+    const year = monday.getFullYear();
+    const month = String(monday.getMonth() + 1).padStart(2, '0');
+    const day = String(monday.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   if (dateText.toLowerCase().includes('sunday night')) {
@@ -34,7 +38,11 @@ export const parseGameDate = (dateText: string): string => {
     const sunday = new Date(today);
     sunday.setDate(today.getDate() + (7 - today.getDay()) % 7);
     if (sunday <= today) sunday.setDate(sunday.getDate() + 7);
-    return sunday.toISOString().split('T')[0];
+    // Format using local date components to avoid timezone issues
+    const year = sunday.getFullYear();
+    const month = String(sunday.getMonth() + 1).padStart(2, '0');
+    const day = String(sunday.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   if (dateText.toLowerCase().includes('thursday night')) {
@@ -42,7 +50,11 @@ export const parseGameDate = (dateText: string): string => {
     const thursday = new Date(today);
     thursday.setDate(today.getDate() + (4 - today.getDay() + 7) % 7);
     if (thursday <= today) thursday.setDate(thursday.getDate() + 7);
-    return thursday.toISOString().split('T')[0];
+    // Format using local date components to avoid timezone issues
+    const year = thursday.getFullYear();
+    const month = String(thursday.getMonth() + 1).padStart(2, '0');
+    const day = String(thursday.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   // Handle specific dates like "December 15", "12/15", "Dec 15", "(Thu 9/25)"
@@ -57,25 +69,31 @@ export const parseGameDate = (dateText: string): string => {
     const match = dateText.match(pattern);
     if (match) {
       try {
-        let dateStr = dateText;
+        let parsedDate: Date;
         
-        // Handle "(Thu 9/25)" format
+        // Handle "(Thu 9/25)" format - create date in local timezone
         const parenthesesMatch = dateText.match(/\(\w{3}\s+(\d{1,2})\/(\d{1,2})\)/);
         if (parenthesesMatch) {
-          const month = parseInt(parenthesesMatch[1]);
+          const month = parseInt(parenthesesMatch[1]) - 1; // Month is 0-indexed
           const day = parseInt(parenthesesMatch[2]);
           const year = new Date().getFullYear();
-          dateStr = `${month}/${day}/${year}`;
+          // Use Date constructor with separate parameters to ensure local timezone
+          parsedDate = new Date(year, month, day);
         } else {
-          // If no year specified, assume current year
+          // For other formats, parse normally but handle local timezone correctly
+          let dateStr = dateText;
           if (!match[2] && !match[3]) {
             dateStr += `, ${currentYear}`;
           }
+          parsedDate = new Date(dateStr);
         }
         
-        const parsedDate = new Date(dateStr);
         if (!isNaN(parsedDate.getTime())) {
-          return parsedDate.toISOString().split('T')[0];
+          // Format as YYYY-MM-DD using local date components to avoid timezone issues
+          const year = parsedDate.getFullYear();
+          const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+          const day = String(parsedDate.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
         }
       } catch (e) {
         // Continue to next pattern
@@ -83,8 +101,12 @@ export const parseGameDate = (dateText: string): string => {
     }
   }
 
-  // If no date found, return today's date as fallback
-  return new Date().toISOString().split('T')[0];
+  // If no date found, return today's date as fallback using local timezone
+  const fallbackDate = new Date();
+  const year = fallbackDate.getFullYear();
+  const month = String(fallbackDate.getMonth() + 1).padStart(2, '0');
+  const day = String(fallbackDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 /**

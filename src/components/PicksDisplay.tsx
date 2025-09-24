@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { picksApi } from '../lib/api';
+import { globalEvents } from '../lib/events';
 import type { Pick } from '../types';
 import { getPickWeek } from '../utils/nflWeeks';
 import { formatGameDate } from '../utils/dateValidation';
@@ -20,6 +21,21 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
 
   useEffect(() => {
     loadPicks();
+    
+    // Listen for global refresh events
+    const handleRefreshPicks = () => {
+      console.log('🔄 PicksDisplay: Refreshing picks due to global event');
+      loadPicks();
+    };
+
+    globalEvents.on('refreshPicks', handleRefreshPicks);
+    globalEvents.on('refreshStats', handleRefreshPicks);
+
+    // Cleanup event listeners
+    return () => {
+      globalEvents.off('refreshPicks', handleRefreshPicks);
+      globalEvents.off('refreshStats', handleRefreshPicks);
+    };
   }, []);
 
   const loadPicks = async () => {
@@ -62,10 +78,10 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
 
   const getResultIcon = (result?: string) => {
     switch (result) {
-      case 'win': return '✅';
-      case 'loss': return '❌';
-      case 'push': return '⚖️';
-      default: return '⏳';
+      case 'win': return 'W';
+      case 'loss': return 'L';
+      case 'push': return 'P';
+      default: return '-';
     }
   };
 

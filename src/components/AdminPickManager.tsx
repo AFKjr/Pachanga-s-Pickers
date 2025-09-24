@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { picksApi } from '../lib/api';
+import { globalEvents } from '../lib/events';
 import { Pick, NFLWeek } from '../types/index';
 import { getPickWeek } from '../utils/nflWeeks';
-import { formatGameDate } from '../utils/dateValidation';
 import AdminPickRevision from './AdminPickRevision';
 import AdminPickResults from './AdminPickResults';
 import { useErrorHandler } from '../hooks/useErrorHandler';
@@ -78,7 +78,10 @@ const AdminPickManager: React.FC = () => {
     setViewMode('list');
     setSelectedPick(null);
     
-    console.log('✅ Pick revision completed:', updatedPick);
+    // Emit global events to refresh other components
+    globalEvents.emit('refreshStats');
+    globalEvents.emit('refreshPicks');
+    console.log('Pick revision completed and refresh events emitted:', updatedPick);
   };
 
   const startRevision = (pick: Pick) => {
@@ -143,20 +146,20 @@ const AdminPickManager: React.FC = () => {
   return (
     <div className='bg-gray-800 rounded-lg p-6 mb-6'>
       <div className='flex items-center justify-between mb-6'>
-        <h2 className='text-xl font-semibold text-white'>⚙️ Pick Management</h2>
+        <h2 className='text-xl font-semibold text-white'>Pick Management</h2>
         <div className="flex space-x-2">
           <button
             onClick={() => setViewMode('results')}
             className="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-sm font-medium"
           >
-            📊 Manage Results
+            Manage Results
           </button>
           <button
             onClick={loadAllPicks}
             disabled={loading}
             className="px-3 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 rounded-md text-white text-sm font-medium"
           >
-            🔄 Refresh
+            Refresh
           </button>
         </div>
       </div>
@@ -237,7 +240,7 @@ const AdminPickManager: React.FC = () => {
                     </span>
                     {pick.is_pinned && (
                       <span className='bg-purple-600 text-white text-xs px-2 py-1 rounded-full'>
-                        📌 Pinned
+                        Pinned
                       </span>
                     )}
                   </div>
@@ -256,14 +259,21 @@ const AdminPickManager: React.FC = () => {
 
                   {/* Game Info */}
                   <div className='flex items-center space-x-4 text-xs text-gray-500'>
-                    <span>📅 {formatGameDate(pick.game_info.game_date)}</span>
+                    <span>Date: {(() => {
+                      const dateStr = pick.game_info.game_date;
+                      const date = new Date(dateStr + 'T12:00:00');
+                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const day = String(date.getDate()).padStart(2, '0');
+                      const year = date.getFullYear();
+                      return `${month}-${day}-${year}`;
+                    })()}</span>
                     {pick.game_info.spread && (
-                      <span>📊 Spread: {pick.game_info.spread > 0 ? '+' : ''}{pick.game_info.spread}</span>
+                      <span>Spread: {pick.game_info.spread > 0 ? '+' : ''}{pick.game_info.spread}</span>
                     )}
                     {pick.game_info.over_under && (
-                      <span>🎯 O/U: {pick.game_info.over_under}</span>
+                      <span>O/U: {pick.game_info.over_under}</span>
                     )}
-                    <span>👤 {pick.author_username || 'Unknown'}</span>
+                    <span>Author: {pick.author_username || 'Unknown'}</span>
                   </div>
                 </div>
 
@@ -273,7 +283,7 @@ const AdminPickManager: React.FC = () => {
                     onClick={() => startRevision(pick)}
                     className='px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs font-medium text-white transition-colors'
                   >
-                    ✏️ Revise
+                    Revise
                   </button>
                   <button
                     onClick={() => {
@@ -282,7 +292,7 @@ const AdminPickManager: React.FC = () => {
                     }}
                     className='px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded text-xs font-medium text-white transition-colors'
                   >
-                    📋 Copy
+                    Copy
                   </button>
                 </div>
               </div>
@@ -296,11 +306,11 @@ const AdminPickManager: React.FC = () => {
         <div className='text-sm text-gray-400'>
           <strong>Pick Management Features:</strong>
           <ul className='mt-2 space-y-1 text-xs'>
-            <li>• ✏️ <strong>Revise:</strong> Edit all pick details including prediction, confidence, reasoning, and game info</li>
-            <li>• 📊 <strong>Manage Results:</strong> Update win/loss/push status and track performance</li>
-            <li>• 🔍 <strong>Search & Filter:</strong> Find specific picks by team, week, or prediction text</li>
-            <li>• 📋 <strong>Copy Data:</strong> Export pick information for external analysis</li>
-            <li>• 🔄 <strong>Real-time Updates:</strong> Changes are immediately reflected across the system</li>
+            <li>• <strong>Revise:</strong> Edit all pick details including prediction, confidence, reasoning, and game info</li>
+            <li>• <strong>Manage Results:</strong> Update win/loss/push status and track performance</li>
+            <li>• <strong>Search & Filter:</strong> Find specific picks by team, week, or prediction text</li>
+            <li>• <strong>Copy Data:</strong> Export pick information for external analysis</li>
+            <li>• <strong>Real-time Updates:</strong> Changes are immediately reflected across the system</li>
           </ul>
         </div>
       </div>

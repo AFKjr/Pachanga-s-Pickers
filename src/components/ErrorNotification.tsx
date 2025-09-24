@@ -22,25 +22,25 @@ const ErrorNotification: React.FC<ErrorNotificationProps> = ({
     low: {
       bg: 'bg-blue-900/20 border-blue-700',
       text: 'text-blue-300',
-      icon: '💡',
+      icon: 'INFO',
       titleColor: 'text-blue-200'
     },
     medium: {
       bg: 'bg-yellow-900/20 border-yellow-700',
       text: 'text-yellow-300',
-      icon: '⚠️',
+      icon: 'WARN',
       titleColor: 'text-yellow-200'
     },
     high: {
       bg: 'bg-red-900/20 border-red-700',
       text: 'text-red-300',
-      icon: '❌',
+      icon: 'ERROR',
       titleColor: 'text-red-200'
     },
     critical: {
       bg: 'bg-red-900/40 border-red-600',
       text: 'text-red-200',
-      icon: '🚨',
+      icon: 'CRITICAL',
       titleColor: 'text-red-100'
     }
   };
@@ -72,7 +72,7 @@ const ErrorNotification: React.FC<ErrorNotificationProps> = ({
           
           {action && (
             <p className={`mt-2 text-sm ${styles.text} opacity-75`}>
-              💡 {action}
+              {action}
             </p>
           )}
           

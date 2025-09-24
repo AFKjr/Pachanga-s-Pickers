@@ -85,7 +85,7 @@ function testDateValidation() {
 
 // Test NFL-specific date validation
 function testNFLDateValidation() {
-  console.log('\n🏈 Testing NFL Date Validation');
+  console.log('\nTesting NFL Date Validation');
   
   const nflTestCases = [
     // NFL season dates

@@ -105,7 +105,7 @@ const AdminPanel: React.FC = () => {
                 : 'text-gray-300 hover:text-white hover:bg-gray-700'
             }`}
           >
-            ⚙️ Manage Picks
+            Manage Picks
           </button>
           <button
             onClick={() => setActiveTab('results')}
@@ -115,7 +115,7 @@ const AdminPanel: React.FC = () => {
                 : 'text-gray-300 hover:text-white hover:bg-gray-700'
             }`}
           >
-            📊 Update Results
+            Update Results
           </button>
         </div>
       </div>
@@ -147,10 +147,10 @@ const AdminPanel: React.FC = () => {
           <div className='mt-8 bg-green-900 border border-green-700 text-green-200 px-4 py-3 rounded'>
             <h4 className='font-semibold mb-2'>Pick Management Features:</h4>
             <ul className='list-disc list-inside space-y-1 text-sm'>
-              <li>✏️ <strong>Revise Picks:</strong> Edit predictions, confidence, reasoning, and game details</li>
-              <li>🔍 <strong>Search & Filter:</strong> Find picks by team, week, or prediction text</li>
-              <li>📋 <strong>Export Data:</strong> Copy pick information for external analysis</li>
-              <li>📌 <strong>Pin Important Picks:</strong> Highlight key predictions for users</li>
+              <li><strong>Revise Picks:</strong> Edit predictions, confidence, reasoning, and game details</li>
+              <li><strong>Search & Filter:</strong> Find picks by team, week, or prediction text</li>
+              <li><strong>Export Data:</strong> Copy pick information for external analysis</li>
+              <li><strong>Pin Important Picks:</strong> Highlight key predictions for users</li>
             </ul>
           </div>
         </>
@@ -162,10 +162,10 @@ const AdminPanel: React.FC = () => {
           <div className='mt-8 bg-yellow-900 border border-yellow-700 text-yellow-200 px-4 py-3 rounded'>
             <h4 className='font-semibold mb-2'>Results Management:</h4>
             <ul className='list-disc list-inside space-y-1 text-sm'>
-              <li>🎯 <strong>Update Results:</strong> Mark picks as Win, Loss, or Push</li>
-              <li>📊 <strong>Batch Operations:</strong> Update multiple picks at once</li>
-              <li>📈 <strong>Statistics Tracking:</strong> Performance metrics are automatically calculated</li>
-              <li>🔄 <strong>Real-time Updates:</strong> Changes immediately update statistics and displays</li>
+              <li><strong>Update Results:</strong> Mark picks as Win, Loss, or Push</li>
+              <li><strong>Batch Operations:</strong> Update multiple picks at once</li>
+              <li><strong>Statistics Tracking:</strong> Performance metrics are automatically calculated</li>
+              <li><strong>Real-time Updates:</strong> Changes immediately update statistics and displays</li>
             </ul>
           </div>
         </>

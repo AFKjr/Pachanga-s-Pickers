@@ -3,7 +3,7 @@
 import { getNFLWeekFromDate, getPickWeek, isValidNFLDate, getCurrentNFLWeek } from './nflWeeks';
 
 // Demo of the new NFL weeks utility
-console.log('🏈 NFL Weeks Utility Demo - 2025 Season');
+console.log('NFL Weeks Utility Demo - 2025 Season');
 console.log('==========================================');
 
 // Test cases that would fail with the old system

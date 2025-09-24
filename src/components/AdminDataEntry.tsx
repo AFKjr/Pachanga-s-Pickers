@@ -56,7 +56,7 @@ const AdminDataEntry: React.FC = () => {
 
   return (
     <div className="bg-gray-800 rounded-lg p-6 mb-6">
-      <h2 className="text-xl font-semibold text-white mb-4">📝 Process Agent Output</h2>
+      <h2 className="text-xl font-semibold text-white mb-4">Process Agent Output</h2>
 
       <AgentTextInput
         value={agentText}

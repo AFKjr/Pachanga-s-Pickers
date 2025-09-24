@@ -56,7 +56,18 @@ export function validateDate(input: unknown): DateValidationResult {
     // Handle different input types
     if (input instanceof Date) {
       dateObj = input;
-    } else if (typeof input === 'string' || typeof input === 'number') {
+    } else if (typeof input === 'string') {
+      // Handle ISO date strings (YYYY-MM-DD) to avoid timezone issues
+      const isoDateMatch = input.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (isoDateMatch) {
+        const year = parseInt(isoDateMatch[1]);
+        const month = parseInt(isoDateMatch[2]) - 1; // Month is 0-indexed
+        const day = parseInt(isoDateMatch[3]);
+        dateObj = new Date(year, month, day); // Creates local timezone date
+      } else {
+        dateObj = new Date(input);
+      }
+    } else if (typeof input === 'number') {
       dateObj = new Date(input);
     } else {
       result.error = `Unsupported date input type: ${typeof input}`;

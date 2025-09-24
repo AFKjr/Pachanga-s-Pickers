@@ -28,7 +28,7 @@ const LEVEL_STYLES = {
     headerBorder: 'border-yellow-700',
     headerText: 'text-yellow-200',
     confirmBg: 'bg-yellow-600 hover:bg-yellow-700',
-    icon: '⚠️'
+    icon: 'WARN'
   },
   high: {
     headerBg: 'bg-orange-900',

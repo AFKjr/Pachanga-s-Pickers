@@ -53,6 +53,19 @@ const AdminPickResults: React.FC = () => {
 
   useEffect(() => {
     loadAllPicks();
+    
+    // Listen for global refresh events from pick revisions
+    const handleRefreshPicks = () => {
+      console.log('🔄 AdminPickResults: Refreshing picks due to global event');
+      loadAllPicks();
+    };
+
+    globalEvents.on('refreshPicks', handleRefreshPicks);
+
+    // Cleanup event listeners
+    return () => {
+      globalEvents.off('refreshPicks', handleRefreshPicks);
+    };
   }, []);
 
   const loadAllPicks = async () => {
@@ -231,7 +244,7 @@ const AdminPickResults: React.FC = () => {
   return (
     <div className='bg-gray-800 rounded-lg p-6 mb-6'>
       <div className='flex items-center justify-between mb-4'>
-        <h2 className='text-xl font-semibold text-white'>📊 Update Pick Results</h2>
+        <h2 className='text-xl font-semibold text-white'>Update Pick Results</h2>
         <div className='flex space-x-2'>
           {hasPendingChanges() && (
             <>
@@ -240,14 +253,14 @@ const AdminPickResults: React.FC = () => {
                 disabled={isOperationPending || loading}
                 className='px-3 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 rounded-md text-white text-sm font-medium transition-colors'
               >
-                {isOperationPending ? '💾 Saving...' : `💾 Save ${pendingOperations.length} Change(s)`}
+                {isOperationPending ? 'Saving...' : `Save ${pendingOperations.length} Change(s)`}
               </button>
               <button
                 onClick={discardAllChanges}
                 disabled={isOperationPending || loading}
                 className='px-3 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-md text-white text-sm font-medium transition-colors'
               >
-                🗑️ Discard Changes
+                Discard Changes
               </button>
             </>
           )}
@@ -256,7 +269,7 @@ const AdminPickResults: React.FC = () => {
             disabled={loading}
             className='px-3 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-md text-white text-sm font-medium transition-colors'
           >
-            🗑️ Clear All
+            Clear All
           </button>
         </div>
       </div>
@@ -326,7 +339,7 @@ const AdminPickResults: React.FC = () => {
                   {hasPendingChange && (
                     <div className='mb-2'>
                       <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-900 text-yellow-200'>
-                        ⚠️ Pending Change
+                        Pending Change
                       </span>
                     </div>
                   )}
@@ -375,7 +388,7 @@ const AdminPickResults: React.FC = () => {
                         disabled={isOperationPending}
                         className='px-3 py-1 bg-gray-600 hover:bg-gray-700 disabled:opacity-50 rounded text-xs font-medium transition-colors'
                       >
-                        {isOperationPending ? '...' : '🗑️ Delete'}
+                        {isOperationPending ? '...' : 'Delete'}
                       </button>
                       <button
                         onClick={() => updatePickResult(pick.id, 'win')}
@@ -421,7 +434,7 @@ const AdminPickResults: React.FC = () => {
 
       {hasPendingChanges() && (
         <div className='mt-4 p-4 bg-yellow-900 border border-yellow-700 rounded-lg'>
-          <h3 className='text-yellow-200 font-medium mb-2'>📝 Pending Changes ({pendingOperations.length})</h3>
+          <h3 className='text-yellow-200 font-medium mb-2'>Pending Changes ({pendingOperations.length})</h3>
           <div className='space-y-1 text-sm text-yellow-100'>
             {pendingOperations.map((operation, index) => {
               const pick = allPicks.find(p => p.id === operation.id) || operation.originalData;
@@ -430,7 +443,7 @@ const AdminPickResults: React.FC = () => {
               return (
                 <div key={index} className='flex items-center justify-between'>
                   <span>
-                    {operation.type === 'delete' ? '🗑️ DELETE:' : '📝 UPDATE:'} {pick.game_info.away_team} @ {pick.game_info.home_team}
+                    {operation.type === 'delete' ? 'DELETE:' : 'UPDATE:'} {pick.game_info.away_team} @ {pick.game_info.home_team}
                     {operation.type === 'update' && operation.payload?.result && (
                       <span className='ml-2 text-yellow-300'>
                         → {operation.payload.result === 'win' ? 'Win' : operation.payload.result === 'loss' ? 'Loss' : 'Push'}
@@ -442,7 +455,7 @@ const AdminPickResults: React.FC = () => {
             })}
           </div>
           <div className='mt-3 text-xs text-yellow-300'>
-            💡 Click "Save Changes" to commit all changes to the database, or "Discard Changes" to revert.
+            Click "Save Changes" to commit all changes to the database, or "Discard Changes" to revert.
           </div>
         </div>
       )}
