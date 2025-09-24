@@ -11,8 +11,10 @@ import {
   extractConfidence,
   isKeyFactorsHeader,
   isFactorLine,
+  isFactorLineAdaptive,
   extractFactorText
 } from '../utils/textProcessor';
+import { shouldStopFactorCollection, extractWinProbability } from '../utils/adaptiveParser';
 
 export const useAgentTextParser = (): AgentTextParserResult => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -40,6 +42,7 @@ export const useAgentTextParser = (): AgentTextParserResult => {
     let currentGameDate = new Date(); // Default to current date
     let currentWeek: NFLWeek = selectedWeek || 1; // Use selected week or default to 1
     let isCollectingFactors = false;
+    let hasWinProbability = false; // Track if we found win probability (most reliable)
 
     console.log('Starting to parse agent text with', lines.length, 'lines');
     
@@ -110,16 +113,28 @@ export const useAgentTextParser = (): AgentTextParserResult => {
         currentConfidence = 50; // Reset to default 50%
         currentReasoning = '';
         isCollectingFactors = false;
+        hasWinProbability = false; // Reset win probability flag
       }
 
-      // Look for model prediction
-      const prediction = extractPrediction(line);
-      if (prediction) {
-        currentPrediction = prediction;
-        console.log('Found prediction:', prediction);
+      // First, check for win probability (most reliable)
+      const winProb = extractWinProbability(line);
+      if (winProb) {
+        currentPrediction = winProb.prediction;
+        hasWinProbability = true;
+        console.log('Found WIN PROBABILITY (most reliable):', winProb.prediction);
+        console.log('Winner:', winProb.winner, 'Probability:', winProb.probability + '%');
+      }
+      
+      // Look for other predictions only if we don't have win probability yet
+      if (!hasWinProbability) {
+        const prediction = extractPrediction(line);
+        if (prediction) {
+          currentPrediction = prediction;
+          console.log('Found prediction:', prediction);
+        }
       }
 
-      // Look for recommended play (contains confidence)
+      // Look for recommended play (contains confidence) - check multiple patterns
       const confidence = extractConfidence(line);
       if (confidence !== null) {
         // Ensure confidence is a valid ConfidenceLevel (round to nearest 10)
@@ -136,16 +151,16 @@ export const useAgentTextParser = (): AgentTextParserResult => {
         continue;
       }
 
-      // Collect key factors (lines that start with – or •)
-      if (isCollectingFactors && isFactorLine(line)) {
+      // Collect key factors (both traditional bullet points and adaptive detection)
+      if (isCollectingFactors && (isFactorLine(line) || isFactorLineAdaptive(line, isCollectingFactors))) {
         const factorText = extractFactorText(line);
         if (factorText.length > 0) {
           currentReasoning += factorText + '. ';
         }
       }
 
-      // Stop collecting factors when we hit the next game or empty line
-      if (isCollectingFactors && (isGameLine(line) || line === '')) {
+      // Stop collecting factors when we hit the next game or section
+      if (isCollectingFactors && (isGameLine(line) || shouldStopFactorCollection(line))) {
         isCollectingFactors = false;
         console.log('Finished collecting factors for game');
       }

@@ -1,8 +1,17 @@
 /**
  * Utility functions for parsing dates from various formats in agent text
+ * Now includes adaptive parsing for handling AI agent output variations
  */
 
 import { NFLWeek } from '../types/index';
+import {
+  adaptiveExtractPrediction,
+  adaptiveExtractConfidence,
+  adaptiveIsKeyFactorsHeader,
+  adaptiveExtractWeek,
+  adaptiveIsFactorLine,
+  adaptiveExtractFactorText
+} from './adaptiveParser';
 
 /**
  * Parse game date from various text formats
@@ -36,11 +45,12 @@ export const parseGameDate = (dateText: string): string => {
     return thursday.toISOString().split('T')[0];
   }
 
-  // Handle specific dates like "December 15", "12/15", "Dec 15"
+  // Handle specific dates like "December 15", "12/15", "Dec 15", "(Thu 9/25)"
   const datePatterns = [
     /(\w+ \d{1,2}),?\s*(\d{4})?/, // "December 15, 2024" or "December 15"
     /(\d{1,2})\/(\d{1,2})\/?(\d{4})?/, // "12/15/2024" or "12/15"
     /(\d{1,2})-(\d{1,2})-?(\d{4})?/, // "12-15-2024" or "12-15"
+    /\(\w{3}\s+(\d{1,2})\/(\d{1,2})\)/, // "(Thu 9/25)" format
   ];
 
   for (const pattern of datePatterns) {
@@ -48,10 +58,21 @@ export const parseGameDate = (dateText: string): string => {
     if (match) {
       try {
         let dateStr = dateText;
-        // If no year specified, assume current year
-        if (!match[2] && !match[3]) {
-          dateStr += `, ${currentYear}`;
+        
+        // Handle "(Thu 9/25)" format
+        const parenthesesMatch = dateText.match(/\(\w{3}\s+(\d{1,2})\/(\d{1,2})\)/);
+        if (parenthesesMatch) {
+          const month = parseInt(parenthesesMatch[1]);
+          const day = parseInt(parenthesesMatch[2]);
+          const year = new Date().getFullYear();
+          dateStr = `${month}/${day}/${year}`;
+        } else {
+          // If no year specified, assume current year
+          if (!match[2] && !match[3]) {
+            dateStr += `, ${currentYear}`;
+          }
         }
+        
         const parsedDate = new Date(dateStr);
         if (!isNaN(parsedDate.getTime())) {
           return parsedDate.toISOString().split('T')[0];
@@ -83,12 +104,17 @@ export const parseConfidence = (playText: string): number => {
 
 /**
  * Extract week number from header text like "Week 3 Game Predictions"
+ * Now uses adaptive parsing for various formats
  */
 export const parseWeekFromHeader = (line: string): NFLWeek | null => {
+  // Try adaptive parsing first
+  const adaptiveResult = adaptiveExtractWeek(line);
+  if (adaptiveResult) return adaptiveResult;
+  
+  // Fallback to original logic
   const weekMatch = line.match(/week\s+(\d+)/i);
   if (weekMatch) {
     const weekNum = parseInt(weekMatch[1]);
-    // Validate that week is within NFL range (1-18)
     if (weekNum >= 1 && weekNum <= 18) {
       return weekNum as NFLWeek;
     }
@@ -103,9 +129,13 @@ export const hasDateIndicators = (line: string): boolean => {
   return line.toLowerCase().includes('monday night') ||
          line.toLowerCase().includes('sunday night') ||
          line.toLowerCase().includes('thursday night') ||
+         line.toLowerCase().includes('monday') ||
+         line.toLowerCase().includes('sunday') ||
+         line.toLowerCase().includes('thursday') ||
          /\b\w+ \d{1,2}\b/.test(line) || // "December 15"
          /\b\d{1,2}\/\d{1,2}\b/.test(line) || // "12/15"
-         /\b\d{1,2}-\d{1,2}\b/.test(line); // "12-15"
+         /\b\d{1,2}-\d{1,2}\b/.test(line) || // "12-15"
+         /\(\w{3}\s+\d{1,2}\/\d{1,2}\)/.test(line); // "(Thu 9/25)"
 };
 
 /**
@@ -177,67 +207,79 @@ export const parseTeams = (gameLine: string): { awayTeam: string; homeTeam: stri
 
 /**
  * Extract prediction from model prediction line
- * Updated to handle both old format "• Model Prediction:" and new format "• Model:"
+ * Now uses adaptive parsing to handle multiple AI-generated formats
  */
 export const extractPrediction = (line: string): string | null => {
-  // Handle old format
-  if (line.includes('• Model Prediction:')) {
-    return line.replace('• Model Prediction:', '').trim();
-  }
-  
-  // Handle new format: "• Model: Ravens 31-24"
-  if (line.includes('• Model:')) {
-    const prediction = line.replace('• Model:', '').trim();
-    // Convert "Ravens 31-24" to "Ravens to win"
-    // Extract team name (everything before first number)
-    const teamMatch = prediction.match(/^([a-zA-Z\s]+?)\s+\d/);
-    if (teamMatch) {
-      return `${teamMatch[1].trim()} to win`;
-    }
-    return prediction; // Return as-is if pattern doesn't match
-  }
-  
-  return null;
+  return adaptiveExtractPrediction(line);
 };
 
 /**
  * Extract confidence from recommended play line or confidence line
- * Updated to handle both "• Recommended Play:" and "• Confidence:" formats
+ * Now uses adaptive parsing to handle multiple AI-generated formats
  */
 export const extractConfidence = (line: string): number | null => {
-  // Handle old format
-  if (line.includes('• Recommended Play:')) {
-    const playText = line.replace('• Recommended Play:', '').trim();
-    return parseConfidence(playText);
-  }
-  
-  // Handle new format: "• Confidence: High"
-  if (line.includes('• Confidence:')) {
-    const confidenceText = line.replace('• Confidence:', '').trim();
-    return parseConfidence(confidenceText);
-  }
-  
-  return null;
+  return adaptiveExtractConfidence(line);
 };
 
 /**
  * Check if line starts key factors collection
- * Updated to handle "• Factors:" format as well
+ * Now uses adaptive parsing to handle multiple AI-generated formats
  */
 export const isKeyFactorsHeader = (line: string): boolean => {
-  return line.includes('• Key Factors:') || line.includes('• Factors:');
+  return adaptiveIsKeyFactorsHeader(line);
 };
 
 /**
- * Check if line is a factor (starts with bullet or dash)
+ * Check if line is a factor (now adaptive to handle various AI output formats)
  */
 export const isFactorLine = (line: string): boolean => {
-  return line.startsWith('–') || line.startsWith('•');
+  // For backward compatibility, this function signature remains the same
+  // but we need context to make it truly adaptive
+  return line.startsWith('–') || 
+         line.startsWith('•') ||
+         line.startsWith('    ') || // 4-space indentation
+         line.startsWith('\t') ||   // tab indentation
+         /^\s{2,}/.test(line);      // 2+ spaces indentation
+};
+
+/**
+ * Adaptive factor line detection - requires context about whether we're collecting factors
+ */
+export const isFactorLineAdaptive = (line: string, isCollectingFactors: boolean): boolean => {
+  return adaptiveIsFactorLine(line, isCollectingFactors);
+};
+
+/**
+ * Check if line could be a factor when we're in factor collection mode
+ * This is more permissive and includes plain text lines
+ */
+export const couldBeFactorLine = (line: string): boolean => {
+  // Skip empty lines
+  if (!line.trim()) return false;
+  
+  // Skip lines that are clearly not factors
+  if (isGameLine(line)) return false;
+  if (line.includes('Model Prediction:')) return false;
+  if (line.includes('Predicted Score:')) return false;
+  if (line.includes('Recommended Side/Total:')) return false;
+  if (line.includes('Confidence Level:')) return false;
+  if (line.includes('Simulation Results')) return false;
+  if (line.includes('Win Probability:')) return false;
+  if (line.includes('95% CI')) return false;
+  if (line.includes('Mean Predicted Score:')) return false;
+  
+  // If it's a regular factor line, definitely include it
+  if (isFactorLine(line)) return true;
+  
+  // If we're here, it's probably a plain text factor
+  // Check if it looks like a sentence/phrase (has letters and reasonable length)
+  return /[a-zA-Z]/.test(line) && line.length > 10 && line.length < 200;
 };
 
 /**
  * Extract factor text from a factor line
+ * Now uses adaptive parsing to handle various AI output formats  
  */
 export const extractFactorText = (line: string): string => {
-  return line.replace(/^[–•]\s*/, '').trim();
+  return adaptiveExtractFactorText(line);
 };

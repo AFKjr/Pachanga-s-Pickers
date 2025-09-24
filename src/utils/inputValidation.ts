@@ -15,7 +15,7 @@ const MAX_LENGTHS = {
 
 // Regex patterns for validation
 const VALIDATION_PATTERNS = {
-  TEAM_NAME: /^[a-zA-Z\s\-'\.]+$/,                    // Letters, spaces, hyphens, apostrophes, periods
+  TEAM_NAME: /^[a-zA-Z0-9\s\-'\.]+$/,                 // Letters, numbers, spaces, hyphens, apostrophes, periods
   CONFIDENCE: /^(100|[0-9]?[0-9])$/,                  // 0-100 integer
   WEEK: /^(1[0-8]|[1-9])$/,                          // 1-18 integer
   DATE: /^\d{4}-\d{2}-\d{2}$/,                       // YYYY-MM-DD format
@@ -57,8 +57,12 @@ export const sanitizeText = (input: string): string => {
   // Remove null bytes and control characters (except newlines and tabs)
   sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 
-  // Normalize whitespace
-  sanitized = sanitized.replace(/\s+/g, ' ').trim();
+  // Normalize whitespace but preserve newlines
+  // Replace multiple spaces/tabs with single space, but keep newlines
+  sanitized = sanitized.replace(/[ \t]+/g, ' '); // Multiple spaces/tabs → single space
+  sanitized = sanitized.replace(/[ \t]*\n[ \t]*/g, '\n'); // Clean up around newlines
+  sanitized = sanitized.replace(/\n{3,}/g, '\n\n'); // Max 2 consecutive newlines
+  sanitized = sanitized.trim();
 
   return sanitized;
 };
@@ -143,7 +147,7 @@ export const validateTeamName = (teamName: string): { isValid: boolean; error?: 
   if (!validatePattern(sanitized, VALIDATION_PATTERNS.TEAM_NAME)) {
     return { 
       isValid: false, 
-      error: 'Team name contains invalid characters. Only letters, spaces, hyphens, and apostrophes allowed.',
+      error: 'Team name contains invalid characters. Only letters, numbers, spaces, hyphens, and apostrophes allowed.',
       sanitized 
     };
   }
