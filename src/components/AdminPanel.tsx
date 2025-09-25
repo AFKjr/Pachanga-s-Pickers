@@ -5,12 +5,13 @@ import RelevanceAIAgentEmbed from './RelevanceAIAgentEmbed';
 import AdminDataEntry from './AdminDataEntry';
 import AdminPickResults from './AdminPickResults';
 import AdminPickManager from './AdminPickManager';
+import DataCollectionStatus from './DataCollectionStatus';
 
 const AdminPanel: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'generate' | 'manage' | 'results'>('generate');
+  const [activeTab, setActiveTab] = useState<'generate' | 'manage' | 'results' | 'data-collection'>('generate');
 
   // Check admin status when user changes
   useEffect(() => {
@@ -117,6 +118,16 @@ const AdminPanel: React.FC = () => {
           >
             Update Results
           </button>
+          <button
+            onClick={() => setActiveTab('data-collection')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'data-collection'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-300 hover:text-white hover:bg-gray-700'
+            }`}
+          >
+            📊 Data Collection
+          </button>
         </div>
       </div>
 
@@ -169,6 +180,10 @@ const AdminPanel: React.FC = () => {
             </ul>
           </div>
         </>
+      )}
+
+      {activeTab === 'data-collection' && (
+        <DataCollectionStatus />
       )}
     </div>
   );
