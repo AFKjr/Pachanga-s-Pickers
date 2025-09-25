@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 350px;
+      min-height: 400px;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #1f2937;
+      color: #f9fafb;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      padding: 20px;
+      text-align: center;
+      border-bottom: 1px solid #374151;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .header p {
+      margin: 5px 0 0 0;
+      font-size: 12px;
+      opacity: 0.9;
+    }
+    
+    .content {
+      padding: 20px;
+    }
+    
+    .page-info {
+      background: #374151;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .page-info h3 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #f3f4f6;
+    }
+    
+    .page-info p {
+      margin: 0;
+      font-size: 12px;
+      color: #9ca3af;
+      word-break: break-word;
+    }
+    
+    .status {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      margin-top: 8px;
+    }
+    
+    .status.supported {
+      background: #065f46;
+      color: #10b981;
+    }
+    
+    .status.not-supported {
+      background: #7f1d1d;
+      color: #ef4444;
+    }
+    
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background: #2563eb;
+    }
+    
+    .btn-secondary {
+      background: #374151;
+      color: #f9fafb;
+      border: 1px solid #4b5563;
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      background: #4b5563;
+    }
+    
+    .btn-success {
+      background: #059669;
+      color: white;
+    }
+    
+    .btn-success:hover:not(:disabled) {
+      background: #047857;
+    }
+    
+    .divider {
+      height: 1px;
+      background: #374151;
+      margin: 20px 0;
+    }
+    
+    .quick-links {
+      margin-top: 20px;
+    }
+    
+    .quick-links h4 {
+      margin: 0 0 10px 0;
+      font-size: 13px;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .link-grid {
+      display: grid;
+      gap: 8px;
+    }
+    
+    .quick-link {
+      display: block;
+      padding: 10px;
+      background: #374151;
+      border-radius: 6px;
+      color: #f9fafb;
+      text-decoration: none;
+      font-size: 12px;
+      transition: background 0.2s ease;
+    }
+    
+    .quick-link:hover {
+      background: #4b5563;
+    }
+    
+    .loading {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      color: #9ca3af;
+      font-size: 12px;
+    }
+    
+    .loading.show {
+      display: flex;
+    }
+    
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #374151;
+      border-top: 2px solid #6366f1;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .notification {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      left: 10px;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      z-index: 1000;
+      transform: translateY(-100%);
+      transition: transform 0.3s ease;
+    }
+    
+    .notification.show {
+      transform: translateY(0);
+    }
+    
+    .notification.success {
+      background: #065f46;
+      color: #10b981;
+      border: 1px solid #047857;
+    }
+    
+    .notification.error {
+      background: #7f1d1d;
+      color: #ef4444;
+      border: 1px solid #dc2626;
+    }
+
+    .stats {
+      background: #1e293b;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stats h4 {
+      margin: 0 0 8px 0;
+      font-size: 12px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stats .stat-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      font-size: 12px;
+    }
+
+    .stats .stat-label {
+      color: #cbd5e1;
+    }
+
+    .stats .stat-value {
+      color: #f1f5f9;
+      font-weight: 500;
+    }
+
+    .auto-scrape-section {
+      background: #0f172a;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 16px;
+      border: 1px solid #1e293b;
+    }
+
+    .auto-scrape-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #374151;
+      transition: .4s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: #059669;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    .status.enabled {
+      background: #065f46;
+      color: #10b981;
+    }
+
+    .status.disabled {
+      background: #7f1d1d;
+      color: #ef4444;
+    }
+
+    .status.unknown {
+      background: #374151;
+      color: #9ca3af;
+    }
+
+    .scrape-times {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 4px;
+      font-size: 10px;
+      margin-top: 8px;
+    }
+
+    .scrape-time-label {
+      color: #94a3b8;
+    }
+
+    .scrape-time-value {
+      color: #e2e8f0;
+      text-align: right;
+    }
+
+    .controls-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .btn-small {
+      font-size: 11px;
+      padding: 8px 12px;
+    }
+
+    .error-section {
+      background: #1e293b;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+
+    .error-log {
+      max-height: 120px;
+      overflow-y: auto;
+      margin-top: 8px;
+      display: none;
+    }
+
+    .error-item {
+      padding: 6px;
+      background: #0f172a;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      border-left: 3px solid #dc2626;
+    }
+
+    .error-time {
+      font-size: 10px;
+      color: #94a3b8;
+      margin-bottom: 2px;
+    }
+
+    .error-message {
+      font-size: 11px;
+      color: #f1f5f9;
+    }
+
+    .no-errors {
+      font-size: 11px;
+      color: #6b7280;
+      text-align: center;
+      padding: 12px;
+    }
+
+    .page-type {
+      font-size: 11px;
+      color: #6366f1;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🏈 Pachanga's Scraper</h1>
+    <p>ESPN NFL Data Collection</p>
+  </div>
+  
+  <div class="content">
+    <div class="page-info">
+      <h3>Current Page</h3>
+      <p id="current-url">Loading...</p>
+      <div class="page-type" id="page-type">ESPN Page</div>
+      <div id="page-status" class="status not-supported">
+        ❌ Not Supported
+      </div>
+    </div>
+
+    <div class="auto-scrape-section">
+      <div class="auto-scrape-toggle">
+        <span style="font-size: 12px; color: #e2e8f0;">Auto-Scraping</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="auto-scrape-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div id="auto-scrape-status" class="status disabled">Disabled</div>
+      <div class="scrape-times">
+        <span class="scrape-time-label">Team Stats:</span>
+        <span class="scrape-time-value" id="last-team-stats">Never</span>
+        <span class="scrape-time-label">Injuries:</span>
+        <span class="scrape-time-value" id="last-injuries">Never</span>
+        <span class="scrape-time-label">Betting Lines:</span>
+        <span class="scrape-time-value" id="last-betting-lines">Never</span>
+      </div>
+    </div>
+
+    <div class="stats">
+      <h4>Statistics</h4>
+      <div class="stat-item">
+        <span class="stat-label">Total Scrapes:</span>
+        <span class="stat-value" id="total-scrapes">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Successful:</span>
+        <span class="stat-value" id="successful-scrapes">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Errors:</span>
+        <span class="stat-value" id="error-count">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Last Scrape:</span>
+        <span class="stat-value" id="last-scrape-time">Never</span>
+      </div>
+    </div>
+    
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <span>Scraping data...</span>
+    </div>
+    
+    <div class="actions">
+      <button id="scrape-btn" class="btn btn-primary" disabled>
+        🔄 Scrape Current Page
+      </button>
+      
+      <button id="manual-scrape" class="btn btn-secondary">
+        ⚡ Force Scrape
+      </button>
+    </div>
+
+    <div class="controls-section">
+      <button id="refresh-stats-btn" class="btn btn-secondary btn-small">
+        🔄 Refresh Stats
+      </button>
+      <button id="clear-errors-btn" class="btn btn-secondary btn-small">
+        🧹 Clear Errors
+      </button>
+    </div>
+
+    <div class="error-section">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h4 style="margin: 0;">Recent Errors</h4>
+        <button id="toggle-errors-btn" class="btn btn-secondary btn-small">Show Errors</button>
+      </div>
+      <div id="error-log-container" class="error-log">
+        <div id="error-log">
+          <div class="no-errors">Loading...</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="divider"></div>
+    
+    <div class="quick-links">
+      <h4>Quick ESPN Navigation</h4>
+      <div class="link-grid">
+        <a href="https://www.espn.com/nfl/stats/team/_/view/offense" target="_blank" class="quick-link">
+          📊 Team Offense Stats
+        </a>
+        <a href="https://www.espn.com/nfl/stats/team/_/view/defense" target="_blank" class="quick-link">
+          🛡️ Team Defense Stats  
+        </a>
+        <a href="https://www.espn.com/nfl/injuries" target="_blank" class="quick-link">
+          🏥 Injury Reports
+        </a>
+        <a href="https://sportsbook.espn.com/sports/football/nfl" target="_blank" class="quick-link">
+          💰 Betting Lines
+        </a>
+        <a href="https://www.espn.com/nfl/schedule" target="_blank" class="quick-link">
+          📅 Game Schedule
+        </a>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="actions">
+      <a href="#" id="admin-link" class="btn btn-success" target="_blank">
+        🚀 Open Admin Panel
+      </a>
+    </div>
+
+    <div class="stats">
+      <h4>About</h4>
+      <p style="font-size: 11px; color: #9ca3af; line-height: 1.4; margin: 0;">
+        Automatically scrapes NFL data from ESPN pages every 30-120 minutes and saves to your Supabase database. 
+        Toggle auto-scraping above or visit ESPN NFL pages for manual collection.
+      </p>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

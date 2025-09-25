@@ -15,7 +15,7 @@ const RelevanceAIAgentEmbed: React.FC = () => {
             frameBorder="0"
             allow="microphone"
             className="w-full rounded"
-            title="Relevance AI Agent"
+            title="Pachanga"
           />
         </div>
       </div>
