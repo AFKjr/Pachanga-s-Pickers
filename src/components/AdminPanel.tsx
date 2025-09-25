@@ -5,7 +5,7 @@ import RelevanceAIAgentEmbed from './RelevanceAIAgentEmbed';
 import AdminDataEntry from './AdminDataEntry';
 import AdminPickResults from './AdminPickResults';
 import AdminPickManager from './AdminPickManager';
-import DataCollectionStatus from './DataCollectionStatus';
+import DataCollectionStatus from './DataCollectionStatus.tsx';
 
 const AdminPanel: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
