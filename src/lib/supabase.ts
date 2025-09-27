@@ -139,7 +139,7 @@ export type Database = {
           id: string;
           week: NFLWeek;
           season: number;
-          games: any[]; // Array of ESPNGame objects
+          games: any[]; // Array of game objects
           last_updated: string;
           created_at: string;
         };

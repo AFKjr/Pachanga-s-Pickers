@@ -11,9 +11,6 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
-# ESPN Scraper Extension (contains API keys)
-espn-scraper-extension/content.js
-
 # Build outputs
 dist/
 build/

@@ -2,13 +2,13 @@
 
 ## Architecture Overview
 
-**Tech Stack**: React 18 + TypeScript + Vite + Tailwind CSS + Supabase + Langchain + OpenAI GPT-4
+**Tech Stack**: React 18 + TypeScript + Vite + Tailwind CSS + Supabase + Relevance AI
 
 **Core Components**:
 - **Frontend**: Single-page React app with React Router (routes: `/`, `/game/:gameId`, `/admin`)
 - **Backend**: Supabase (PostgreSQL + Auth + Real-time subscriptions)
-- **AI Layer**: Multi-tier sports data system (ESPN API → LLM generation → mock fallback)
-- **Data Flow**: External APIs → Langchain agents → Supabase storage → React components
+- **AI Layer**: AI-powered sports prediction system with Relevance AI integration
+- **Data Flow**: User input → Relevance AI agents → Supabase storage → React components
 
 **Key Data Models** (`src/types/index.ts`):
 - `Pick`: AI-generated predictions with confidence scores (0-100)
@@ -31,10 +31,10 @@
 - **Real-time**: Use `supabase.channel()` for live updates on picks/posts
 
 ### AI Analysis Workflow
-- **Multi-Source Data**: Google CSE + OpenWeather API + ESPN data
 - **Agent Integration**: Relevance AI agents for complex reasoning (`RelevanceAIAgentEmbed`)
 - **Prediction Storage**: Save to `picks` table with structured `game_info` JSONB
 - **Confidence Scoring**: 0-100 scale with reasoning text
+- **Data Sources**: Manual data entry through admin interface (ESPN scraper removed)
 
 ### Database Schema Patterns
 - **UUID Primary Keys**: All tables use `gen_random_uuid()`
@@ -94,19 +94,26 @@ if (error) console.error('Failed to fetch picks:', error);
 ### `src/lib/`
 - `api.ts`: All Supabase CRUD operations
 - `supabase.ts`: Client configuration and initialization
-- `enhancedLLMSportsAPI.ts`: AI agent integration
-- `llmSportsAPI.ts`: LLM-based data generation
+- `atomicOperations.ts`: Database atomic operations
+- `events.ts`: Event handling utilities
+- `api/`: API-related utilities (currently empty)
 
 ### `src/components/`
 - `AdminPanel.tsx`: AI prediction interface (admin-only)
 - `HomePage.tsx`: Main picks feed with `PickCard` components
-- `GameThread.tsx`: Individual game discussions
 - `AuthModal.tsx`: Sign-in/sign-up forms
+- `DataCollectionStatus.tsx`: Data collection status (ESPN scraper removed)
+- `RelevanceAIAgentEmbed.tsx`: AI agent integration component
+- `admin/`: Admin-specific components
+  - `AgentTextInput.tsx`: Text input for AI agents
+  - `ProcessingActions.tsx`: Processing action components
+  - `StatusMessage.tsx`: Status message display
+  - `WeekSelector.tsx`: NFL week selection component
 
 ### Database Files
-- `supabase-schema.sql`: Complete database structure
-- `supabase_migrations/`: Incremental schema changes
-- `fix_picks_profiles_relationship.sql`: Relationship fixes
+- `supabase/config.toml`: Supabase project configuration
+- `supabase/functions/`: Edge functions
+- `server-data-collector.js`: Data collection script (ESPN logic removed)
 
 ## Common Pitfalls to Avoid
 
@@ -124,6 +131,7 @@ if (error) console.error('Failed to fetch picks:', error);
 - LLM calls are expensive - implement caching where possible
 - Always provide fallback data for development/testing
 - Validate AI-generated data before storing in production
+- Data collection: Manual entry through admin interface (no automated scraping)
 
 ### Real-time Features
 - Clean up subscriptions in `useEffect` cleanup functions
@@ -142,5 +150,6 @@ if (error) console.error('Failed to fetch picks:', error);
 - **Environment Variables**: All `VITE_` prefixed vars exposed to client
 - **Supabase Config**: Run schema SQL in Supabase dashboard
 - **Build Process**: `npm run build` generates optimized bundle
-- **CORS**: Supabase handles CORS for API routes automatically</content>
+- **CORS**: Supabase handles CORS for API routes automatically
+- **Data Collection**: Manual data entry only (ESPN scraper removed)</content>
 <parameter name="filePath">.github/copilot-instructions.md

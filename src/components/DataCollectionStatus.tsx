@@ -228,24 +228,6 @@ const DataCollectionStatus: React.FC = () => {
         </div>
       </div>
 
-      {/* Extension Status */}
-      <div className="bg-blue-900 border border-blue-700 text-blue-200 px-4 py-3 rounded">
-        <h4 className="font-semibold mb-2">🔧 ESPN Scraper Extension</h4>
-        <p className="text-sm mb-2">
-          The ESPN data scraper extension automatically collects fresh data from ESPN pages.
-          Install the extension and enable auto-scraping for continuous data updates.
-        </p>
-        <div className="text-xs space-y-1">
-          <p><strong>Auto-scraping schedule:</strong></p>
-          <ul className="list-disc list-inside ml-4">
-            <li>Team stats: Every 2 hours</li>
-            <li>Injury reports: Every hour</li>
-            <li>Betting lines: Every 30 minutes</li>
-            <li>Game schedules: Every 4 hours</li>
-          </ul>
-        </div>
-      </div>
-
       {/* Data Usage Info */}
       <div className="bg-green-900 border border-green-700 text-green-200 px-4 py-3 rounded">
         <h4 className="font-semibold mb-2">📈 How This Data is Used</h4>
