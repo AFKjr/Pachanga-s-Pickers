@@ -4,7 +4,10 @@
 const CONFIG = {
   adminPanelURL: 'http://localhost:5173/admin', // Your React app admin panel
   supportedPages: [
-    'espn.com/nfl/stats',
+    'espn.com/nfl/stats/team/',
+    'espn.com/nfl/stats/team/_/view/defense',
+    'espn.com/nfl/stats/team/_/view/special',
+    'espn.com/nfl/stats/team/_/view/turnovers',
     'espn.com/nfl/injuries', 
     'sportsbook.espn.com',
     'espn.com/nfl/schedule'
@@ -185,7 +188,7 @@ async function handleScrapeClick() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
-    const response = await chrome.tabs.sendMessage(tab.id, { action: 'scrape' });
+    const response = await chrome.tabs.sendMessage(tab.id, { action: 'scrapeData' });
     
     if (response && response.success) {
       showNotification('✅ Data scraped successfully!', 'success');
@@ -219,7 +222,7 @@ async function handleManualScrape() {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Try to scrape
-    const response = await chrome.tabs.sendMessage(tab.id, { action: 'scrape' });
+    const response = await chrome.tabs.sendMessage(tab.id, { action: 'scrapeData' });
     
     if (response && response.success) {
       showNotification('✅ Manual scrape completed!', 'success');
@@ -285,9 +288,9 @@ function showNotification(message, type = 'success') {
 function getPageType(url) {
   const lowerUrl = url.toLowerCase();
   
-  if (lowerUrl.includes('nfl/stats/team/_/view/offense')) {
+  if (lowerUrl.includes('nfl/stats/team/_/stat/offense')) {
     return 'Team Offense Stats';
-  } else if (lowerUrl.includes('nfl/stats/team/_/view/defense')) {
+  } else if (lowerUrl.includes('nfl/stats/team/_/stat/defense')) {
     return 'Team Defense Stats';
   } else if (lowerUrl.includes('nfl/injuries')) {
     return 'Injury Reports';

@@ -1,17 +1,11 @@
 // content.js - Runs on ESPN pages and scrapes data
-console.log('🏈 Pachanga\'s ESPN Scraper loaded on:', window.location.href);
+console.log('Pachanga\'s ESPN Scraper loaded on:', window.location.href);
 
 // ⚠️ IMPORTANT: Replace these with your actual Supabase credentials from your .env file
 const SUPABASE_CONFIG = {
-  url: 'YOUR_SUPABASE_URL',        // Replace with your actual Supabase project URL
-  key: 'YOUR_SUPABASE_ANON_KEY'    // Replace with your actual anon key
+  url: 'https://wbfvfzrxdqwrnqmpnfel.supabase.co',      
+  key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndiZnZmenJ4ZHF3cm5xbXBuZmVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc4NzAwNzIsImV4cCI6MjA3MzQ0NjA3Mn0.Vxr0N4xCFwUu229UxdPy5GKwH2dQahKM1DAbcCRjnyo'
 };
-
-// Example of what your credentials should look like:
-// const SUPABASE_CONFIG = {
-//   url: 'https://abcdefghijklmnop.supabase.co',
-//   key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS...'
-// };
 
 // Import Supabase (we'll load it dynamically)
 let supabase = null;
@@ -43,15 +37,15 @@ async function initSupabase() {
 }
 
 // Validation functions (simplified versions of your existing validation utils)
-function validateTeamName(teamName) {
-  if (!teamName || typeof teamName !== 'string') {
+function validateTeamName(name) {
+  if (!name || typeof name !== 'string') {
     return { isValid: false, sanitized: '' };
   }
   
-  const sanitized = teamName
-    .replace(/[<>\"'&]/g, '') // Remove dangerous chars
-    .trim()
-    .substring(0, 50); // Max length
+  const sanitized = name.trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, ' ')
+    .substring(0, 50);
     
   return { 
     isValid: sanitized.length > 0 && sanitized.length <= 50,
@@ -71,44 +65,156 @@ const scrapers = {
     console.log('🔍 Scraping team offense stats...');
     const teams = [];
     
-    // ESPN team stats table - multiple possible selectors
-    const rows = document.querySelectorAll('tbody tr, .Table__TR, .ResponsiveTable tr');
+    // Try multiple selectors for ESPN table structures
+    let rows = Array.from(document.querySelectorAll('.Table__TR'));
+    if (rows.length === 0) {
+      rows = Array.from(document.querySelectorAll('tbody tr'));
+    }
+    if (rows.length === 0) {
+      rows = Array.from(document.querySelectorAll('table tr'));
+    }
     
-    rows.forEach(row => {
-      try {
-        const teamCell = row.querySelector('td:first-child, .Table__TD:first-child, .team-name');
+    console.log(`🔍 Found ${rows.length} table rows using available selectors`);
+    
+    if (rows.length === 0) {
+      console.error('❌ No table rows found with any selector');
+      return teams;
+    }
+    
+    // Check if this is a standard table (team and data in same row) or split table
+    const sampleRow = rows[1] || rows[0]; // Skip header row if exists
+    const sampleCells = sampleRow.querySelectorAll('td, .Table__TD');
+    const isStandardTable = sampleCells.length > 3; // Standard tables have many columns
+    
+    console.log(`📊 Table structure detected: ${isStandardTable ? 'Standard' : 'Split'} (sample row has ${sampleCells.length} cells)`);
+    
+    if (isStandardTable) {
+      // Standard table format: team and stats in same row
+      rows.forEach((row, index) => {
+        try {
+          const cells = row.querySelectorAll('td, .Table__TD');
+          if (cells.length < 5) return; // Skip header rows or incomplete rows
+          
+          // First cell usually contains team info
+          const teamCell = cells[0];
+          let teamLink = teamCell.querySelector('a[data-clubhouse-uid]');
+          if (!teamLink) teamLink = teamCell.querySelector('a[href*="/nfl/team/"]');
+          if (!teamLink) teamLink = teamCell.querySelector('a');
+          
+          if (!teamLink) {
+            console.log(`❌ No team link found in row ${index}`);
+            return;
+          }
+          
+          const teamName = teamLink.textContent.trim();
+          const validation = validateTeamName(teamName);
+          if (!validation.isValid) {
+            console.log(`❌ Invalid team name: ${teamName}`);
+            return;
+          }
+          
+          // Extract stats from remaining cells (column order may vary)
+          const cellData = Array.from(cells).slice(1).map(cell => cell.textContent.trim());
+          console.log(`📊 Processing ${teamName}: [${cellData.slice(0, 4).join(', ')}...]`);
+          
+          // Try to identify key stats by position (ESPN typically orders: Games, Total Yards, Yards/Game, etc.)
+          let pointsPerGame = 0, yardsPerGame = 0, passingYards = 0, rushingYards = 0, turnovers = 0;
+          
+          // Look for recognizable patterns in the data
+          cellData.forEach((value, i) => {
+            const num = sanitizeNumber(value);
+            if (num > 0) {
+              // Heuristics based on typical NFL stats ranges
+              if (num >= 15 && num <= 35 && pointsPerGame === 0) {
+                pointsPerGame = num; // Points per game range
+              } else if (num >= 250 && num <= 450 && yardsPerGame === 0) {
+                yardsPerGame = num; // Yards per game range
+              } else if (num >= 150 && num <= 300 && passingYards === 0) {
+                passingYards = num; // Passing yards per game
+              } else if (num >= 80 && num <= 180 && rushingYards === 0) {
+                rushingYards = num; // Rushing yards per game
+              } else if (num >= 0.5 && num <= 3 && turnovers === 0) {
+                turnovers = num; // Turnovers per game
+              }
+            }
+          });
+          
+          teams.push({
+            team: validation.sanitized,
+            points_per_game: pointsPerGame,
+            yards_per_game: yardsPerGame,
+            passing_yards_per_game: passingYards,
+            rushing_yards_per_game: rushingYards,
+            turnovers_per_game: turnovers,
+            scraped_from: 'espn_team_offense',
+            scraped_at: new Date().toISOString()
+          });
+          
+          console.log(`✅ Added team: ${validation.sanitized} - ${pointsPerGame} PPG, ${yardsPerGame} YPG`);
+        } catch (error) {
+          console.error(`Error processing row ${index}:`, error);
+        }
+      });
+    } else {
+      // Split table format: team names and data in separate rows
+      const teamRows = [];
+      const dataRows = [];
+      
+      rows.forEach((row, index) => {
         const cells = row.querySelectorAll('td, .Table__TD');
         
-        if (!teamCell || cells.length < 6) return;
-        
-        // Extract team name (handle both text and link formats)
-        const teamLink = teamCell.querySelector('a');
-        let teamName = teamLink ? teamLink.textContent : teamCell.textContent;
-        
-        // Clean up team name
-        teamName = teamName.replace(/^\d+\s*/, '').trim(); // Remove ranking numbers
-        
-        const validation = validateTeamName(teamName);
-        if (!validation.isValid) return;
-        
-        // Extract stats (positions may vary, so we'll be flexible)
-        const stats = Array.from(cells).slice(1).map(cell => cell.textContent.trim());
-        
-        // Try to find specific stats by header or position
-        teams.push({
-          team: validation.sanitized,
-          points_per_game: sanitizeNumber(stats[0]), 
-          yards_per_game: sanitizeNumber(stats[1]),
-          passing_yards_per_game: sanitizeNumber(stats[2]),
-          rushing_yards_per_game: sanitizeNumber(stats[3]),
-          turnovers_per_game: sanitizeNumber(stats[4]),
-          scraped_from: 'espn_team_offense',
-          scraped_at: new Date().toISOString()
-        });
-      } catch (error) {
-        console.error('Error parsing team row:', error);
+        if (cells.length === 1) {
+          // Team name row
+          const teamCell = cells[0];
+          let teamLink = teamCell.querySelector('a[data-clubhouse-uid]');
+          if (!teamLink) teamLink = teamCell.querySelector('a[href*="/nfl/team/"]');
+          if (!teamLink) teamLink = teamCell.querySelector('a');
+          
+          if (teamLink) {
+            const teamName = teamLink.textContent.trim();
+            teamRows.push({ index, teamName });
+            console.log(`📋 Found team: ${teamName}`);
+          }
+        } else if (cells.length >= 5) {
+          // Data row
+          const cellData = Array.from(cells).map(cell => cell.textContent.trim());
+          dataRows.push({ index, cells: cellData });
+          console.log(`📊 Found data row: [${cellData.slice(0, 4).join(', ')}...]`);
+        }
+      });
+      
+      console.log(`📊 Split table: ${teamRows.length} team rows, ${dataRows.length} data rows`);
+      
+      // Match teams with their data (assuming sequential order)
+      const minLength = Math.min(teamRows.length, dataRows.length);
+      for (let i = 0; i < minLength; i++) {
+        try {
+          const teamRow = teamRows[i];
+          const dataRow = dataRows[i];
+          
+          const validation = validateTeamName(teamRow.teamName);
+          if (!validation.isValid) continue;
+          
+          // Extract stats from data row
+          const [games, totalYards, avgYardsPerGame, passYards, rushYards, totalPoints, avgPointsPerGame, turnovers, ...rest] = dataRow.cells;
+          
+          teams.push({
+            team: validation.sanitized,
+            points_per_game: sanitizeNumber(avgPointsPerGame),
+            yards_per_game: sanitizeNumber(avgYardsPerGame),
+            passing_yards_per_game: sanitizeNumber(passYards),
+            rushing_yards_per_game: sanitizeNumber(rushYards),
+            turnovers_per_game: sanitizeNumber(turnovers),
+            scraped_from: 'espn_team_offense',
+            scraped_at: new Date().toISOString()
+          });
+          
+          console.log(`✅ Added team: ${validation.sanitized} - ${avgPointsPerGame} PPG, ${avgYardsPerGame} YPG`);
+        } catch (error) {
+          console.error(`Error processing team ${i}:`, error);
+        }
       }
-    });
+    }
     
     console.log(`✅ Scraped ${teams.length} offensive team stats`);
     return teams;
@@ -123,11 +229,12 @@ const scrapers = {
     
     rows.forEach(row => {
       try {
-        const teamCell = row.querySelector('td:first-child, .Table__TD:first-child');
+        const teamCell = row.querySelector('td:first-child, .Table__TD:first-child, .team-name, [data-testid="team-name"]');
         const cells = row.querySelectorAll('td, .Table__TD');
         
-        if (!teamCell || cells.length < 6) return;
+        if (!teamCell || cells.length < 3) return;
         
+        // Extract team name
         const teamLink = teamCell.querySelector('a');
         let teamName = teamLink ? teamLink.textContent : teamCell.textContent;
         teamName = teamName.replace(/^\d+\s*/, '').trim();
@@ -135,15 +242,16 @@ const scrapers = {
         const validation = validateTeamName(teamName);
         if (!validation.isValid) return;
         
+        // Extract defensive stats
         const stats = Array.from(cells).slice(1).map(cell => cell.textContent.trim());
         
         teams.push({
           team: validation.sanitized,
           points_allowed_per_game: sanitizeNumber(stats[0]),
           yards_allowed_per_game: sanitizeNumber(stats[1]),
-          passing_yards_allowed: sanitizeNumber(stats[2]),
-          rushing_yards_allowed: sanitizeNumber(stats[3]),
-          forced_turnovers_per_game: sanitizeNumber(stats[4]),
+          passing_yards_allowed_per_game: sanitizeNumber(stats[2]),
+          rushing_yards_allowed_per_game: sanitizeNumber(stats[3]),
+          turnovers_forced_per_game: sanitizeNumber(stats[4]),
           scraped_from: 'espn_team_defense',
           scraped_at: new Date().toISOString()
         });
@@ -155,47 +263,36 @@ const scrapers = {
     console.log(`✅ Scraped ${teams.length} defensive team stats`);
     return teams;
   },
-  
-  // Scrape injury reports
+
+  // Additional scraper functions...
   injuries: () => {
     console.log('🔍 Scraping injury reports...');
     const injuries = [];
     
-    // ESPN injury report structure - multiple possible selectors
-    const injuryRows = document.querySelectorAll('.injuries-table tr, .Table__TR, .injury-row');
+    const rows = document.querySelectorAll('tbody tr, .Table__TR, .ResponsiveTable tr');
     
-    injuryRows.forEach(row => {
+    rows.forEach(row => {
       try {
         const cells = row.querySelectorAll('td, .Table__TD');
         if (cells.length < 4) return;
         
-        const playerName = cells[0]?.textContent?.trim();
-        const position = cells[1]?.textContent?.trim();
-        const status = cells[2]?.textContent?.trim();
-        const injury = cells[3]?.textContent?.trim();
+        const playerName = cells[0].textContent.trim();
+        const teamName = cells[1].textContent.trim();
+        const position = cells[2].textContent.trim(); 
+        const injuryStatus = cells[3].textContent.trim();
+        const injuryType = cells[4] ? cells[4].textContent.trim() : '';
         
-        // Try to extract team from context or page
-        const teamElement = row.closest('[data-team]') || 
-                           document.querySelector('.team-name, .clubhouse-header h1, .TeamHeader__Name');
-        let teamName = teamElement?.textContent?.trim() || 
-                       teamElement?.dataset?.team ||
-                       extractTeamFromURL();
-        
-        // Additional team extraction methods
-        if (!teamName) {
-          const breadcrumb = document.querySelector('.Breadcrumb a:last-child');
-          teamName = breadcrumb?.textContent?.trim();
-        }
+        if (!playerName || !teamName) return;
         
         const teamValidation = validateTeamName(teamName);
-        if (!teamValidation.isValid || !playerName) return;
+        if (!teamValidation.isValid) return;
         
         injuries.push({
-          team: teamValidation.sanitized,
           player_name: playerName.substring(0, 100),
+          team: teamValidation.sanitized,
           position: position.substring(0, 10),
-          status: status.substring(0, 20),
-          injury_type: injury.substring(0, 50),
+          injury_status: injuryStatus.substring(0, 50),
+          injury_type: injuryType.substring(0, 100),
           scraped_from: 'espn_injuries',
           scraped_at: new Date().toISOString()
         });
@@ -207,49 +304,33 @@ const scrapers = {
     console.log(`✅ Scraped ${injuries.length} injury reports`);
     return injuries;
   },
-  
-  // Scrape betting lines from ESPN Sportsbook
+
   bettingLines: () => {
     console.log('🔍 Scraping betting lines...');
     const lines = [];
     
-    // ESPN Sportsbook game cards - multiple possible selectors
-    const gameCards = document.querySelectorAll('.game-card, .event-cell, [data-testid="event-cell"], .GameCard');
+    const rows = document.querySelectorAll('tbody tr, .Table__TR, .ResponsiveTable tr');
     
-    gameCards.forEach(card => {
+    rows.forEach(row => {
       try {
-        // Extract team names - multiple possible structures
-        const teamElements = card.querySelectorAll('.team-name, .competitor-name, .TeamName, .Competitor');
+        const cells = row.querySelectorAll('td, .Table__TD');
+        if (cells.length < 3) return;
         
-        if (teamElements.length < 2) return;
+        const gameInfo = cells[0].textContent.trim();
+        const spread = cells[1].textContent.trim();
+        const overUnder = cells[2].textContent.trim();
         
-        const awayTeam = teamElements[0]?.textContent?.trim();
-        const homeTeam = teamElements[1]?.textContent?.trim();
+        if (!gameInfo) return;
         
-        const awayValidation = validateTeamName(awayTeam);
-        const homeValidation = validateTeamName(homeTeam);
-        
-        if (!awayValidation.isValid || !homeValidation.isValid) return;
-        
-        // Extract betting lines - multiple possible selectors
-        const spreadElement = card.querySelector('[data-testid="spread"], .spread, .point-spread');
-        const totalElement = card.querySelector('[data-testid="total"], .total, .over-under');
-        const moneylineElements = card.querySelectorAll('.moneyline, [data-testid="moneyline"], .ml');
-        
-        const gameData = {
-          away_team: awayValidation.sanitized,
-          home_team: homeValidation.sanitized,
-          spread: spreadElement ? sanitizeNumber(spreadElement.textContent) : null,
-          over_under: totalElement ? sanitizeNumber(totalElement.textContent) : null,
-          away_ml: moneylineElements[0] ? sanitizeNumber(moneylineElements[0].textContent) : null,
-          home_ml: moneylineElements[1] ? sanitizeNumber(moneylineElements[1].textContent) : null,
-          scraped_from: 'espn_sportsbook',
+        lines.push({
+          game_info: gameInfo.substring(0, 200),
+          point_spread: sanitizeNumber(spread.replace(/[^\d.-]/g, '')),
+          over_under: sanitizeNumber(overUnder.replace(/[^\d.-]/g, '')),
+          scraped_from: 'espn_betting',
           scraped_at: new Date().toISOString()
-        };
-        
-        lines.push(gameData);
+        });
       } catch (error) {
-        console.error('Error parsing game card:', error);
+        console.error('Error parsing betting line:', error);
       }
     });
     
@@ -258,211 +339,182 @@ const scrapers = {
   }
 };
 
-// Helper function to extract team from URL
-function extractTeamFromURL() {
-  const urlParts = window.location.pathname.split('/');
-  const teamIndex = urlParts.findIndex(part => part === 'team' || part === 'teams');
-  if (teamIndex !== -1 && urlParts[teamIndex + 1]) {
-    return urlParts[teamIndex + 1].replace(/-/g, ' ').replace(/_/g, ' ');
-  }
-  return null;
-}
-
-// Save data to Supabase with error handling and retries
-async function saveToSupabase(tableName, data) {
-  if (!data || data.length === 0) {
-    console.log(`ℹ️ No data to save to ${tableName}`);
-    return;
-  }
-  
-  const client = await initSupabase();
-  if (!client) {
-    console.error('❌ Supabase not available');
-    showNotification('❌ Database connection failed', 'error');
-    return;
-  }
-  
-  try {
-    console.log(`💾 Saving ${data.length} records to ${tableName}...`);
-    
-    const { data: result, error } = await client
-      .from(tableName)
-      .upsert(data, { 
-        onConflict: 'team,scraped_at',
-        ignoreDuplicates: false 
-      });
-    
-    if (error) {
-      console.error(`❌ Error saving to ${tableName}:`, error);
-      showNotification(`❌ Failed to save ${tableName}: ${error.message}`, 'error');
-    } else {
-      console.log(`✅ Successfully saved ${data.length} records to ${tableName}`);
-      showNotification(`✅ Saved ${data.length} ${tableName.replace('_', ' ')} records`);
-    }
-  } catch (error) {
-    console.error(`❌ Exception saving to ${tableName}:`, error);
-    showNotification(`❌ Error saving ${tableName}`, 'error');
-  }
-}
-
-// Show notification to user with better styling
-function showNotification(message, type = 'success') {
-  // Remove existing notifications
-  const existing = document.querySelectorAll('.pachanga-notification');
-  existing.forEach(el => el.remove());
-  
-  // Create notification element
+// Notification system
+function showNotification(message, type = 'info') {
   const notification = document.createElement('div');
-  notification.className = 'pachanga-notification';
   notification.style.cssText = `
     position: fixed;
     top: 20px;
     right: 20px;
-    background: ${type === 'error' ? '#dc2626' : '#059669'};
+    padding: 12px 20px;
+    background: ${type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#007bff'};
     color: white;
-    padding: 16px 24px;
-    border-radius: 8px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    border-radius: 4px;
+    z-index: 10000;
+    font-family: Arial, sans-serif;
     font-size: 14px;
-    font-weight: 500;
-    z-index: 999999;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-    max-width: 350px;
-    opacity: 0;
-    transform: translateX(100%);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid ${type === 'error' ? '#b91c1c' : '#047857'};
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
   `;
-  
-  notification.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <span style="font-size: 16px;">${type === 'error' ? '❌' : '✅'}</span>
-      <span>${message}</span>
-    </div>
-  `;
-  
+  notification.textContent = message;
   document.body.appendChild(notification);
   
-  // Animate in
-  setTimeout(() => {
-    notification.style.opacity = '1';
-    notification.style.transform = 'translateX(0)';
-  }, 100);
-  
-  // Remove after 5 seconds
-  setTimeout(() => {
-    notification.style.opacity = '0';
-    notification.style.transform = 'translateX(100%)';
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification);
-      }
-    }, 300);
-  }, 5000);
+  setTimeout(() => notification.remove(), 5000);
 }
 
-// Auto-detect and scrape based on current page
-function detectAndScrape() {
-  const url = window.location.href.toLowerCase();
+// Database operations
+async function saveToDatabase(tableName, data) {
+  if (!data || data.length === 0) {
+    console.log('No data to save');
+    return { success: false, message: 'No data provided' };
+  }
   
+  const client = await initSupabase();
+  if (!client) {
+    return { success: false, message: 'Database connection failed' };
+  }
+  
+  try {
+    const { data: result, error } = await client
+      .from(tableName)
+      .insert(data);
+    
+    if (error) {
+      console.error(`Database error:`, error);
+      return { success: false, message: error.message };
+    }
+    
+    console.log(`✅ Successfully saved ${data.length} records to ${tableName}`);
+    showNotification(`✅ Saved ${data.length} records to database`, 'success');
+    return { success: true, count: data.length };
+    
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+// Page detection and scraping logic
+function detectPageType() {
+  const url = window.location.href;
   console.log('🔍 Detecting page type for:', url);
   
-  if (url.includes('nfl/stats/team') && url.includes('offense')) {
-    const data = scrapers.teamOffense();
-    if (data.length > 0) {
-      saveToSupabase('team_stats_offense', data);
-    }
+  if (url.includes('/nfl/stats/team/_/stat/offense')) {
+    return 'team_offense';
+  } else if (url.includes('/nfl/stats/team/_/stat/defense')) {
+    return 'team_defense';
+  } else if (url.includes('/nfl/injuries')) {
+    return 'injuries';
+  } else if (url.includes('/nfl/lines') || url.includes('/betting')) {
+    return 'betting_lines';
   }
-  else if (url.includes('nfl/stats/team') && url.includes('defense')) {
-    const data = scrapers.teamDefense();
-    if (data.length > 0) {
-      saveToSupabase('team_stats_defense', data);
-    }
+  
+  return 'unknown';
+}
+
+async function scrapeCurrentPage() {
+  const pageType = detectPageType();
+  console.log(`📄 Page type detected: ${pageType} for URL: ${window.location.href}`);
+  
+  if (pageType === 'unknown') {
+    const supportedUrls = [
+      '/nfl/stats/team/_/stat/offense',
+      '/nfl/stats/team/_/stat/defense', 
+      '/nfl/injuries',
+      '/nfl/lines'
+    ];
+    showNotification(`⚠️ Page not supported. Try: ${supportedUrls.join(', ')}`, 'error');
+    return;
   }
-  else if (url.includes('nfl/injuries')) {
-    const data = scrapers.injuries();
-    if (data.length > 0) {
-      saveToSupabase('injury_reports', data);
+  
+  showNotification(`🔄 Scraping ${pageType.replace('_', ' ')} data...`, 'info');
+  
+  let data = [];
+  let tableName = '';
+  
+  try {
+    switch (pageType) {
+      case 'team_offense':
+        console.log('🏈 Starting team offense scraping...');
+        data = scrapers.teamOffense();
+        tableName = 'team_stats_offense';
+        break;
+      case 'team_defense':
+        console.log('🛡️ Starting team defense scraping...');
+        data = scrapers.teamDefense();
+        tableName = 'team_stats_defense';
+        break;
+      case 'injuries':
+        console.log('🏥 Starting injury reports scraping...');
+        data = scrapers.injuries();
+        tableName = 'injury_reports';
+        break;
+      case 'betting_lines':
+        console.log('💰 Starting betting lines scraping...');
+        data = scrapers.bettingLines();
+        tableName = 'betting_lines';
+        break;
     }
+  } catch (scrapingError) {
+    console.error('❌ Scraping error:', scrapingError);
+    showNotification(`❌ Scraping failed: ${scrapingError.message}`, 'error');
+    return;
   }
-  else if (url.includes('sportsbook.espn.com') || (url.includes('espn.com') && url.includes('odds'))) {
-    const data = scrapers.bettingLines();
-    if (data.length > 0) {
-      saveToSupabase('betting_lines', data);
-    }
+  
+  console.log(`📊 Scraping completed. Found ${data.length} records.`);
+  
+  if (data.length === 0) {
+    showNotification('⚠️ No data found. Page may have loaded incompletely or structure changed.', 'error');
+    console.log('⚠️ No data found. Check if page has finished loading.');
+    return;
   }
-  else {
-    console.log('ℹ️ Page not supported for scraping:', url);
+  
+  // Save to database
+  showNotification(`💾 Saving ${data.length} records to database...`, 'info');
+  const result = await saveToDatabase(tableName, data);
+  
+  if (result.success) {
+    console.log(`✅ Successfully scraped and saved ${result.count} records to ${tableName}`);
+    showNotification(`✅ Success! Saved ${result.count} ${pageType.replace('_', ' ')} records`, 'success');
+  } else {
+    console.error('❌ Failed to save to database:', result.message);
+    showNotification(`❌ Database error: ${result.message}`, 'error');
   }
 }
 
-// Manual scrape trigger (called from popup)
-function manualScrape() {
-  console.log('🚀 Manual scrape triggered');
-  showNotification('🔄 Starting manual scrape...', 'info');
-  detectAndScrape();
-}
-
-// Listen for messages from popup
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('💬 Content script received message:', request);
+// Message listener for popup communication
+(typeof browser !== 'undefined' ? browser : chrome).runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('💬 Content script received message:', message);
+  console.log('📍 Current URL:', window.location.href);
   
-  if (request.action === 'scrape') {
-    manualScrape();
-    sendResponse({ success: true });
-  }
-  
-  if (request.action === 'getPageInfo') {
-    sendResponse({
+  if (message.action === 'getPageInfo') {
+    const pageType = detectPageType();
+    const response = {
       url: window.location.href,
-      title: document.title,
-      canScrape: isScrapablePage()
+      pageType: pageType,
+      supported: pageType !== 'unknown',
+      canScrape: pageType !== 'unknown'
+    };
+    console.log('📋 Sending page info response:', response);
+    sendResponse(response);
+  } else if (message.action === 'scrapeData') {
+    console.log('🚀 Starting scrape operation...');
+    scrapeCurrentPage().then(() => {
+      console.log('✅ Scrape operation completed successfully');
+      sendResponse({ success: true });
+    }).catch(error => {
+      console.error('❌ Scrape operation failed:', error);
+      sendResponse({ success: false, error: error.message });
     });
+    return true; // Keep message channel open for async response
+  } else {
+    console.log('❓ Unknown message action:', message.action);
+    sendResponse({ success: false, error: 'Unknown action' });
   }
 });
 
-// Check if current page can be scraped
-function isScrapablePage() {
-  const url = window.location.href.toLowerCase();
-  return url.includes('espn.com') && (
-    (url.includes('nfl') && (url.includes('stats') || url.includes('injuries'))) ||
-    url.includes('sportsbook')
-  );
-}
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('🏈 ESPN Scraper content script ready');
+});
 
-// Auto-scrape when page loads (with retry logic)
-function initAutoScrape() {
-  if (isScrapablePage()) {
-    console.log('🤖 Auto-scraping detected ESPN NFL page');
-    
-    // Wait for content to load, then scrape
-    setTimeout(() => {
-      detectAndScrape();
-    }, 3000);
-    
-    // Retry after additional time if first attempt found no data
-    setTimeout(() => {
-      if (document.querySelectorAll('tbody tr, .Table__TR').length === 0) {
-        console.log('🔄 Retrying scrape - content may have loaded late');
-        detectAndScrape();
-      }
-    }, 8000);
-  }
-}
-
-// Initialize when page is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initAutoScrape);
-} else {
-  initAutoScrape();
-}
-
-// Export functions for popup access
-window.pachangaScraper = {
-  manualScrape,
-  isScrapablePage,
-  scrapers,
-  detectAndScrape
-};
-
-console.log('✅ Pachanga\'s ESPN Scraper content script loaded successfully');
+console.log('🏈 ESPN Scraper content script loaded');
