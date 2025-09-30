@@ -120,13 +120,13 @@ export const usePredictionManager = (): PredictionManagerResult => {
       const result: PredictionSaveResult = { savedCount, duplicateCount };
 
       if (result.savedCount > 0) {
-        setMessage(`✅ Successfully saved ${result.savedCount} predictions!`);
+        setMessage(`Successfully saved ${result.savedCount} predictions!`);
         window.dispatchEvent(new CustomEvent('predictionsUpdated'));
       }
 
       return result;
     } catch (error: any) {
-      setMessage('❌ Error: ' + error.message);
+      setMessage('Error: ' + error.message);
       throw error;
     } finally {
       setIsSaving(false);
@@ -159,9 +159,9 @@ export const usePredictionManager = (): PredictionManagerResult => {
         await picksApi.delete(duplicateId);
       }
 
-      setMessage(`✅ Removed ${duplicates.length} duplicate predictions!`);
+      setMessage(`Removed ${duplicates.length} duplicate predictions!`);
     } catch (error: any) {
-      setMessage('❌ Error cleaning duplicates: ' + error.message);
+      setMessage('Error cleaning duplicates: ' + error.message);
       throw error;
     } finally {
       setIsSaving(false);

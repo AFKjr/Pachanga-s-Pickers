@@ -8,8 +8,8 @@ interface StatusMessageProps {
 export const StatusMessage: React.FC<StatusMessageProps> = ({ message, onClear }) => {
   if (!message) return null;
 
-  const isSuccess = message.includes('✅');
-  const isWarning = message.includes('⚠️');
+  const isSuccess = message.includes('Successfully');
+  const isWarning = message.includes('Warning');
 
   return (
     <div

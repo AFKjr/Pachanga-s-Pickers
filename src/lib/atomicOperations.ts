@@ -77,10 +77,10 @@ export async function executeAtomicOperations(
         }
 
         successfulOperations.push(operation);
-        console.log(`✅ Successfully executed ${operation.type} for pick ${operation.id}`);
+        console.log(`Successfully executed ${operation.type} for pick ${operation.id}`);
         
       } catch (error) {
-        console.error(`❌ Failed to execute ${operation.type} for pick ${operation.id}:`, error);
+        console.error(`Failed to execute ${operation.type} for pick ${operation.id}:`, error);
         failedOperations.push(operation);
         
         if (!continueOnError) {
@@ -118,9 +118,9 @@ export async function executeAtomicOperations(
     const success = failedOperations.length === 0;
     
     if (success) {
-      console.log(`✅ All ${operations.length} operations completed successfully`);
+      console.log(`All ${operations.length} operations completed successfully`);
     } else {
-      console.warn(`⚠️ Completed with ${successfulOperations.length}/${operations.length} successful operations`);
+      console.warn(`Completed with ${successfulOperations.length}/${operations.length} successful operations`);
     }
 
     return {
@@ -190,16 +190,16 @@ async function rollbackOperations(operations: PendingOperation<Pick>[]): Promise
         if (error) {
           throw error;
         }
-        console.log(`✅ Rolled back update for pick ${operation.id}`);
+        console.log(`Rolled back update for pick ${operation.id}`);
         
       } else if (operation.type === 'delete') {
         // Rollback delete by recreating the pick
         // Note: This is complex as we need to recreate the entire pick
         // For now, we'll log the issue and let the UI refresh handle it
-        console.warn(`⚠️ Cannot rollback delete operation for pick ${operation.id} - refresh required`);
+        console.warn(`Cannot rollback delete operation for pick ${operation.id} - refresh required`);
       }
     } catch (error) {
-      console.error(`❌ Failed to rollback ${operation.type} for pick ${operation.id}:`, error);
+      console.error(`Failed to rollback ${operation.type} for pick ${operation.id}:`, error);
     }
   });
 

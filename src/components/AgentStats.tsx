@@ -26,7 +26,7 @@ const AgentStats: React.FC = () => {
 
     // Listen for refresh events from admin panel
     const handleRefresh = () => {
-      console.log('🔄 Received refreshStats event, reloading stats...');
+      console.log('Received refreshStats event, reloading stats...');
       loadStats();
     };
 

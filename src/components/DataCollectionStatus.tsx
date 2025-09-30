@@ -105,7 +105,7 @@ const DataCollectionStatus: React.FC = () => {
     return (
       <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
         <div className="bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded mb-4">
-          <h3 className="font-semibold mb-2">❌ Error Loading Data</h3>
+          <h3 className="font-semibold mb-2">Error Loading Data</h3>
           <p>{error}</p>
           <button
             onClick={handleRefresh}
@@ -122,13 +122,13 @@ const DataCollectionStatus: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">📊 Data Collection Status</h2>
+        <h2 className="text-2xl font-bold">Data Collection Status</h2>
         <button
           onClick={handleRefresh}
           disabled={refreshing}
           className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
         >
-          {refreshing ? '🔄 Refreshing...' : '🔄 Refresh'}
+          {refreshing ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
 
@@ -140,7 +140,7 @@ const DataCollectionStatus: React.FC = () => {
               <h3 className="text-sm font-medium text-gray-400">Team Offense Stats</h3>
               <p className="text-2xl font-bold text-white">{stats?.teamStatsOffense || 0}</p>
             </div>
-            <div className="text-2xl">📈</div>
+            <div className="text-2xl">^</div>
           </div>
           <div className="mt-2">
             <span className={`text-xs ${getDataFreshness(stats?.lastUpdated.teamStatsOffense).color}`}>
@@ -185,7 +185,7 @@ const DataCollectionStatus: React.FC = () => {
               <h3 className="text-sm font-medium text-gray-400">Betting Lines</h3>
               <p className="text-2xl font-bold text-white">{stats?.bettingLines || 0}</p>
             </div>
-            <div className="text-2xl">💰</div>
+            <div className="text-2xl">$</div>
           </div>
           <div className="mt-2">
             <span className={`text-xs ${getDataFreshness(stats?.lastUpdated.bettingLines).color}`}>
@@ -197,7 +197,7 @@ const DataCollectionStatus: React.FC = () => {
 
       {/* Detailed Timestamps */}
       <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-4">📅 Last Updated Times</h3>
+        <h3 className="text-lg font-semibold mb-4">Last Updated Times</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <h4 className="font-medium text-gray-300 mb-2">Team Statistics</h4>
@@ -230,7 +230,7 @@ const DataCollectionStatus: React.FC = () => {
 
       {/* Data Usage Info */}
       <div className="bg-green-900 border border-green-700 text-green-200 px-4 py-3 rounded">
-        <h4 className="font-semibold mb-2">📈 How This Data is Used</h4>
+        <h4 className="font-semibold mb-2">How This Data is Used</h4>
         <ul className="list-disc list-inside space-y-1 text-sm">
           <li><strong>AI Predictions:</strong> Team stats and injury data feed into the AI agent for better predictions</li>
           <li><strong>Betting Analysis:</strong> Live odds and lines help validate prediction confidence</li>

@@ -56,7 +56,7 @@ const AdminPickResults: React.FC = () => {
     
     // Listen for global refresh events from pick revisions
     const handleRefreshPicks = () => {
-      console.log('🔄 AdminPickResults: Refreshing picks due to global event');
+      console.log('AdminPickResults: Refreshing picks due to global event');
       loadAllPicks();
     };
 
@@ -164,7 +164,7 @@ const AdminPickResults: React.FC = () => {
             throw atomicResult.error || new Error('All operations failed');
           }
         } else {
-          console.log(`✅ All ${operations.length} operations completed successfully`);
+          console.log(`All ${operations.length} operations completed successfully`);
           alert(`Successfully saved all ${operations.length} changes!`);
         }
 

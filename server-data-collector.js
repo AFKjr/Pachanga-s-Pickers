@@ -51,11 +51,11 @@ async function rateLimitedFetch(url, options = {}) {
     }
     
     const data = await response.json();
-    console.log(`✅ Successfully fetched from ${url}`);
+    console.log(`Successfully fetched from ${url}`);
     return data;
     
   } catch (error) {
-    console.error(`❌ Error fetching ${url}:`, error.message);
+    console.error(`Error fetching ${url}:`, error.message);
     throw error;
   }
 }
@@ -74,15 +74,15 @@ function getCurrentWeek() {
 
 // Main execution function
 async function runDataCollection() {
-  console.log('🚀 Starting NFL data collection...');
-  console.log(`📅 Current week: ${getCurrentWeek()}`);
+  console.log('Starting NFL data collection...');
+  console.log(`Current week: ${getCurrentWeek()}`);
   
   const results = {
     timestamp: new Date().toISOString(),
     message: 'ESPN data collection removed - using alternative data sources'
   };
   
-  console.log('📋 Collection Summary:');
+  console.log('Collection Summary:');
   console.log('  ESPN data collection has been removed');
   console.log('  Consider implementing alternative data sources');
   
@@ -94,11 +94,11 @@ if (require.main === module) {
   // Run directly
   runDataCollection()
     .then(results => {
-      console.log('✅ Data collection completed');
+      console.log('Data collection completed');
       process.exit(0);
     })
     .catch(error => {
-      console.error('❌ Fatal error:', error);
+      console.error('Fatal error:', error);
       process.exit(1);
     });
 } else {

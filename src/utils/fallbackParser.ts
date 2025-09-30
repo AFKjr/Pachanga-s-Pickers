@@ -112,7 +112,6 @@ export const normalizeTeamName = (teamName: string): string => {
   // Remove common abbreviations and clean up
   return teamName
     .replace(/\b(NFL|Team|FC|Club)\b/gi, '')
-    .replace(/[⚡🔥💪]/g, '') // Remove sports emojis
     .replace(/\s+/g, ' ')
     .trim();
 };

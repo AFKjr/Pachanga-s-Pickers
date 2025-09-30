@@ -126,7 +126,7 @@ const AdminPanel: React.FC = () => {
                 : 'text-gray-300 hover:text-white hover:bg-gray-700'
             }`}
           >
-            📊 Data Collection
+            Data Collection
           </button>
         </div>
       </div>

@@ -35,14 +35,14 @@ const LEVEL_STYLES = {
     headerBorder: 'border-orange-700',
     headerText: 'text-orange-200',
     confirmBg: 'bg-orange-600 hover:bg-orange-700',
-    icon: '🚨'
+    icon: 'ALERT'
   },
   critical: {
     headerBg: 'bg-red-900',
     headerBorder: 'border-red-700',
     headerText: 'text-red-200',
     confirmBg: 'bg-red-600 hover:bg-red-700',
-    icon: '💀'
+    icon: 'DANGER'
   }
 };
 
@@ -185,7 +185,7 @@ export const SecureConfirmationModal: React.FC<SecureConfirmationModalProps> = (
           {(level === 'high' || level === 'critical') && (
             <div className="mb-4 p-3 bg-gray-700 border border-gray-600 rounded">
               <div className="text-sm text-gray-300">
-                <p className="font-semibold text-yellow-400 mb-1">⚠️ Important:</p>
+                <p className="font-semibold text-yellow-400 mb-1">Important:</p>
                 <ul className="list-disc list-inside space-y-1 text-xs">
                   <li>This action cannot be undone</li>
                   <li>All affected data will be permanently lost</li>

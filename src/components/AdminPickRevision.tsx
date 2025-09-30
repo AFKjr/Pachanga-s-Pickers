@@ -101,7 +101,7 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
       } as GameInfo
     };
 
-    console.log('🔄 Saving pick revision:', updates);
+    console.log('Saving pick revision:', updates);
 
     const { data, error } = await picksApi.update(pick.id, updates);
     if (error) throw error;
@@ -139,7 +139,7 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
       });
 
       if (result) {
-        console.log('✅ Pick revision saved successfully');
+        console.log('Pick revision saved successfully');
       }
       setSaving(false);
     });

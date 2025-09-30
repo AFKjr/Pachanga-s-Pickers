@@ -234,7 +234,7 @@ export const picksApi = {
         return { data: null, error };
       }
 
-      console.log(`🔄 Updating pick ${id} with:`, updates);
+      console.log(`Updating pick ${id} with:`, updates);
       const { data, error } = await supabase
         .from('picks')
         .update({ ...updates, updated_at: new Date().toISOString() })
@@ -251,7 +251,7 @@ export const picksApi = {
         return { data: null, error: appError };
       }
 
-      console.log(`🔄 Update result for ${id}:`, { data, error });
+      console.log(`Update result for ${id}:`, { data, error });
       return { data, error: null };
     } catch (error) {
       const appError = error instanceof AppError ? error : createAppError(error, {
@@ -314,15 +314,15 @@ export const picksApi = {
 // Agent Statistics API
 export const agentStatsApi = {
   getOverallStats: async () => {
-    console.log('📊 Fetching overall stats from database...');
+    console.log('Fetching overall stats from database...');
     // Get all picks to calculate statistics
     const { data: picks, error } = await supabase
       .from('picks')
       .select('result, created_at')
       .order('created_at', { ascending: false });
 
-    console.log('📊 Raw picks data:', picks);
-    console.log('📊 Stats query error:', error);
+    console.log('Raw picks data:', picks);
+    console.log('Stats query error:', error);
 
     if (error) return { data: null, error };
 
@@ -340,7 +340,7 @@ export const agentStatsApi = {
     stats.totalResolved = stats.wins + stats.losses + stats.pushes;
     stats.winRate = stats.totalResolved > 0 ? (stats.wins / stats.totalResolved) * 100 : 0;
 
-    console.log('📊 Calculated stats:', stats);
+    console.log('Calculated stats:', stats);
     return { data: stats, error: null };
   },
 

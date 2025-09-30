@@ -67,97 +67,36 @@ export type Database = {
           week?: NFLWeek;
         };
       };
-      posts: {
+      profiles: {
         Row: {
           id: string;
-          title: string;
-          content: string;
-          pick_id?: string;
-          user_name: string;
-          created_at: string;
-          updated_at?: string;
-          upvotes?: number;
-          downvotes?: number;
+          username: string | null;
+          full_name: string | null;
+          avatar_url: string | null;
+          bio: string | null;
+          is_admin: boolean | null;
+          created_at: string | null;
+          updated_at: string | null;
         };
         Insert: {
-          id?: string;
-          title: string;
-          content: string;
-          pick_id?: string;
-          user_name: string;
-          created_at?: string;
-          updated_at?: string;
-          upvotes?: number;
-          downvotes?: number;
+          id: string;
+          username?: string | null;
+          full_name?: string | null;
+          avatar_url?: string | null;
+          bio?: string | null;
+          is_admin?: boolean | null;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
         Update: {
           id?: string;
-          title?: string;
-          content?: string;
-          pick_id?: string;
-          user_name?: string;
-          created_at?: string;
-          updated_at?: string;
-          upvotes?: number;
-          downvotes?: number;
-        };
-      };
-      comments: {
-        Row: {
-          id: string;
-          content: string;
-          post_id: string;
-          user_name: string;
-          created_at: string;
-          parent_comment_id?: string;
-          upvotes?: number;
-          downvotes?: number;
-        };
-        Insert: {
-          id?: string;
-          content: string;
-          post_id: string;
-          user_name: string;
-          created_at?: string;
-          parent_comment_id?: string;
-          upvotes?: number;
-          downvotes?: number;
-        };
-        Update: {
-          id?: string;
-          content?: string;
-          post_id?: string;
-          user_name?: string;
-          created_at?: string;
-          parent_comment_id?: string;
-          upvotes?: number;
-          downvotes?: number;
-        };
-      };
-      game_schedules: {
-        Row: {
-          id: string;
-          week: NFLWeek;
-          season: number;
-          games: any[]; // Array of game objects
-          last_updated: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          week: NFLWeek;
-          season: number;
-          games: any[];
-          last_updated?: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          week?: NFLWeek;
-          season?: number;
-          games?: any[];
-          last_updated?: string;
-          created_at?: string;
+          username?: string | null;
+          full_name?: string | null;
+          avatar_url?: string | null;
+          bio?: string | null;
+          is_admin?: boolean | null;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
       };
     };

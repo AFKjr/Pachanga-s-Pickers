@@ -131,12 +131,12 @@ export const getNFLWeekFromDate = (gameDate: string | Date): NFLWeek | null => {
     
     // Include end date in range (games can be on Monday)
     if (date >= startDate && date <= endDate) {
-      console.log(`✅ Date ${gameDate} falls in Week ${week} (${range.description})`);
+      console.log(`Date ${gameDate} falls in Week ${week} (${range.description})`);
       return week;
     }
   }
   
-  console.warn(`⚠️ Date ${gameDate} doesn't fall in any 2025 NFL week`);
+  console.warn(`Date ${gameDate} doesn't fall in any 2025 NFL week`);
   return null;
 };
 
@@ -149,14 +149,14 @@ export const getPickWeek = (pick: { week?: NFLWeek; game_info: { game_date: stri
   
   // 1. Use stored week if available (highest priority)
   if (pick.week) {
-    console.log(`✅ Using stored week ${pick.week} for ${gameTeams}`);
+    console.log(`Using stored week ${pick.week} for ${gameTeams}`);
     return pick.week;
   }
 
   // 2. Try to get week from official schedule mapping
   const weekFromDate = getNFLWeekFromDate(pick.game_info.game_date);
   if (weekFromDate) {
-    console.log(`✅ Found week ${weekFromDate} from schedule mapping for ${gameTeams}`);
+    console.log(`Found week ${weekFromDate} from schedule mapping for ${gameTeams}`);
     return weekFromDate;
   }
 
@@ -164,7 +164,7 @@ export const getPickWeek = (pick: { week?: NFLWeek; game_info: { game_date: stri
   const dateValidation = validateGameDate(pick.game_info.game_date, pick.game_info);
   
   if (!dateValidation.isValid) {
-    console.error(`❌ Invalid game date for ${gameTeams}: ${dateValidation.error}`);
+    console.error(`Invalid game date for ${gameTeams}: ${dateValidation.error}`);
     // Return Week 1 as safe fallback for invalid dates
     return 1 as NFLWeek;
   }
@@ -179,14 +179,14 @@ export const getPickWeek = (pick: { week?: NFLWeek; game_info: { game_date: stri
     
     // Additional validation - check if date is in valid NFL season range
     if (!isValidNFLGameDate(gameDateObj)) {
-      console.warn(`⚠️ Game date ${pick.game_info.game_date} for ${gameTeams} is outside NFL season range, using week 1`);
+      console.warn(`Game date ${pick.game_info.game_date} for ${gameTeams} is outside NFL season range, using week 1`);
       return 1 as NFLWeek;
     }
     
-    console.warn(`⚠️ Had to calculate week ${calculatedWeek} for ${gameTeams} (${pick.game_info.game_date}) - consider updating schedule mapping`);
+    console.warn(`Had to calculate week ${calculatedWeek} for ${gameTeams} (${pick.game_info.game_date}) - consider updating schedule mapping`);
     return calculatedWeek;
   } catch (error) {
-    console.error(`❌ Error calculating week for ${gameTeams}:`, error);
+    console.error(`Error calculating week for ${gameTeams}:`, error);
     return 1 as NFLWeek;
   }
 };

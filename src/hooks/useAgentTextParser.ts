@@ -80,13 +80,13 @@ export const useAgentTextParser = (): AgentTextParserResult => {
         if (currentGame && currentPrediction) {
           const gameId = `${awayTeam} @ ${homeTeam}`;
           
-          console.log('🎯 SAVE ATTEMPT #1 (next game found):', gameId);
-          console.log('🎯 Already saved games:', savedGames);
+          console.log('SAVE ATTEMPT #1 (next game found):', gameId);
+          console.log('Already saved games:', savedGames);
           
           if (savedGames.includes(gameId)) {
-            console.log('🚨 DUPLICATE SAVE DETECTED! Skipping:', gameId);
+            console.log('DUPLICATE SAVE DETECTED! Skipping:', gameId);
           } else {
-            console.log('✅ Saving new game:', gameId);
+            console.log('Saving new game:', gameId);
             savedGames.push(gameId);
             
             predictions.push({
@@ -170,13 +170,13 @@ export const useAgentTextParser = (): AgentTextParserResult => {
     if (currentGame && currentPrediction) {
       const gameId = `${awayTeam} @ ${homeTeam}`;
       
-      console.log('🎯 SAVE ATTEMPT #2 (end of parsing):', gameId);
-      console.log('🎯 Already saved games:', savedGames);
+      console.log('SAVE ATTEMPT #2 (end of parsing):', gameId);
+      console.log('Already saved games:', savedGames);
       
       if (savedGames.includes(gameId)) {
-        console.log('🚨 DUPLICATE SAVE DETECTED! Skipping:', gameId);
+        console.log('DUPLICATE SAVE DETECTED! Skipping:', gameId);
       } else {
-        console.log('✅ Saving last game:', gameId);
+        console.log('Saving last game:', gameId);
         savedGames.push(gameId);
         
         predictions.push({
@@ -192,7 +192,7 @@ export const useAgentTextParser = (): AgentTextParserResult => {
     }
 
     console.log('Parsed', predictions.length, 'predictions total');
-    console.log('📊 Final saved games list:', savedGames);
+    console.log('Final saved games list:', savedGames);
     
     return predictions;
   }, []);

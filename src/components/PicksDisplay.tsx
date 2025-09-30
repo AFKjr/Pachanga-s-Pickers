@@ -24,7 +24,7 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
     
     // Listen for global refresh events
     const handleRefreshPicks = () => {
-      console.log('🔄 PicksDisplay: Refreshing picks due to global event');
+      console.log('PicksDisplay: Refreshing picks due to global event');
       loadPicks();
     };
 

@@ -29,77 +29,83 @@ Implemented a multi-layered adaptive parsing system that can handle various AI o
 
 ### Week Headers
 ```
-✅ "Game Predictions — Week 4 (summary per matchup)"
-✅ "NFL Week 4 Predictions"  
-✅ "Week 4 Football Analysis"
-✅ "Week4 Game Forecasts"
-✅ "Wk 4 Betting Picks"
+"Game Predictions — Week 4 (summary per matchup)"
+"NFL Week 4 Predictions"  
+"Week 4 Football Analysis"
+"Week4 Game Forecasts"
+```
+```
+"Game Predictions — Week 4 (summary per matchup)"
+"NFL Week 4 Predictions"  
+"Week 4 Football Analysis"
+"Week4 Game Forecasts"
+"Wk 4 Betting Picks"
 ```
 
 ### Game Lines
 ```
-✅ "Seattle Seahawks @ Arizona Cardinals (Thu 9/25)"
-✅ "Arizona Cardinals vs Seattle Seahawks"
-✅ "Match: Seattle @ Arizona"
-✅ "🏈 SEA Seahawks at ARI Cardinals"
+"Seattle Seahawks @ Arizona Cardinals (Thu 9/25)"
+"Arizona Cardinals vs Seattle Seahawks"
+"Match: Seattle @ Arizona"
+"NFL SEA Seahawks at ARI Cardinals"
 ```
 
 ### Predictions
 ```
-✅ "Predicted Score: Cardinals 22, Seahawks 17"
-✅ "Final Score Prediction: ARI 22-17"
-✅ "Pick: Cardinals to win"
-✅ "Bet: Cardinals -1.5"
-✅ "Recommendation: Take Cardinals spread"
-✅ "Play: Cardinals moneyline"
+"Predicted Score: Cardinals 22, Seahawks 17"
+"Final Score Prediction: ARI 22-17"
+"Pick: Cardinals to win"
+"Bet: Cardinals -1.5"
+"Recommendation: Take Cardinals spread"
+"Play: Cardinals moneyline"
 ```
 
 ### Confidence Levels
 ```
-✅ "Confidence Level: High" → 80%
-✅ "Confidence: Medium" → 60%  
-✅ "High confidence play" → 80%
-✅ "Moderate confidence (Medium)" → 60%
-✅ "Strong conviction" → 80%
+"Confidence Level: High" → 80%
+"Confidence: Medium" → 60%  
+"High confidence play" → 80%
+"Moderate confidence (Medium)" → 60%
+"Strong conviction" → 80%
 ```
 
 ### Key Factors Headers
 ```
-✅ "Key Factors:"
-✅ "Factors:"
-✅ "Analysis:"
-✅ "Reasoning:"
-✅ "Notes:"
-✅ "• Key Factors:"
+"Key Factors:"
+"Factors:"
+"Analysis:"
+"Reasoning:"
+"Notes:"
+"• Key Factors:"
 ```
 
 ### Factor Lines
 ```
-✅ "• Arizona has home field advantage"
-✅ "- Seattle struggles on the road"
-✅ "    Weather will be a factor" (indented)
-✅ "Arizona's offense is clicking" (plain text)
-✅ "1. Injuries to key players" (numbered)
+"• Arizona has home field advantage"
+"- Seattle struggles on the road"
+"    Weather will be a factor" (indented)
+"Arizona's offense is clicking" (plain text)
+"1. Injuries to key players" (numbered)
 ```
 
 ## Key Features
 
-### 🎯 **Pattern Matching**
+### Pattern Matching
 - Multiple regex patterns for each type of content
 - Tries patterns in order of specificity
 - Graceful degradation if no patterns match
 
-### 🧠 **Context Awareness**
+### Context Awareness
 - Knows when collecting factors vs predictions
 - Detects section boundaries intelligently
 - Stops factor collection at appropriate points
 
-### 🔄 **Backward Compatibility**
+### Backward Compatibility
 - All existing parsing functions still work
 - Legacy formats continue to be supported
 - No breaking changes to existing code
 
-### ⚡ **Performance Optimized**
+### Performance Optimized
 - Fast pattern matching using compiled regex
 - Early returns when patterns match
 - Minimal overhead for common cases
@@ -120,7 +126,7 @@ Pick: Cardinals -1.5
 Confidence Level: Strong`;
 
 const format3 = `Game Forecasts - Week 4
-🏈 SEA at ARI
+NFL SEA at ARI
 Score Prediction: Cardinals 23-16
 Notes: Home field advantage`;
 
@@ -130,11 +136,11 @@ Notes: Home field advantage`;
 ## Testing Validation
 
 The adaptive parser has been tested with:
-- ✅ 4 different AI output format variations
-- ✅ Multiple prediction expression styles
-- ✅ Various confidence level formats
-- ✅ Different factor collection methods
-- ✅ Edge cases and malformed inputs
+- 4 different AI output format variations
+- Multiple prediction expression styles
+- Various confidence level formats
+- Different factor collection methods
+- Edge cases and malformed inputs
 
 ## Benefits
 

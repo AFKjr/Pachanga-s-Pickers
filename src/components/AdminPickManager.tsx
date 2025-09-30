@@ -288,7 +288,7 @@ const AdminPickManager: React.FC = () => {
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(JSON.stringify(pick, null, 2));
-                      console.log('📋 Pick data copied to clipboard');
+                      console.log('Pick data copied to clipboard');
                     }}
                     className='px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded text-xs font-medium text-white transition-colors'
                   >
