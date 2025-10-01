@@ -165,8 +165,11 @@ export const hasDateIndicators = (line: string): boolean => {
  * Updated to handle new format: "Kansas City @ New York Giants (Sun 8:20 PM ET, NBC)"
  */
 export const isGameLine = (line: string): boolean => {
-  // Must contain " @ " 
-  if (!line.includes(' @ ')) {
+  // Must contain either " @ " or " vs "
+  const hasAtSymbol = line.includes(' @ ');
+  const hasVsSymbol = line.includes(' vs ');
+  
+  if (!hasAtSymbol && !hasVsSymbol) {
     return false;
   }
   
@@ -174,7 +177,12 @@ export const isGameLine = (line: string): boolean => {
   if (line.includes('•') || 
       line.includes('Model Prediction') ||
       line.includes('Recommended Play') ||
+      line.includes('Recommended Side/Total') ||
       line.includes('Key Factors') ||
+      line.includes('Simulation Results') ||
+      line.includes('Predicted Score') ||
+      line.includes('Win probability') ||
+      line.includes('Confidence Level') ||
       line.includes('Odds:') ||
       line.includes('Model:') ||
       line.includes('Play:') ||
@@ -183,45 +191,74 @@ export const isGameLine = (line: string): boolean => {
     return false;
   }
   
-  // Check if it follows the pattern: "Team @ Team" or "Team @ Team (extra info)"
-  // Should have alphabetic characters before and after "@"
-  const atIndex = line.indexOf(' @ ');
-  if (atIndex === -1) return false;
+  // Check if it follows the pattern: "Team @ Team" or "Team vs Team" with extra info
+  // Should have alphabetic characters before and after the separator
+  const separator = hasAtSymbol ? ' @ ' : ' vs ';
+  const separatorIndex = line.indexOf(separator);
+  if (separatorIndex === -1) return false;
   
-  const beforeAt = line.substring(0, atIndex).trim();
-  const afterAtRaw = line.substring(atIndex + 3).trim();
+  const beforeSeparator = line.substring(0, separatorIndex).trim();
+  const afterSeparatorRaw = line.substring(separatorIndex + separator.length).trim();
   
   // Extract team name (everything before any parentheses)
-  const afterAt = afterAtRaw.split('(')[0].trim();
+  const afterSeparator = afterSeparatorRaw.split('(')[0].trim();
   
   // Both parts should contain letters (team names)
-  const hasLetters = /[a-zA-Z]/.test(beforeAt) && /[a-zA-Z]/.test(afterAt);
+  const hasLetters = /[a-zA-Z]/.test(beforeSeparator) && /[a-zA-Z]/.test(afterSeparator);
   
   // Both parts should be reasonable length for team names
-  const reasonableLength = beforeAt.length >= 2 && afterAt.length >= 2;
+  const reasonableLength = beforeSeparator.length >= 2 && afterSeparator.length >= 2;
   
   return hasLetters && reasonableLength;
 };
 
 /**
- * Parse teams from a game line like "Kansas City @ New York Giants (Sun 8:20 PM ET, NBC)"
- * Updated to handle parenthetical information
+ * Parse teams from a game line like "Kansas City @ New York Giants" or "Team vs Team"
+ * Updated to handle both @ and vs formats, plus parenthetical information
  */
 export const parseTeams = (gameLine: string): { awayTeam: string; homeTeam: string } | null => {
-  const atIndex = gameLine.indexOf(' @ ');
-  if (atIndex === -1) return null;
+  // Check for both @ and vs formats
+  const hasAtSymbol = gameLine.includes(' @ ');
+  const hasVsSymbol = gameLine.includes(' vs ');
   
-  const awayTeam = gameLine.substring(0, atIndex).trim();
-  const homeTeamRaw = gameLine.substring(atIndex + 3).trim();
+  if (!hasAtSymbol && !hasVsSymbol) return null;
   
-  // Remove parenthetical information if present
-  const homeTeam = homeTeamRaw.split('(')[0].trim();
+  const separator = hasAtSymbol ? ' @ ' : ' vs ';
+  const separatorIndex = gameLine.indexOf(separator);
   
-  if (awayTeam && homeTeam) {
-    return {
-      awayTeam: awayTeam,
-      homeTeam: homeTeam
-    };
+  let firstTeamRaw = gameLine.substring(0, separatorIndex).trim();
+  let secondTeamRaw = gameLine.substring(separatorIndex + separator.length).trim();
+  
+  // Remove parenthetical information from both teams
+  const firstTeam = firstTeamRaw.split('(')[0].trim();
+  const secondTeam = secondTeamRaw.split('(')[0].trim();
+  
+  if (firstTeam && secondTeam) {
+    // For @ format: first team is away, second is home
+    // For vs format: need to check parenthetical info to determine home/away
+    if (hasAtSymbol) {
+      return {
+        awayTeam: firstTeam,
+        homeTeam: secondTeam
+      };
+    } else {
+      // For vs format, check parenthetical info to determine home/away
+      const firstTeamIsHome = firstTeamRaw.includes('(home)');
+      const secondTeamIsAway = secondTeamRaw.includes('(away)');
+      
+      if (firstTeamIsHome || secondTeamIsAway) {
+        return {
+          awayTeam: secondTeam,
+          homeTeam: firstTeam
+        };
+      } else {
+        // Default: first team is away, second is home
+        return {
+          awayTeam: firstTeam,
+          homeTeam: secondTeam
+        };
+      }
+    }
   }
   
   return null;

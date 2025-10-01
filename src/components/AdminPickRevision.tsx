@@ -21,6 +21,8 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
   // Form state for all editable fields
   const [formData, setFormData] = useState({
     prediction: pick.prediction,
+    spreadPrediction: pick.spread_prediction || '', // NEW: Spread prediction text
+    ouPrediction: pick.ou_prediction || '', // NEW: O/U prediction text
     confidence: pick.confidence,
     reasoning: pick.reasoning,
     result: pick.result || 'pending',
@@ -43,6 +45,8 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
   useEffect(() => {
     const originalData = {
       prediction: pick.prediction,
+      spreadPrediction: pick.spread_prediction || '',
+      ouPrediction: pick.ou_prediction || '',
       confidence: pick.confidence,
       reasoning: pick.reasoning,
       result: pick.result || 'pending',
@@ -83,9 +87,20 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
       throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
     }
 
+    // Extract spread and O/U values from prediction text
+    const extractNumber = (text: string, defaultValue?: number): number | undefined => {
+      const match = text.match(/[-+]?\d+\.?\d*/);
+      return match ? parseFloat(match[0]) : defaultValue;
+    };
+
+    const spreadValue = formData.spreadPrediction ? extractNumber(formData.spreadPrediction, formData.spread ? parseFloat(formData.spread) : undefined) : (formData.spread ? parseFloat(formData.spread) : undefined);
+    const ouValue = formData.ouPrediction ? extractNumber(formData.ouPrediction, formData.overUnder ? parseFloat(formData.overUnder) : undefined) : (formData.overUnder ? parseFloat(formData.overUnder) : undefined);
+
     // Prepare update payload
     const updates: Partial<Pick> = {
       prediction: validation.sanitizedData.prediction,
+      spread_prediction: formData.spreadPrediction || undefined,
+      ou_prediction: formData.ouPrediction || undefined,
       confidence: validation.sanitizedData.confidence as ConfidenceLevel,
       reasoning: validation.sanitizedData.reasoning,
       result: formData.result as 'win' | 'loss' | 'push' | 'pending',
@@ -96,8 +111,8 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
         away_team: validation.sanitizedData.awayTeam,
         league: pick.game_info.league,
         game_date: validation.sanitizedData.gameDate,
-        spread: formData.spread ? parseFloat(formData.spread) : undefined,
-        over_under: formData.overUnder ? parseFloat(formData.overUnder) : undefined
+        spread: spreadValue,
+        over_under: ouValue
       } as GameInfo
     };
 
@@ -251,62 +266,54 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
         </div>
       </div>
 
-      {/* Betting Lines */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* Predictions Section */}
+      <div className="space-y-4">
+        {/* Moneyline Prediction */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
-            Spread
-          </label>
-          <input
-            type="number"
-            step="0.5"
-            value={formData.spread}
-            onChange={(e) => handleInputChange('spread', e.target.value)}
-            placeholder="e.g., -3.5"
-            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">
-            Over/Under
-          </label>
-          <input
-            type="number"
-            step="0.5"
-            value={formData.overUnder}
-            onChange={(e) => handleInputChange('overUnder', e.target.value)}
-            placeholder="e.g., 45.5"
-            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white"
-          />
-        </div>
-      </div>
-
-      {/* Prediction & Confidence */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">
-            Prediction
+            Prediction (Moneyline)
           </label>
           <input
             type="text"
             value={formData.prediction}
             onChange={(e) => handleInputChange('prediction', e.target.value)}
-            placeholder="e.g., Cardinals to win (80.3% win probability)"
+            placeholder="e.g., Cardinals to win"
             className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white"
           />
         </div>
+
+        {/* Spread Prediction */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
-            Confidence (%)
+            Spread Prediction
           </label>
           <input
-            type="number"
-            min="0"
-            max="100"
-            value={formData.confidence}
-            onChange={(e) => handleInputChange('confidence', parseInt(e.target.value))}
+            type="text"
+            value={formData.spreadPrediction}
+            onChange={(e) => handleInputChange('spreadPrediction', e.target.value)}
+            placeholder="e.g., Cardinals -3.5 to cover"
             className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white"
           />
+          <div className="mt-1 text-xs text-gray-400">
+            Current spread: {formData.spread || 'Not set'} • Edit in prediction text (e.g., "Cardinals -3.5")
+          </div>
+        </div>
+
+        {/* O/U Prediction */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Over/Under Prediction
+          </label>
+          <input
+            type="text"
+            value={formData.ouPrediction}
+            onChange={(e) => handleInputChange('ouPrediction', e.target.value)}
+            placeholder="e.g., Under 46.5"
+            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+          />
+          <div className="mt-1 text-xs text-gray-400">
+            Current total: {formData.overUnder || 'Not set'} • Edit in prediction text (e.g., "Under 46.5")
+          </div>
         </div>
       </div>
 
@@ -362,9 +369,6 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
           <ul className="text-yellow-100 text-xs space-y-1">
             {formData.prediction !== pick.prediction && (
               <li>• Prediction: "{pick.prediction}" → "{formData.prediction}"</li>
-            )}
-            {formData.confidence !== pick.confidence && (
-              <li>• Confidence: {pick.confidence}% → {formData.confidence}%</li>
             )}
             {formData.result !== (pick.result || 'pending') && (
               <li>• Result: {pick.result || 'pending'} → {formData.result}</li>

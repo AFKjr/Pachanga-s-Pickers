@@ -151,10 +151,6 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
               <div className="mb-3">
                 <div className="text-green-400 font-medium text-sm mb-1">
                   {pick.prediction}
-
-                </div>
-                <div className="text-gray-400 text-xs">
-                  {pick.confidence}% confidence
                 </div>
               </div>
 

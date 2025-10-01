@@ -154,8 +154,8 @@ const UnifiedAllTimeRecord: React.FC = () => {
         {/* Against The Spread Record */}
         <div className="bg-gray-700 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white">Against Spread</h3>
-            <span className="text-xs text-gray-400">ATS Performance</span>
+            <h3 className="text-lg font-semibold text-white">Against the Spread</h3>
+            <span className="text-xs text-gray-400">ATS</span>
           </div>
           
           <div className="text-center mb-4">
@@ -205,7 +205,7 @@ const UnifiedAllTimeRecord: React.FC = () => {
         {/* Over/Under Record */}
         <div className="bg-gray-700 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white">🎲 Over/Under</h3>
+            <h3 className="text-lg font-semibold text-white">Over/Under</h3>
             <span className="text-xs text-gray-400">Totals Performance</span>
           </div>
           
@@ -267,68 +267,9 @@ const UnifiedAllTimeRecord: React.FC = () => {
           </div>
           <div className="text-xs text-gray-300">Total Units</div>
         </div>
-
-        <div className="bg-gray-700 rounded-lg p-3 text-center">
-          <div className="text-lg font-bold text-yellow-400">
-            {atsRecord.byConfidence.high.picks}
-          </div>
-          <div className="text-xs text-gray-300">High Conf. Picks</div>
-        </div>
-
-        <div className="bg-gray-700 rounded-lg p-3 text-center">
-          <div className="text-lg font-bold text-green-400">
-            {atsRecord.byConfidence.high.winRate.toFixed(1)}%
-          </div>
-          <div className="text-xs text-gray-300">High Conf. Rate</div>
-        </div>
       </div>
 
-      {/* Key Insights */}
-      <div className="bg-gray-700 rounded-lg p-4">
-        <h4 className="text-white font-medium mb-3">Key Insights</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-gray-300">
-              <span className="text-white font-medium">Best Market:</span>{' '}
-              {moneylineStats.winRate >= Math.max(atsRecord.ats.winRate, atsRecord.overUnder.winRate) ? 
-                'Moneyline' : 
-                (atsRecord.ats.winRate >= atsRecord.overUnder.winRate ? 'Against Spread' : 'Over/Under')
-              } 
-              ({Math.max(moneylineStats.winRate, atsRecord.ats.winRate, atsRecord.overUnder.winRate).toFixed(1)}%)
-            </p>
-            <p className="text-gray-300 mt-1">
-              <span className="text-white font-medium">Break-even Status:</span>{' '}
-              {moneylineStats.winRate >= 52.38 ? 
-                <span className="text-green-400">Above break-even</span> : 
-                <span className="text-red-400">Below break-even</span>
-              } (need 52.38% @ -110)
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-300">
-              <span className="text-white font-medium">Sample Size:</span>{' '}
-              {moneylineStats.totalResolved >= 30 ? 
-                <span className="text-green-400">Sufficient</span> : 
-                <span className="text-yellow-400">Building</span>
-              } ({moneylineStats.totalResolved} resolved picks)
-            </p>
-            <p className="text-gray-300 mt-1">
-              <span className="text-white font-medium">Betting Lines:</span>{' '}
-              {(atsRecord.ats.totalResolved + atsRecord.overUnder.totalResolved) > 0 ? 
-                <span className="text-green-400">Available</span> : 
-                <span className="text-yellow-400">Add spreads/totals for full analytics</span>
-              }
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer Note */}
-      <div className="mt-4 text-center">
-        <p className="text-gray-400 text-xs">
-          Moneyline: Official game results • ATS/O/U: Simulated scores based on outcomes
-        </p>
-      </div>
+     
     </div>
   );
 };

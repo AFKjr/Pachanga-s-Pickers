@@ -9,6 +9,7 @@ import { useOptimisticUpdates } from '../hooks/useOptimisticUpdates';
 import { executeAtomicOperations, createOperationSummary } from '../lib/atomicOperations';
 import { formatGameDate } from '../utils/dateValidation';
 import ErrorNotification from './ErrorNotification';
+import { calculateAllResultsFromScores } from '../utils/atsCalculator';
 
 const AdminPickResults: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -231,6 +232,31 @@ const AdminPickResults: React.FC = () => {
     queueUpdateResult(pickId, result);
   };
 
+  const updatePickScores = (pickId: string, awayScore: number | undefined, homeScore: number | undefined) => {
+    // Find the pick and update its scores
+    const pick = allPicks.find(p => p.id === pickId);
+    if (!pick) return;
+
+    // Update the pick with new scores
+    const updatedPick: Pick = {
+      ...pick,
+      game_info: {
+        ...pick.game_info,
+        away_score: awayScore,
+        home_score: homeScore
+      }
+    };
+
+    // Calculate results if both scores are provided
+    if (awayScore !== undefined && homeScore !== undefined) {
+      const results = calculateAllResultsFromScores(updatedPick);
+      updatedPick.result = results.moneyline; // Use moneyline result as primary
+    }
+
+    // Queue the update
+    optimisticUpdate(pickId, { game_info: updatedPick.game_info, result: updatedPick.result }, pick);
+  };
+
   if (loading) {
     return (
       <div className='bg-gray-800 rounded-lg p-6 mb-6'>
@@ -377,12 +403,75 @@ const AdminPickResults: React.FC = () => {
                         Prediction: {pick.prediction}
                       </div>
 
+                      {/* Game Lines */}
+                      <div className='text-gray-400 text-xs mb-2'>
+                        {pick.game_info.spread && <span className="mr-3">Spread: {pick.game_info.spread > 0 ? '+' : ''}{pick.game_info.spread}</span>}
+                        {pick.game_info.over_under && <span>O/U: {pick.game_info.over_under}</span>}
+                      </div>
+
+                      {/* Score Entry */}
+                      <div className='flex items-center space-x-2 mb-2'>
+                        <div className='flex items-center space-x-1'>
+                          <label className='text-xs text-gray-400'>Away:</label>
+                          <input
+                            type='number'
+                            min='0'
+                            value={pick.game_info.away_score ?? ''}
+                            onChange={(e) => {
+                              const value = e.target.value === '' ? undefined : parseInt(e.target.value);
+                              updatePickScores(pick.id, value, pick.game_info.home_score);
+                            }}
+                            className='w-14 px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-xs'
+                            placeholder='--'
+                          />
+                        </div>
+                        <span className='text-gray-400 text-xs'>@</span>
+                        <div className='flex items-center space-x-1'>
+                          <label className='text-xs text-gray-400'>Home:</label>
+                          <input
+                            type='number'
+                            min='0'
+                            value={pick.game_info.home_score ?? ''}
+                            onChange={(e) => {
+                              const value = e.target.value === '' ? undefined : parseInt(e.target.value);
+                              updatePickScores(pick.id, pick.game_info.away_score, value);
+                            }}
+                            className='w-14 px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-xs'
+                            placeholder='--'
+                          />
+                        </div>
+                      </div>
+
+                      {/* Calculated Results Display */}
+                      {pick.game_info.home_score !== undefined && pick.game_info.away_score !== undefined && (() => {
+                        const results = calculateAllResultsFromScores(pick);
+                        const getResultBadge = (result: string, label: string) => {
+                          const colorClass = result === 'win' ? 'bg-green-600 text-white' :
+                                             result === 'loss' ? 'bg-red-600 text-white' :
+                                             result === 'push' ? 'bg-yellow-600 text-white' :
+                                             'bg-gray-600 text-gray-300';
+                          return (
+                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${colorClass}`}>
+                              {label}: {result.toUpperCase()}
+                            </span>
+                          );
+                        };
+                        
+                        return (
+                          <div className='flex flex-wrap gap-1 mb-2'>
+                            {getResultBadge(results.moneyline, 'ML')}
+                            {pick.game_info.spread && getResultBadge(results.ats, 'ATS')}
+                            {pick.game_info.over_under && getResultBadge(results.overUnder, 'O/U')}
+                          </div>
+                        );
+                      })()}
+
                       <div className='text-gray-400 text-xs'>
-                        Confidence: {pick.confidence}% • By: {pick.author_username || 'Unknown'}
+                        By: {pick.author_username || 'Unknown'}
                       </div>
                     </div>
 
-                    <div className='flex space-x-2 ml-4'>
+                    <div className='flex flex-col space-y-2 ml-4'>
                       <button
                         onClick={() => deletePick(pick.id, pick.game_info.home_team, pick.game_info.away_team)}
                         disabled={isOperationPending}

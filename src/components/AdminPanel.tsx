@@ -5,13 +5,12 @@ import RelevanceAIAgentEmbed from './RelevanceAIAgentEmbed';
 import AdminDataEntry from './AdminDataEntry';
 import AdminPickResults from './AdminPickResults';
 import AdminPickManager from './AdminPickManager';
-import DataCollectionStatus from './DataCollectionStatus.tsx';
 
 const AdminPanel: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'generate' | 'manage' | 'results' | 'data-collection'>('generate');
+  const [activeTab, setActiveTab] = useState<'generate' | 'manage' | 'results'>('generate');
 
   // Check admin status when user changes
   useEffect(() => {
@@ -118,16 +117,6 @@ const AdminPanel: React.FC = () => {
           >
             Update Results
           </button>
-          <button
-            onClick={() => setActiveTab('data-collection')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeTab === 'data-collection'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:text-white hover:bg-gray-700'
-            }`}
-          >
-            Data Collection
-          </button>
         </div>
       </div>
 
@@ -158,7 +147,7 @@ const AdminPanel: React.FC = () => {
           <div className='mt-8 bg-green-900 border border-green-700 text-green-200 px-4 py-3 rounded'>
             <h4 className='font-semibold mb-2'>Pick Management Features:</h4>
             <ul className='list-disc list-inside space-y-1 text-sm'>
-              <li><strong>Revise Picks:</strong> Edit predictions, confidence, reasoning, and game details</li>
+              <li><strong>Revise Picks:</strong> Edit predictions, reasoning, and game details</li>
               <li><strong>Search & Filter:</strong> Find picks by team, week, or prediction text</li>
               <li><strong>Export Data:</strong> Copy pick information for external analysis</li>
               <li><strong>Pin Important Picks:</strong> Highlight key predictions for users</li>
@@ -180,10 +169,6 @@ const AdminPanel: React.FC = () => {
             </ul>
           </div>
         </>
-      )}
-
-      {activeTab === 'data-collection' && (
-        <DataCollectionStatus />
       )}
     </div>
   );

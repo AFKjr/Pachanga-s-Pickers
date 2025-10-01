@@ -246,40 +246,6 @@ const ATSStatsComponent: React.FC = () => {
               </div>
             </div>
           </div>
-
-          {/* Confidence-Based Performance */}
-          <div className="bg-gray-700 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Performance by Confidence Level</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className="text-lg font-bold text-green-400 mb-1">
-                  {overallRecord.byConfidence.high.winRate.toFixed(1)}%
-                </div>
-                <div className="text-sm text-gray-300">High Confidence (80%+)</div>
-                <div className="text-xs text-gray-400 mt-1">
-                  {overallRecord.byConfidence.high.picks} picks
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-blue-400 mb-1">
-                  {overallRecord.byConfidence.medium.winRate.toFixed(1)}%
-                </div>
-                <div className="text-sm text-gray-300">Medium Confidence (60-79%)</div>
-                <div className="text-xs text-gray-400 mt-1">
-                  {overallRecord.byConfidence.medium.picks} picks
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-yellow-400 mb-1">
-                  {overallRecord.byConfidence.low.winRate.toFixed(1)}%
-                </div>
-                <div className="text-sm text-gray-300">Lower Confidence (&lt;60%)</div>
-                <div className="text-xs text-gray-400 mt-1">
-                  {overallRecord.byConfidence.low.picks} picks
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 

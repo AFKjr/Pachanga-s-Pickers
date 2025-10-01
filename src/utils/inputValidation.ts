@@ -15,7 +15,7 @@ const MAX_LENGTHS = {
 
 // Regex patterns for validation
 const VALIDATION_PATTERNS = {
-  TEAM_NAME: /^[a-zA-Z0-9\s\-'\.]+$/,                 // Letters, numbers, spaces, hyphens, apostrophes, periods
+  TEAM_NAME: /^[a-zA-Z0-9\s\-'\.&()]+$/,               // Letters, numbers, spaces, hyphens, apostrophes, periods, ampersands, parentheses
   CONFIDENCE: /^(100|[0-9]?[0-9])$/,                  // 0-100 integer
   WEEK: /^(1[0-8]|[1-9])$/,                          // 1-18 integer
   DATE: /^\d{4}-\d{2}-\d{2}$/,                       // YYYY-MM-DD format
@@ -56,6 +56,20 @@ export const sanitizeText = (input: string): string => {
 
   // Remove null bytes and control characters (except newlines and tabs)
   sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+  // Normalize Unicode characters that might cause issues
+  // Replace smart quotes with regular quotes
+  sanitized = sanitized.replace(/[""]/g, '"');
+  sanitized = sanitized.replace(/['']/g, "'");
+  
+  // Replace em-dash and en-dash with regular hyphen
+  sanitized = sanitized.replace(/[—–]/g, '-');
+  
+  // Replace non-breaking spaces with regular spaces
+  sanitized = sanitized.replace(/\u00A0/g, ' ');
+  
+  // Replace other common Unicode spaces with regular spaces
+  sanitized = sanitized.replace(/[\u2000-\u200B\u2028\u2029]/g, ' ');
 
   // Normalize whitespace but preserve newlines
   // Replace multiple spaces/tabs with single space, but keep newlines
@@ -136,6 +150,19 @@ export const validateTeamName = (teamName: string): { isValid: boolean; error?: 
 
   const sanitized = sanitizeText(teamName);
 
+  // Additional check: if the string contains prediction indicators, it's not a team name
+  if (sanitized.includes('Recommended') || 
+      sanitized.includes('Model Prediction') || 
+      sanitized.includes('Simulation Results') ||
+      sanitized.includes('Key factors') ||
+      sanitized.includes(':')) {
+    return {
+      isValid: false,
+      error: `This appears to be prediction text, not a team name: "${sanitized}"`,
+      sanitized
+    };
+  }
+
   if (!validateLength(sanitized, MAX_LENGTHS.TEAM_NAME)) {
     return { 
       isValid: false, 
@@ -145,9 +172,14 @@ export const validateTeamName = (teamName: string): { isValid: boolean; error?: 
   }
 
   if (!validatePattern(sanitized, VALIDATION_PATTERNS.TEAM_NAME)) {
+    // Add debugging information
+    const invalidChars = sanitized.split('').filter(char => 
+      !/[a-zA-Z0-9\s\-'\.&()]/.test(char)
+    ).map(char => `'${char}' (${char.charCodeAt(0)})`);
+    
     return { 
       isValid: false, 
-      error: 'Team name contains invalid characters. Only letters, numbers, spaces, hyphens, and apostrophes allowed.',
+      error: `Team name contains invalid characters. Only letters, numbers, spaces, hyphens, apostrophes, periods, ampersands, and parentheses allowed. Invalid characters found: ${invalidChars.length > 0 ? invalidChars.join(', ') : 'none detected'}. Full string: "${sanitized}"`,
       sanitized 
     };
   }

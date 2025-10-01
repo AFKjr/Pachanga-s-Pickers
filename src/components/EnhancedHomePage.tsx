@@ -215,60 +215,6 @@ const EnhancedHomePage: React.FC = () => {
                 </div>
               </div>
             </div>
-
-            {/* Performance by Confidence */}
-            <div className="bg-gray-700 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Performance by Confidence Level</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-300">High Confidence (80%+)</span>
-                  <div className="flex items-center space-x-4">
-                    <span className="text-green-400 font-medium">
-                      {overallRecord.byConfidence.high.winRate.toFixed(1)}% 
-                      ({overallRecord.byConfidence.high.picks} picks)
-                    </span>
-                    <div className="w-24 bg-gray-600 rounded-full h-2">
-                      <div 
-                        className="bg-green-500 h-2 rounded-full"
-                        style={{ width: `${Math.min(overallRecord.byConfidence.high.winRate, 100)}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Medium Confidence (60-79%)</span>
-                  <div className="flex items-center space-x-4">
-                    <span className="text-blue-400 font-medium">
-                      {overallRecord.byConfidence.medium.winRate.toFixed(1)}% 
-                      ({overallRecord.byConfidence.medium.picks} picks)
-                    </span>
-                    <div className="w-24 bg-gray-600 rounded-full h-2">
-                      <div 
-                        className="bg-blue-500 h-2 rounded-full"
-                        style={{ width: `${Math.min(overallRecord.byConfidence.medium.winRate, 100)}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Lower Confidence (&lt;60%)</span>
-                  <div className="flex items-center space-x-4">
-                    <span className="text-yellow-400 font-medium">
-                      {overallRecord.byConfidence.low.winRate.toFixed(1)}% 
-                      ({overallRecord.byConfidence.low.picks} picks)
-                    </span>
-                    <div className="w-24 bg-gray-600 rounded-full h-2">
-                      <div 
-                        className="bg-yellow-500 h-2 rounded-full"
-                        style={{ width: `${Math.min(overallRecord.byConfidence.low.winRate, 100)}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         )}
 
@@ -315,7 +261,7 @@ const EnhancedHomePage: React.FC = () => {
                         </div>
                         <div className="text-sm text-gray-300">{pick.prediction}</div>
                         <div className="text-xs text-gray-400">
-                          {formatGameDate(pick.game_info.game_date)} • {pick.confidence}% confidence
+                          {formatGameDate(pick.game_info.game_date)}
                         </div>
                       </div>
                     </div>
@@ -414,15 +360,10 @@ const EnhancedHomePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Confidence Accuracy */}
+            {/* Value Games */}
             <div className="bg-gray-700 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Confidence Calibration</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">Value Analysis</h3>
               <div className="mb-4">
-                <p className="text-gray-300 text-sm">
-                  High-confidence picks (75%+): <span className="text-yellow-400 font-medium">
-                  {bettingEfficiency.confidenceAccuracy.toFixed(1)}% accuracy
-                  </span>
-                </p>
                 <p className="text-gray-300 text-sm mt-1">
                   Value games won: <span className="text-green-400 font-medium">
                   {bettingEfficiency.valueGames} games
@@ -430,8 +371,7 @@ const EnhancedHomePage: React.FC = () => {
                 </p>
               </div>
               <div className="text-xs text-gray-400">
-                <strong>Note:</strong> Good confidence calibration means high-confidence picks win more often, 
-                indicating reliable self-assessment of prediction quality.
+                <strong>Note:</strong> Value games represent picks where the analysis identified strong betting opportunities.
               </div>
             </div>
           </div>
@@ -470,7 +410,6 @@ const EnhancedHomePage: React.FC = () => {
                     {pick.prediction}
                   </div>
                   <div className="flex items-center justify-between text-xs text-gray-400">
-                    <span>{pick.confidence}% confidence</span>
                     <span>{formatGameDate(pick.game_info.game_date, true)}</span>
                   </div>
                 </div>

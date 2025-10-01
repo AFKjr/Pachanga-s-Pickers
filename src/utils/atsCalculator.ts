@@ -8,6 +8,13 @@ export interface GameScore {
   away: number;
 }
 
+export interface CalculatedResults {
+  moneyline: 'win' | 'loss' | 'push' | 'pending';
+  ats: 'win' | 'loss' | 'push' | 'pending';
+  overUnder: 'win' | 'loss' | 'push' | 'pending';
+  hasScores: boolean;
+}
+
 export interface ATSResult {
   type: 'moneyline' | 'ats' | 'over_under';
   result: 'win' | 'loss' | 'push' | 'pending';
@@ -65,6 +72,66 @@ export interface ComprehensiveATSRecord {
     low: { picks: number; winRate: number }; // <60%
   };
 }
+
+/**
+ * Calculate all results (Moneyline, ATS, O/U) from actual game scores
+ * This is the main function to use when updating pick results
+ */
+export const calculateAllResultsFromScores = (pick: Pick): CalculatedResults => {
+  const homeScore = pick.game_info.home_score;
+  const awayScore = pick.game_info.away_score;
+  
+  // If no scores provided, everything is pending
+  if (homeScore === undefined || awayScore === undefined) {
+    return {
+      moneyline: 'pending',
+      ats: 'pending',
+      overUnder: 'pending',
+      hasScores: false
+    };
+  }
+
+  const actualScore: GameScore = { home: homeScore, away: awayScore };
+  const predictedTeam = extractPredictedTeam(pick);
+
+  // Calculate Moneyline Result
+  let moneylineResult: 'win' | 'loss' | 'push' | 'pending';
+  if (homeScore === awayScore) {
+    moneylineResult = 'push';
+  } else {
+    const homeWon = homeScore > awayScore;
+    const awayWon = awayScore > homeScore;
+    
+    if ((predictedTeam === 'home' && homeWon) || (predictedTeam === 'away' && awayWon)) {
+      moneylineResult = 'win';
+    } else if (predictedTeam === 'unknown') {
+      moneylineResult = 'pending';
+    } else {
+      moneylineResult = 'loss';
+    }
+  }
+
+  // Calculate ATS Result
+  let atsResult: 'win' | 'loss' | 'push' | 'pending' = 'pending';
+  if (pick.game_info.spread !== undefined && predictedTeam !== 'unknown') {
+    const atsCalc = calculateATSResult(pick, actualScore);
+    atsResult = atsCalc.result;
+  }
+
+  // Calculate O/U Result
+  let overUnderResult: 'win' | 'loss' | 'push' | 'pending' = 'pending';
+  if (pick.game_info.over_under !== undefined) {
+    const ouCalc = calculateOverUnderResult(pick, actualScore);
+    overUnderResult = ouCalc.result;
+  }
+
+  return {
+    moneyline: moneylineResult,
+    ats: atsResult,
+    overUnder: overUnderResult,
+    hasScores: true
+  };
+};
 
 /**
  * Determines which team was predicted to win based on prediction text

@@ -2,7 +2,9 @@
 export interface Pick {
   id: string;
   game_info: GameInfo;
-  prediction: string;
+  prediction: string; // Moneyline prediction
+  spread_prediction?: string; // NEW: Spread prediction text
+  ou_prediction?: string; // NEW: Over/Under prediction text
   confidence: ConfidenceLevel;
   reasoning: string;
   result?: 'win' | 'loss' | 'push' | 'pending';
@@ -24,6 +26,9 @@ export interface GameInfo {
   game_date: string;
   spread?: number;
   over_under?: number;
+  // Actual game scores (for ATS/O/U calculations)
+  home_score?: number;
+  away_score?: number;
 }
 
 // Strict Union Types

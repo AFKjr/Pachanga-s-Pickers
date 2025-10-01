@@ -338,7 +338,9 @@ export const agentStatsApi = {
     };
 
     stats.totalResolved = stats.wins + stats.losses + stats.pushes;
-    stats.winRate = stats.totalResolved > 0 ? (stats.wins / stats.totalResolved) * 100 : 0;
+    // For moneyline win rate, exclude pushes since they are neither wins nor losses
+    const resolvedForWinRate = stats.wins + stats.losses;
+    stats.winRate = resolvedForWinRate > 0 ? (stats.wins / resolvedForWinRate) * 100 : 0;
 
     console.log('Calculated stats:', stats);
     return { data: stats, error: null };

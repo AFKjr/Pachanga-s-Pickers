@@ -18,6 +18,7 @@ const AdminPickManager: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedPick, setSelectedPick] = useState<Pick | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [cleaningDuplicates, setCleaningDuplicates] = useState(false);
 
   const { error, clearError, executeWithErrorHandling } = useErrorHandler();
 
@@ -94,6 +95,158 @@ const AdminPickManager: React.FC = () => {
     setSelectedPick(null);
   };
 
+  // Normalize team names to handle both full and short names
+  const normalizeTeamName = (teamName: string): string => {
+    const normalized = teamName.trim().toLowerCase();
+    
+    // Map of short names to consistent identifiers
+    const teamMappings: Record<string, string> = {
+      '49ers': 'sf49ers',
+      'san francisco 49ers': 'sf49ers',
+      'rams': 'larams',
+      'los angeles rams': 'larams',
+      'chargers': 'lachargers',
+      'los angeles chargers': 'lachargers',
+      'vikings': 'minvikings',
+      'minnesota vikings': 'minvikings',
+      'browns': 'clebrowns',
+      'cleveland browns': 'clebrowns',
+      'raiders': 'lvraiders',
+      'las vegas raiders': 'lvraiders',
+      'colts': 'indcolts',
+      'indianapolis colts': 'indcolts',
+      'giants': 'nygiants',
+      'new york giants': 'nygiants',
+      'saints': 'nosants',
+      'new orleans saints': 'nosants',
+      'cowboys': 'dalcowboys',
+      'dallas cowboys': 'dalcowboys',
+      'jets': 'nyjets',
+      'new york jets': 'nyjets',
+      'broncos': 'denbroncos',
+      'denver broncos': 'denbroncos',
+      'eagles': 'phieagles',
+      'philadelphia eagles': 'phieagles',
+      'dolphins': 'miadolphins',
+      'miami dolphins': 'miadolphins',
+      'panthers': 'carpanthers',
+      'carolina panthers': 'carpanthers',
+      'texans': 'houtexans',
+      'houston texans': 'houtexans',
+      'ravens': 'balravens',
+      'baltimore ravens': 'balravens',
+      'titans': 'tentitans',
+      'tennessee titans': 'tentitans',
+      'cardinals': 'azcardinals',
+      'arizona cardinals': 'azcardinals',
+      'buccaneers': 'tbbucs',
+      'tampa bay buccaneers': 'tbbucs',
+      'seahawks': 'seaseahawks',
+      'seattle seahawks': 'seaseahawks',
+      'lions': 'detlions',
+      'detroit lions': 'detlions',
+      'bengals': 'cinbengals',
+      'cincinnati bengals': 'cinbengals',
+      'commanders': 'wascommanders',
+      'washington commanders': 'wascommanders',
+      'patriots': 'nepats',
+      'new england patriots': 'nepats',
+      'bills': 'bufbills',
+      'buffalo bills': 'bufbills',
+      'chiefs': 'kcchiefs',
+      'kansas city chiefs': 'kcchiefs',
+      'jaguars': 'jaxjags',
+      'jacksonville jaguars': 'jaxjags',
+    };
+    
+    return teamMappings[normalized] || normalized;
+  };
+
+  const handleCleanDuplicates = async () => {
+    if (!confirm('This will remove duplicate picks for the same game in the same week. Continue?')) {
+      return;
+    }
+
+    await executeWithErrorHandling(async () => {
+      setCleaningDuplicates(true);
+      const { data: allPicks } = await picksApi.getAll();
+      if (!allPicks) return;
+
+      console.log(`🔍 Analyzing ${allPicks.length} total picks for duplicates...`);
+
+      // Sort by created_at to keep the oldest (first) occurrence
+      const sortedPicks = [...allPicks].sort((a, b) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+
+      // Track seen picks by game matchup and week
+      const seen = new Map<string, Pick>();
+      const duplicates: string[] = [];
+
+      // Find duplicates based on team matchup and week
+      for (const pick of sortedPicks) {
+        const gameInfo = pick.game_info as any;
+        const week = getPickWeek(pick); // Use the same week calculation as the UI
+        
+        // Normalize team names to handle both full and short names
+        const homeTeam = gameInfo?.home_team?.trim() || '';
+        const awayTeam = gameInfo?.away_team?.trim() || '';
+        const normalizedHome = normalizeTeamName(homeTeam);
+        const normalizedAway = normalizeTeamName(awayTeam);
+        
+        // Create unique key based on normalized teams and week
+        const key = `${normalizedHome}-${normalizedAway}-${week}`;
+
+        console.log(`Checking: ${awayTeam} @ ${homeTeam} (Week ${week})`);
+        console.log(`  Normalized Key: ${key}`);
+
+        if (seen.has(key)) {
+          // This is a duplicate - mark it for deletion
+          duplicates.push(pick.id);
+          const original = seen.get(key);
+          console.log(`🔴 DUPLICATE FOUND: ${awayTeam} @ ${homeTeam} (Week ${week})`);
+          console.log(`   Original: ${original?.id} (${original?.created_at})`);
+          console.log(`   Duplicate: ${pick.id} (${pick.created_at})`);
+        } else {
+          // First occurrence - keep it
+          seen.set(key, pick);
+          console.log(`✅ Keeping: ${awayTeam} @ ${homeTeam} (Week ${week})`);
+        }
+      }
+
+      console.log(`\n📊 Found ${duplicates.length} duplicates to remove`);
+
+      // Delete duplicates (keeping the first occurrence by created_at)
+      let deletedCount = 0;
+      for (const duplicateId of duplicates) {
+        console.log(`🗑️ Deleting pick: ${duplicateId}`);
+        const { error } = await picksApi.delete(duplicateId);
+        if (!error) {
+          deletedCount++;
+          console.log(`✅ Deleted successfully`);
+        } else {
+          console.error(`❌ Failed to delete ${duplicateId}:`, error);
+        }
+      }
+
+      console.log(`\n✅ Removed ${deletedCount} duplicate picks`);
+      alert(`Successfully removed ${deletedCount} duplicate picks!`);
+
+      // Reload picks
+      await loadAllPicks();
+      
+      // Emit refresh events
+      globalEvents.emit('refreshStats');
+      globalEvents.emit('refreshPicks');
+      
+      setCleaningDuplicates(false);
+      return true;
+    }, {
+      operation: 'cleanDuplicates',
+      component: 'AdminPickManager'
+    });
+  };
+
   // Filter picks based on search and selected week
   const filteredPicks = picks.filter(pick => {
     const matchesWeek = !selectedWeek || getPickWeek(pick) === selectedWeek;
@@ -148,6 +301,14 @@ const AdminPickManager: React.FC = () => {
       <div className='flex items-center justify-between mb-6'>
         <h2 className='text-xl font-semibold text-white'>Pick Management</h2>
         <div className="flex space-x-2">
+          <button
+            onClick={handleCleanDuplicates}
+            disabled={cleaningDuplicates || loading}
+            className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50 rounded-md text-white text-sm font-medium"
+            title="Remove duplicate picks for the same game in the same week"
+          >
+            {cleaningDuplicates ? 'Cleaning...' : ' Clean Duplicates'}
+          </button>
           <button
             onClick={() => setViewMode('results')}
             className="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-sm font-medium"
@@ -249,9 +410,6 @@ const AdminPickManager: React.FC = () => {
                   <div className='text-gray-300 text-sm mb-2'>
                     <strong>Prediction:</strong> {pick.prediction}
                   </div>
-                  <div className='text-gray-300 text-sm mb-2'>
-                    <strong>Confidence:</strong> {pick.confidence}%
-                  </div>
                   <div className='text-gray-400 text-xs mb-2'>
                     <strong>Reasoning:</strong> {pick.reasoning.substring(0, 120)}
                     {pick.reasoning.length > 120 ? '...' : ''}
@@ -306,7 +464,8 @@ const AdminPickManager: React.FC = () => {
         <div className='text-sm text-gray-400'>
           <strong>Pick Management Features:</strong>
           <ul className='mt-2 space-y-1 text-xs'>
-            <li>• <strong>Revise:</strong> Edit all pick details including prediction, confidence, reasoning, and game info</li>
+            <li>• <strong>Clean Duplicates:</strong> Remove duplicate picks for the same game in the same week (keeps first occurrence)</li>
+            <li>• <strong>Revise:</strong> Edit all pick details including prediction, reasoning, and game info</li>
             <li>• <strong>Manage Results:</strong> Update win/loss/push status and track performance</li>
             <li>• <strong>Search & Filter:</strong> Find specific picks by team, week, or prediction text</li>
             <li>• <strong>Copy Data:</strong> Export pick information for external analysis</li>

@@ -288,12 +288,6 @@ const AgentStats: React.FC = () => {
                               <strong>Prediction:</strong> {pick.prediction}
                             </div>
                           )}
-                          
-                          {pick.confidence && (
-                            <div className="text-sm text-gray-400">
-                              <strong>Confidence:</strong> {pick.confidence}%
-                            </div>
-                          )}
                         </div>
                       ))
                     ) : (
