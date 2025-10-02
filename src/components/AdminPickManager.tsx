@@ -24,7 +24,7 @@ const AdminPickManager: React.FC = () => {
 
   // Group picks by week
   const getPicksByWeek = (allPicks: Pick[]) => {
-    const weekGroups: Record<NFLWeek, Pick[]> = {} as Record<NFLWeek, Pick[]>;
+    const weekGroups: Record<number, Pick[]> = {};
     allPicks.forEach(pick => {
       const week = getPickWeek(pick);
       if (!weekGroups[week]) {

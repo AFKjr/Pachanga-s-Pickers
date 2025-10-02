@@ -27,6 +27,8 @@ export type Database = {
             over_under?: number;
           };
           prediction: string;
+          spread_prediction?: string;
+          ou_prediction?: string;
           confidence: ConfidenceLevel;
           reasoning: string;
           result?: 'win' | 'loss' | 'push' | 'pending';
@@ -45,6 +47,8 @@ export type Database = {
             over_under?: number;
           };
           prediction: string;
+          spread_prediction?: string;
+          ou_prediction?: string;
           confidence: ConfidenceLevel;
           reasoning: string;
           result?: 'win' | 'loss' | 'push' | 'pending';
@@ -63,6 +67,8 @@ export type Database = {
             over_under?: number;
           };
           prediction?: string;
+          spread_prediction?: string;
+          ou_prediction?: string;
           confidence?: ConfidenceLevel;
           reasoning?: string;
           result?: 'win' | 'loss' | 'push' | 'pending';

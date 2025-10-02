@@ -39,7 +39,7 @@ const AdminPickResults: React.FC = () => {
 
   // Group picks by week
   const getPicksByWeek = (picks: Pick[]) => {
-    const weekGroups: Record<NFLWeek, Pick[]> = {} as Record<NFLWeek, Pick[]>;
+    const weekGroups: Record<number, Pick[]> = {};
 
     picks.forEach(pick => {
       const week = getPickWeek(pick);
@@ -232,7 +232,7 @@ const AdminPickResults: React.FC = () => {
     queueUpdateResult(pickId, result);
   };
 
-  const updatePickScores = (pickId: string, awayScore: number | undefined, homeScore: number | undefined) => {
+  const updatePickScores = (pickId: string, awayScore: number | null | undefined, homeScore: number | null | undefined) => {
     // Find the pick and update its scores
     const pick = allPicks.find(p => p.id === pickId);
     if (!pick) return;
@@ -242,8 +242,8 @@ const AdminPickResults: React.FC = () => {
       ...pick,
       game_info: {
         ...pick.game_info,
-        away_score: awayScore,
-        home_score: homeScore
+        away_score: awayScore ?? null,
+        home_score: homeScore ?? null
       }
     };
 

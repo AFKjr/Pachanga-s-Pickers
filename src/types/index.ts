@@ -1,34 +1,35 @@
 // Database Types
 export interface Pick {
   id: string;
-  game_info: GameInfo;
-  prediction: string; // Moneyline prediction
-  spread_prediction?: string; // NEW: Spread prediction text
-  ou_prediction?: string; // NEW: Over/Under prediction text
-  confidence: ConfidenceLevel;
+  prediction: string;
+  spread_prediction?: string;
+  ou_prediction?: string;
+  confidence: number;
   reasoning: string;
-  result?: 'win' | 'loss' | 'push' | 'pending';
+  result: 'win' | 'loss' | 'push' | 'pending';
   created_at: string;
-  updated_at?: string;
+  updated_at: string;
+  week: number;
+  schedule_id: string | null;
+  game_info: GameInfo;
+  // UI/Display fields (optional)
   is_pinned?: boolean;
   user_id?: string;
   author_username?: string;
   upvotes?: number;
   downvotes?: number;
   comments_count?: number;
-  week?: NFLWeek;
 }
 
 export interface GameInfo {
+  league: string;
   home_team: string;
   away_team: string;
-  league: 'NFL' | 'NBA' | 'MLB' | 'NHL' | 'NCAA';
   game_date: string;
   spread?: number;
   over_under?: number;
-  // Actual game scores (for ATS/O/U calculations)
-  home_score?: number;
-  away_score?: number;
+  home_score?: number | null;
+  away_score?: number | null;
 }
 
 // Strict Union Types

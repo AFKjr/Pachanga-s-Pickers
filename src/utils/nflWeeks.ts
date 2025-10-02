@@ -144,7 +144,7 @@ export const getNFLWeekFromDate = (gameDate: string | Date): NFLWeek | null => {
  * Enhanced week detection for picks
  * Prioritizes: stored week > date mapping > fallback calculation
  */
-export const getPickWeek = (pick: { week?: NFLWeek; game_info: { game_date: string; away_team: string; home_team: string } }): NFLWeek => {
+export const getPickWeek = (pick: { week?: number; game_info: { game_date: string; away_team: string; home_team: string } }): number => {
   const gameTeams = `${pick.game_info.away_team} @ ${pick.game_info.home_team}`;
   
   // 1. Use stored week if available (highest priority)

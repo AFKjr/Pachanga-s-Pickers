@@ -82,7 +82,7 @@ export const calculateAllResultsFromScores = (pick: Pick): CalculatedResults => 
   const awayScore = pick.game_info.away_score;
   
   // If no scores provided, everything is pending
-  if (homeScore === undefined || awayScore === undefined) {
+  if (homeScore === undefined || homeScore === null || awayScore === undefined || awayScore === null) {
     return {
       moneyline: 'pending',
       ats: 'pending',
@@ -485,7 +485,7 @@ export const calculateWeeklyATSRecords = (
   getScoreFunction?: (pick: Pick) => GameScore | null
 ): Array<{ week: NFLWeek; record: ComprehensiveATSRecord }> => {
   
-  const weeklyPicks: Record<NFLWeek, Pick[]> = {} as Record<NFLWeek, Pick[]>;
+  const weeklyPicks: Record<number, Pick[]> = {};
   
   picks.forEach(pick => {
     const week = getPickWeek(pick);
