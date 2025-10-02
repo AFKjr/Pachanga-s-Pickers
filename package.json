@@ -10,14 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@langchain/community": "^0.3.55",
-    "@langchain/openai": "^0.6.11",
     "@supabase/supabase-js": "^2.39.0",
-    "axios": "^1.12.2",
-    "dotenv": "^17.2.2",
-    "formdata-polyfill": "^4.0.10",
-    "langchain": "^0.3.33",
-    "node-fetch": "^3.3.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0"
@@ -34,7 +27,6 @@
     "eslint-plugin-react-refresh": "^0.4.5",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.3.6",
-    "ts-node": "^10.9.2",
     "typescript": "^5.2.2",
     "vite": "^5.0.8"
   }
