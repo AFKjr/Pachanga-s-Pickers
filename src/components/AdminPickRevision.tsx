@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { picksApi } from '../lib/api';
 import { globalEvents } from '../lib/events';
-import { Pick, GameInfo, ConfidenceLevel, NFLWeek } from '../types/index';
+import { Pick } from '../types/index';
 import { useSecureConfirmation } from './SecureConfirmationModal';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { validatePickData } from '../utils/inputValidation';
