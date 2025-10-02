@@ -102,7 +102,8 @@ export const usePredictionManager = (): PredictionManagerResult => {
           confidence: validation.sanitizedData.confidence as any, // Type assertion for ConfidenceLevel
           reasoning: validation.sanitizedData.reasoning,
           result: 'pending' as const,
-          week: validation.sanitizedData.week as any // Type assertion for NFLWeek
+          week: validation.sanitizedData.week as any, // Type assertion for NFLWeek
+          schedule_id: null // No schedule_id for AI-generated picks
         };
 
         const { error } = await picksApi.create(sanitizedPickData);
