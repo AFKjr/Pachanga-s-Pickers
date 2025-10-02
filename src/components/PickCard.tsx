@@ -51,6 +51,25 @@ const PickCard = ({ pick, showComments = true, onCommentClick }: PickCardProps) 
           {/* Prediction */}
           <div className="mb-3">
             <p className="text-gray-300 mb-2">{pick.prediction}</p>
+            
+            {/* ATS and O/U Predictions */}
+            {(pick.spread_prediction || pick.ou_prediction) && (
+              <div className="flex flex-wrap gap-3 mb-2">
+                {pick.spread_prediction && (
+                  <div className="bg-gray-700 px-3 py-1.5 rounded-md">
+                    <span className="text-xs text-gray-400 mr-1.5">ATS:</span>
+                    <span className="text-sm text-white font-medium">{pick.spread_prediction}</span>
+                  </div>
+                )}
+                {pick.ou_prediction && (
+                  <div className="bg-gray-700 px-3 py-1.5 rounded-md">
+                    <span className="text-xs text-gray-400 mr-1.5">O/U:</span>
+                    <span className="text-sm text-white font-medium">{pick.ou_prediction}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            
             <div className="flex items-center space-x-4">
               {pick.result && (
                 <span className={`text-sm ${getResultColor(pick.result)}`}>
