@@ -101,10 +101,10 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
       prediction: validation.sanitizedData.prediction,
       spread_prediction: formData.spreadPrediction || undefined,
       ou_prediction: formData.ouPrediction || undefined,
-      confidence: validation.sanitizedData.confidence as ConfidenceLevel,
+      confidence: validation.sanitizedData.confidence,
       reasoning: validation.sanitizedData.reasoning,
       result: formData.result as 'win' | 'loss' | 'push' | 'pending',
-      week: validation.sanitizedData.week as NFLWeek,
+      week: validation.sanitizedData.week,
       is_pinned: formData.isPinned,
       game_info: {
         home_team: validation.sanitizedData.homeTeam,
@@ -112,8 +112,10 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
         league: pick.game_info.league,
         game_date: validation.sanitizedData.gameDate,
         spread: spreadValue,
-        over_under: ouValue
-      } as GameInfo
+        over_under: ouValue,
+        home_score: pick.game_info.home_score,
+        away_score: pick.game_info.away_score
+      }
     };
 
     console.log('Saving pick revision:', updates);
