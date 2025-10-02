@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { picksApi } from '../lib/api';
 import { Pick } from '../types';
 import { calculateAllResultsFromScores } from '../utils/atsCalculator';
@@ -13,6 +13,28 @@ interface ParsedScore {
   matched: boolean;
 }
 
+// Custom hook to throttle button clicks
+const useThrottle = (delay: number = 3000) => {
+  const [isThrottled, setIsThrottled] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const throttle = useCallback((callback: () => void) => {
+    if (isThrottled) {
+      alert('⏳ Please wait a moment before submitting again.');
+      return;
+    }
+
+    setIsThrottled(true);
+    callback();
+
+    timeoutRef.current = setTimeout(() => {
+      setIsThrottled(false);
+    }, delay);
+  }, [isThrottled, delay]);
+
+  return { throttle, isThrottled };
+};
+
 const AdminBatchScoreEntry: React.FC = () => {
   const [selectedWeek, setSelectedWeek] = useState<number>(5);
   const [picks, setPicks] = useState<Pick[]>([]);
@@ -20,6 +42,9 @@ const AdminBatchScoreEntry: React.FC = () => {
   const [pastedText, setPastedText] = useState('');
   const [parsedScores, setParsedScores] = useState<ParsedScore[]>([]);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  
+  // Throttle hook to prevent rapid submissions
+  const { throttle, isThrottled } = useThrottle(3000); // 3 second cooldown
 
   // Helper function to validate scores
   const validateScore = (scoreStr: string): number => {
@@ -311,6 +336,11 @@ const AdminBatchScoreEntry: React.FC = () => {
     }
   };
 
+  // Handler to throttle save button clicks
+  const handleSaveClick = () => {
+    throttle(saveAllScores);
+  };
+
   return (
     <div className="bg-gray-800 rounded-lg p-6 mb-6">
       <h2 className="text-2xl font-bold text-white mb-4">📊 Batch Score Entry</h2>
@@ -406,11 +436,13 @@ const AdminBatchScoreEntry: React.FC = () => {
 
           <div className="mt-6 flex items-center gap-4">
             <button
-              onClick={saveAllScores}
-              disabled={saveStatus === 'saving'}
+              onClick={handleSaveClick}
+              disabled={saveStatus === 'saving' || isThrottled}
               className="bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-8 py-3 rounded-md font-bold text-lg transition-colors"
             >
-              {saveStatus === 'saving' ? '⏳ Saving...' : '💾 Save All Scores'}
+              {saveStatus === 'saving' ? '⏳ Saving...' : 
+               isThrottled ? '⏳ Cooldown...' :
+               '💾 Save All Scores'}
             </button>
 
             {saveStatus === 'success' && (
