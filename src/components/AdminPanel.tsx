@@ -5,6 +5,7 @@ import RelevanceAIAgentEmbed from './RelevanceAIAgentEmbed';
 import AdminDataEntry from './AdminDataEntry';
 import AdminPickResults from './AdminPickResults';
 import AdminPickManager from './AdminPickManager';
+import AdminBatchScoreEntry from './AdminBatchScoreEntry';
 
 const AdminPanel: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -128,6 +129,9 @@ const AdminPanel: React.FC = () => {
 
           {/* Admin Data Entry */}
           <AdminDataEntry />
+
+          {/* Batch Score Entry */}
+          <AdminBatchScoreEntry />
 
           <div className='mt-8 bg-blue-900 border border-blue-700 text-blue-200 px-4 py-3 rounded'>
             <h4 className='font-semibold mb-2'>Pick Generation Workflow:</h4>
