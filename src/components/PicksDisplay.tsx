@@ -152,6 +152,24 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
                 <div className="text-green-400 font-medium text-sm mb-1">
                   {pick.prediction}
                 </div>
+                
+                {/* ATS and O/U Predictions */}
+                {(pick.spread_prediction || pick.ou_prediction) && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {pick.spread_prediction && (
+                      <div className="bg-gray-600 px-2 py-1 rounded text-xs">
+                        <span className="text-gray-300 mr-1">ATS:</span>
+                        <span className="text-white font-medium">{pick.spread_prediction}</span>
+                      </div>
+                    )}
+                    {pick.ou_prediction && (
+                      <div className="bg-gray-600 px-2 py-1 rounded text-xs">
+                        <span className="text-gray-300 mr-1">O/U:</span>
+                        <span className="text-white font-medium">{pick.ou_prediction}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Key reasoning (shortened and cleaned) */}
