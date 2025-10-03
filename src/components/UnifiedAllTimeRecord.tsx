@@ -68,6 +68,7 @@ const UnifiedAllTimeRecord: React.FC = () => {
   };
 
   // Calculate ATS and O/U stats using the ATS calculator
+  // Now uses actual scores from database by default
   const atsRecord = ATSCalculator.calculateComprehensiveATSRecord(picks);
 
   if (loading) {
