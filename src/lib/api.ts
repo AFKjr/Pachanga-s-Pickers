@@ -387,9 +387,9 @@ export const publicStatsApi = {
       // Only count non-pending results (admin has manually updated)
       const { data: picks, error } = await supabase
         .from('picks')
-        .select('game_result')
-        .eq('nfl_week', currentWeek)
-        .neq('game_result', 'pending');
+        .select('result')
+        .eq('week', currentWeek)
+        .neq('result', 'pending');
 
       if (error) {
         const appError = handleSupabaseError(error, {
@@ -400,9 +400,9 @@ export const publicStatsApi = {
       }
 
       // Calculate aggregate stats (no individual pick details exposed)
-      const wins = picks?.filter(p => p.game_result === 'win').length || 0;
-      const losses = picks?.filter(p => p.game_result === 'loss').length || 0;
-      const pushes = picks?.filter(p => p.game_result === 'push').length || 0;
+      const wins = picks?.filter(p => p.result === 'win').length || 0;
+      const losses = picks?.filter(p => p.result === 'loss').length || 0;
+      const pushes = picks?.filter(p => p.result === 'push').length || 0;
       const total = wins + losses + pushes;
       const winRate = total > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
 
