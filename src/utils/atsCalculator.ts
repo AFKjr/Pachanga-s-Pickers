@@ -240,20 +240,32 @@ export const calculateOverUnderResult = (
     };
   }
 
-  const predictionLower = pick.prediction.toLowerCase();
   let ouType: 'over' | 'under' | 'unknown' = 'unknown';
   
-  // Determine if prediction is for over or under
-  if (predictionLower.includes('over') || 
-      predictionLower.includes('high scoring') ||
-      predictionLower.includes('shootout') ||
-      predictionLower.includes('points')) {
-    ouType = 'over';
-  } else if (predictionLower.includes('under') || 
-             predictionLower.includes('low scoring') ||
-             predictionLower.includes('defensive') ||
-             predictionLower.includes('ugly')) {
-    ouType = 'under';
+  // PRIORITY 1: Check the dedicated ou_prediction field first
+  if (pick.ou_prediction) {
+    const ouPredictionLower = pick.ou_prediction.toLowerCase();
+    if (ouPredictionLower.includes('over')) {
+      ouType = 'over';
+    } else if (ouPredictionLower.includes('under')) {
+      ouType = 'under';
+    }
+  }
+  
+  // PRIORITY 2: Fall back to checking main prediction text if ou_prediction not set
+  if (ouType === 'unknown') {
+    const predictionLower = pick.prediction.toLowerCase();
+    if (predictionLower.includes('over') || 
+        predictionLower.includes('high scoring') ||
+        predictionLower.includes('shootout') ||
+        predictionLower.includes('points')) {
+      ouType = 'over';
+    } else if (predictionLower.includes('under') || 
+               predictionLower.includes('low scoring') ||
+               predictionLower.includes('defensive') ||
+               predictionLower.includes('ugly')) {
+      ouType = 'under';
+    }
   }
 
   if (ouType === 'unknown') {
