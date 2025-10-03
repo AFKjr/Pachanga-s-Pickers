@@ -7,6 +7,8 @@ export interface Pick {
   confidence: number;
   reasoning: string;
   result: 'win' | 'loss' | 'push' | 'pending';
+  ats_result?: 'win' | 'loss' | 'push' | 'pending';
+  ou_result?: 'win' | 'loss' | 'push' | 'pending';
   created_at: string;
   updated_at: string;
   week: number;

@@ -106,8 +106,18 @@ const AdminPickResults: React.FC = () => {
     const pick = allPicks.find(p => p.id === pickId);
     if (!pick) return;
 
+    // If scores exist, calculate ATS and O/U results as well
+    const updatePayload: Partial<Pick> = { result };
+    
+    if (pick.game_info.home_score !== null && pick.game_info.home_score !== undefined &&
+        pick.game_info.away_score !== null && pick.game_info.away_score !== undefined) {
+      const results = calculateAllResultsFromScores(pick);
+      updatePayload.ats_result = results.ats;
+      updatePayload.ou_result = results.overUnder;
+    }
+
     // Use optimistic update
-    optimisticUpdate(pickId, { result }, pick);
+    optimisticUpdate(pickId, updatePayload, pick);
   };
 
   const queueDeletePick = (pickId: string) => {
@@ -242,13 +252,17 @@ const AdminPickResults: React.FC = () => {
     // Calculate results if both scores are provided
     if (awayScore !== undefined && homeScore !== undefined) {
       const results = calculateAllResultsFromScores(updatedPick);
-      updatedPick.result = results.moneyline; // Use moneyline result as primary
+      updatedPick.result = results.moneyline; // Moneyline result
+      updatedPick.ats_result = results.ats; // ATS result
+      updatedPick.ou_result = results.overUnder; // O/U result
     }
 
-    // Queue the update - MUST include game_info with scores
+    // Queue the update - MUST include game_info with scores AND all result types
     const updatePayload = { 
       game_info: updatedPick.game_info, 
-      result: updatedPick.result 
+      result: updatedPick.result,
+      ats_result: updatedPick.ats_result,
+      ou_result: updatedPick.ou_result
     };
     optimisticUpdate(pickId, updatePayload, pick);
   };
