@@ -56,7 +56,13 @@ const ATSStatsComponent: React.FC = () => {
 
   const overallRecord = ATSCalculator.calculateComprehensiveATSRecord(filteredPicks);
   const weeklyRecords = ATSCalculator.calculateWeeklyATSRecords(picks);
-  const teamRecords = ATSCalculator.calculateTeamATSRecords(picks);
+  const teamRecordsObj = ATSCalculator.calculateTeamATSRecords(picks);
+  
+  // Convert team records object to array for rendering
+  const teamRecords = Object.entries(teamRecordsObj).map(([team, record]) => ({
+    team,
+    record
+  })).sort((a, b) => b.record.moneyline.winRate - a.record.moneyline.winRate);
 
   if (loading) {
     return (
