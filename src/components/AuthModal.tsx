@@ -24,7 +24,7 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [isRateLimited, setIsRateLimited] = useState(false);
   const lastAttemptTime = useRef<number>(0);
-  const successTimeoutRef = useRef<number>();
+  const successTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   const { signUp, signIn, resetPassword } = useAuth();
 
