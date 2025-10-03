@@ -83,7 +83,7 @@ const DashboardPage: React.FC = () => {
             to="/admin/generate"
             className="bg-blue-600 hover:bg-blue-700 text-white p-6 rounded-lg transition-colors text-center"
           >
-            <div className="text-3xl mb-2">🤖</div>
+            <div className="text-3xl mb-2"></div>
             <div className="font-semibold">Generate Picks</div>
             <div className="text-sm opacity-75 mt-1">Use AI to create predictions</div>
           </Link>
@@ -92,7 +92,7 @@ const DashboardPage: React.FC = () => {
             to="/admin/manage"
             className="bg-green-600 hover:bg-green-700 text-white p-6 rounded-lg transition-colors text-center"
           >
-            <div className="text-3xl mb-2">📝</div>
+            <div className="text-3xl mb-2"></div>
             <div className="font-semibold">Manage Picks</div>
             <div className="text-sm opacity-75 mt-1">Edit existing predictions</div>
           </Link>
@@ -101,7 +101,7 @@ const DashboardPage: React.FC = () => {
             to="/admin/results"
             className="bg-purple-600 hover:bg-purple-700 text-white p-6 rounded-lg transition-colors text-center"
           >
-            <div className="text-3xl mb-2">🎯</div>
+            <div className="text-3xl mb-2"></div>
             <div className="font-semibold">Update Results</div>
             <div className="text-sm opacity-75 mt-1">Enter game scores</div>
           </Link>
@@ -141,7 +141,7 @@ const DashboardPage: React.FC = () => {
 
       {/* Tips */}
       <div className="bg-blue-900 border border-blue-700 text-blue-200 px-4 py-3 rounded">
-        <h4 className="font-semibold mb-2">💡 Dashboard Tips:</h4>
+        <h4 className="font-semibold mb-2">Dashboard Tips:</h4>
         <ul className="list-disc list-inside space-y-1 text-sm">
           <li>Use the dashboard to get a quick overview of your picking performance</li>
           <li>Navigate to specific pages using the quick actions above</li>

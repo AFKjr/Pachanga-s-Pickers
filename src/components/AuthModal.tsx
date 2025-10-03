@@ -425,7 +425,7 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
         {isRateLimited && (
           <div className="mb-4 bg-yellow-900/20 border border-yellow-700 rounded p-3">
             <p className="text-yellow-300 text-sm">
-              ⚠️ Too many attempts. Please wait before trying again.
+              Too many attempts. Please wait before trying again.
             </p>
           </div>
         )}
@@ -613,7 +613,7 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
         {/* OWASP Security Notice */}
         {isSignUp && (
           <div className="mt-4 text-xs text-gray-400 border-t border-gray-700 pt-4">
-            <p className="mb-2">🔒 <strong>Security Notice:</strong></p>
+            <p className="mb-2"><strong>Security Notice:</strong></p>
             <ul className="list-disc list-inside space-y-1 text-gray-500">
               <li>Passwords are encrypted and securely stored</li>
               <li>We'll never share your data with third parties</li>

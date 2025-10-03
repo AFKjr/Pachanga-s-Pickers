@@ -118,15 +118,12 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
       }
     };
 
-    console.log('Saving pick revision:', updates);
-
     const { data, error } = await picksApi.update(pick.id, updates);
     if (error) throw error;
 
     // Emit events to refresh other components
     globalEvents.emit('refreshStats');
     globalEvents.emit('refreshPicks');
-    console.log('📡 Emitted refresh events after pick revision');
 
     return data;
   };
@@ -156,7 +153,6 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
       });
 
       if (result) {
-        console.log('Pick revision saved successfully');
       }
       setSaving(false);
     });

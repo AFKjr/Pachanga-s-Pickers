@@ -34,8 +34,6 @@ const parseLegacyText = (sanitizedText: string, selectedWeek?: NFLWeek): ParsedP
   let isCollectingFactors = false;
   let hasWinProbability = false; // Track if we found win probability (most reliable)
 
-  console.log('Starting legacy text parsing with', lines.length, 'lines');
-  
   // Add tracking for duplicates
   const savedGames: string[] = [];
 
@@ -46,7 +44,6 @@ const parseLegacyText = (sanitizedText: string, selectedWeek?: NFLWeek): ParsedP
     const parsedWeek = parseWeekFromHeader(line);
     if (parsedWeek && parsedWeek >= 1 && parsedWeek <= 18) {
       currentWeek = parsedWeek as NFLWeek;
-      console.log('Parsed week from AI output:', currentWeek);
     }
 
     // Look for date indicators (should be processed before game lines)
@@ -57,26 +54,19 @@ const parseLegacyText = (sanitizedText: string, selectedWeek?: NFLWeek): ParsedP
         const parsedDate = new Date(parsedDateStr);
         if (!isNaN(parsedDate.getTime())) {
           currentGameDate = parsedDate;
-          console.log('Parsed date from line:', line, '->', currentGameDate.toISOString().split('T')[0]);
         }
       }
     }
 
     // Look for game lines that contain "@" (like "Miami Dolphins @ Buffalo Bills")
     if (isGameLine(line)) {
-      console.log('Found game line:', line);
 
       // Save previous game if we have one
       if (currentGame && currentPrediction) {
         const gameId = `${awayTeam} @ ${homeTeam}`;
         
-        console.log('SAVE ATTEMPT #1 (next game found):', gameId);
-        console.log('Already saved games:', savedGames);
-        
         if (savedGames.includes(gameId)) {
-          console.log('DUPLICATE SAVE DETECTED! Skipping:', gameId);
         } else {
-          console.log('Saving new game:', gameId);
           savedGames.push(gameId);
           
           predictions.push({
@@ -97,7 +87,6 @@ const parseLegacyText = (sanitizedText: string, selectedWeek?: NFLWeek): ParsedP
       if (teams) {
         awayTeam = teams.awayTeam;
         homeTeam = teams.homeTeam;
-        console.log('Parsed teams - Away:', awayTeam, 'Home:', homeTeam);
       }
       currentPrediction = '';
       currentConfidence = 50; // Reset to default 50%
@@ -111,8 +100,6 @@ const parseLegacyText = (sanitizedText: string, selectedWeek?: NFLWeek): ParsedP
     if (winProb) {
       currentPrediction = winProb.prediction;
       hasWinProbability = true;
-      console.log('Found WIN PROBABILITY (most reliable):', winProb.prediction);
-      console.log('Winner:', winProb.winner, 'Probability:', winProb.probability + '%');
     }
     
     // Look for other predictions only if we don't have win probability yet
@@ -120,7 +107,6 @@ const parseLegacyText = (sanitizedText: string, selectedWeek?: NFLWeek): ParsedP
       const prediction = extractPrediction(line);
       if (prediction) {
         currentPrediction = prediction;
-        console.log('Found prediction:', prediction);
       }
     }
 
@@ -130,20 +116,17 @@ const parseLegacyText = (sanitizedText: string, selectedWeek?: NFLWeek): ParsedP
       // Ensure confidence is a valid ConfidenceLevel (round to nearest 10)
       const validConfidence = Math.round(confidence / 10) * 10;
       currentConfidence = Math.max(0, Math.min(100, validConfidence)) as ConfidenceLevel;
-      console.log('Found confidence:', currentConfidence, 'from:', line);
     }
 
     // Look for key factors header
     if (isKeyFactorsHeader(line)) {
       isCollectingFactors = true;
       currentReasoning = '';
-      console.log('Starting to collect key factors');
     }
 
     // Stop collecting factors if we hit another game or prediction section
     if (isCollectingFactors && (isGameLine(line) || shouldStopFactorCollection(line))) {
       isCollectingFactors = false;
-      console.log('Stopped collecting factors');
     }
 
     // Collect factor lines
@@ -155,7 +138,6 @@ const parseLegacyText = (sanitizedText: string, selectedWeek?: NFLWeek): ParsedP
         } else {
           currentReasoning = factorText;
         }
-        console.log('Added factor:', factorText);
       }
     }
   }
@@ -164,13 +146,8 @@ const parseLegacyText = (sanitizedText: string, selectedWeek?: NFLWeek): ParsedP
   if (currentGame && currentPrediction && homeTeam && awayTeam) {
     const gameId = `${awayTeam} @ ${homeTeam}`;
     
-    console.log('SAVE ATTEMPT #2 (end of text):', gameId);
-    console.log('Already saved games:', savedGames);
-    
     if (savedGames.includes(gameId)) {
-      console.log('DUPLICATE SAVE DETECTED! Skipping:', gameId);
     } else {
-      console.log('Saving last game:', gameId);
       savedGames.push(gameId);
       
       predictions.push({
@@ -185,7 +162,6 @@ const parseLegacyText = (sanitizedText: string, selectedWeek?: NFLWeek): ParsedP
     }
   }
 
-  console.log('Legacy parsing completed:', predictions.length, 'predictions');
   return predictions;
 };
 
@@ -204,16 +180,12 @@ export const useAgentTextParser = (): AgentTextParserResult => {
     const sanitizedText = validation.sanitized;
 
     // Try JSON parsing first
-    console.log('Attempting JSON parsing...');
     const jsonResult = extractPredictionsFromJson(sanitizedText);
     
     if (jsonResult.isValid && jsonResult.data) {
-      console.log('Successfully parsed JSON data:', jsonResult.data);
       const predictions = convertJsonToLegacyFormat(jsonResult.data, selectedWeek);
-      console.log('Converted to legacy format:', predictions);
       return predictions;
     } else {
-      console.log('JSON parsing failed, falling back to legacy parser:', jsonResult.error);
       // Fall back to legacy text parsing
       return parseLegacyText(sanitizedText, selectedWeek);
     }

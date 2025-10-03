@@ -24,7 +24,6 @@ const UnifiedAllTimeRecord: React.FC = () => {
     loadAllStats();
     
     const handleRefresh = () => {
-      console.log('Received refreshStats event, reloading unified stats...');
       loadAllStats();
     };
 

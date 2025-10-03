@@ -170,7 +170,7 @@ const ATSStatsComponent: React.FC = () => {
 
             {/* Over/Under Record */}
             <div className="bg-gray-700 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">🎲 Over/Under</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">Over/Under</h3>
               <div className="text-center">
                 <div className="text-3xl font-bold text-purple-400 mb-2">
                   {overallRecord.overUnder.winRate.toFixed(1)}%
@@ -187,7 +187,7 @@ const ATSStatsComponent: React.FC = () => {
 
             {/* Units Won/Lost */}
             <div className="bg-gray-700 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">💸 Units P&L</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">Units P&L</h3>
               <div className="text-center">
                 <div className={`text-3xl font-bold mb-2 ${overallRecord.roi.units >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {overallRecord.roi.units > 0 ? '+' : ''}{overallRecord.roi.units.toFixed(1)}

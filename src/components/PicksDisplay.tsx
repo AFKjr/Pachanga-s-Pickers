@@ -24,7 +24,6 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
     
     // Listen for global refresh events
     const handleRefreshPicks = () => {
-      console.log('PicksDisplay: Refreshing picks due to global event');
       loadPicks();
     };
 
@@ -90,15 +89,6 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
     : picks;
 
   const displayPicks = filteredPicks.slice(0, maxPicks);
-
-  console.log('Displaying picks:', displayPicks.map(p => ({ 
-    teams: `${p.game_info.away_team} @ ${p.game_info.home_team}`,
-    prediction: p.prediction,
-    result: p.result,
-    scores: `${p.game_info.away_score ?? 'N/A'} - ${p.game_info.home_score ?? 'N/A'}`,
-    spread_pred: p.spread_prediction,
-    ou_pred: p.ou_prediction
-  })));
 
   if (loading) {
     return (

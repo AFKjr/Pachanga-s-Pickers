@@ -32,12 +32,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      console.log('Getting initial session...');
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('Session result:', session);
       setUser(session?.user ?? null);
       setLoading(false);
-      console.log('Auth loading complete');
     };
 
     getInitialSession();

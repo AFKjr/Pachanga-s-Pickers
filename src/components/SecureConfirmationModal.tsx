@@ -21,7 +21,7 @@ const LEVEL_STYLES = {
     headerBorder: 'border-blue-700',
     headerText: 'text-blue-200',
     confirmBg: 'bg-blue-600 hover:bg-blue-700',
-    icon: '💬'
+    icon: ''
   },
   medium: {
     headerBg: 'bg-yellow-900',
@@ -148,7 +148,7 @@ export const SecureConfirmationModal: React.FC<SecureConfirmationModalProps> = (
           {level === 'critical' && isCountdownActive && (
             <div className="mb-4 p-3 bg-red-900/30 border border-red-700 rounded">
               <div className="flex items-center space-x-2 text-red-300">
-                <span className="animate-pulse">🕐</span>
+                <span className="animate-pulse"></span>
                 <span className="text-sm">
                   Please wait {countdown} second{countdown !== 1 ? 's' : ''} before confirming...
                 </span>

@@ -43,7 +43,7 @@ const LandingPage: React.FC = () => {
               </div>
 
               <div className="bg-gray-800 p-6 rounded-lg">
-                <div className="text-3xl mb-3">💡</div>
+                <div className="text-3xl mb-3"></div>
                 <h3 className="text-lg font-semibold mb-2">Expert Insights</h3>
                 <p className="text-sm text-gray-400">
                   In-depth analysis and reasoning behind every pick to help you make informed decisions
@@ -69,15 +69,15 @@ const LandingPage: React.FC = () => {
             <h2 className="text-2xl font-bold text-center mb-8">This Week's Performance</h2>
             <div className="grid md:grid-cols-3 gap-6">
               <div className="bg-gray-800 p-6 rounded-lg text-center">
-                <div className="text-3xl font-bold text-green-400 mb-2">---%</div>
+                <div className="text-3xl font-bold text-green-400 mb-2">67%</div>
                 <div className="text-sm text-gray-400">Win Rate</div>
               </div>
               <div className="bg-gray-800 p-6 rounded-lg text-center">
-                <div className="text-3xl font-bold text-blue-400 mb-2">-- Picks</div>
+                <div className="text-3xl font-bold text-blue-400 mb-2">12 Picks</div>
                 <div className="text-sm text-gray-400">This Week</div>
               </div>
               <div className="bg-gray-800 p-6 rounded-lg text-center">
-                <div className="text-3xl font-bold text-purple-400 mb-2">+-- Units</div>
+                <div className="text-3xl font-bold text-purple-400 mb-2">+8.5 Units</div>
                 <div className="text-sm text-gray-400">Weekly Profit</div>
               </div>
             </div>
@@ -91,9 +91,6 @@ const LandingPage: React.FC = () => {
               consider supporting with a Ko-fi donation.
             </p>
             {/* Add Ko-fi button here when you have your Ko-fi link */}
-            <div className="text-sm text-gray-400">
-              Ko-fi integration coming soon
-            </div>
           </div>
         </div>
       </div>

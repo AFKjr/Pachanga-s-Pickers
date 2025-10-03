@@ -26,7 +26,6 @@ export const usePredictionManager = (): PredictionManagerResult => {
         });
 
         if (duplicateExists) {
-          console.log(`Skipping duplicate prediction for ${pred.awayTeam} vs ${pred.homeTeam} (Week ${pred.week})`);
           duplicateCount++;
           continue;
         }
@@ -53,8 +52,6 @@ export const usePredictionManager = (): PredictionManagerResult => {
         else {
           winner = pred.homeTeam;
         }
-
-        console.log(`Saving prediction: ${pred.awayTeam} vs ${pred.homeTeam} - ${winner} to win (Week ${pred.week})`);
 
         const pickData = {
           game_info: {
@@ -115,8 +112,6 @@ export const usePredictionManager = (): PredictionManagerResult => {
           savedCount++;
         }
       }
-
-      console.log(`Saved ${savedCount} predictions, skipped ${duplicateCount} duplicates`);
 
       const result: PredictionSaveResult = { savedCount, duplicateCount };
 

@@ -57,7 +57,6 @@ const AdminPickResults: React.FC = () => {
     
     // Listen for global refresh events from pick revisions
     const handleRefreshPicks = () => {
-      console.log('AdminPickResults: Refreshing picks due to global event');
       loadAllPicks();
     };
 
@@ -109,8 +108,6 @@ const AdminPickResults: React.FC = () => {
 
     // Use optimistic update
     optimisticUpdate(pickId, { result }, pick);
-
-    console.log(`Queued result update: ${pick.game_info.away_team} @ ${pick.game_info.home_team} -> ${result}`);
   };
 
   const queueDeletePick = (pickId: string) => {
@@ -119,8 +116,6 @@ const AdminPickResults: React.FC = () => {
 
     // Use optimistic delete
     optimisticDelete(pickId, pick);
-
-    console.log(`Queued deletion: ${pick.game_info.away_team} @ ${pick.game_info.home_team}`);
   };
 
   const discardAllChanges = () => {
@@ -134,7 +129,6 @@ const AdminPickResults: React.FC = () => {
     }, () => {
       rollbackAllOperations();
       clearError();
-      console.log('Discarded all pending changes');
     });
   };
 
@@ -165,7 +159,6 @@ const AdminPickResults: React.FC = () => {
             throw atomicResult.error || new Error('All operations failed');
           }
         } else {
-          console.log(`All ${operations.length} operations completed successfully`);
           alert(`Successfully saved all ${operations.length} changes!`);
         }
 
@@ -207,7 +200,6 @@ const AdminPickResults: React.FC = () => {
         setAvailableWeeks([]);
         setSelectedWeek(null);
 
-        console.log(`Deleted ${allPicksData?.length || 0} picks`);
         setLoading(false);
         return true;
       }, {
@@ -258,7 +250,6 @@ const AdminPickResults: React.FC = () => {
       game_info: updatedPick.game_info, 
       result: updatedPick.result 
     };
-    console.log(`Queuing score update for ${pickId}:`, updatePayload);
     optimisticUpdate(pickId, updatePayload, pick);
   };
 

@@ -82,7 +82,6 @@ const AdminPickManager: React.FC = () => {
     // Emit global events to refresh other components
     globalEvents.emit('refreshStats');
     globalEvents.emit('refreshPicks');
-    console.log('Pick revision completed and refresh events emitted:', updatedPick);
   };
 
   const startRevision = (pick: Pick) => {
@@ -172,8 +171,6 @@ const AdminPickManager: React.FC = () => {
       const { data: allPicks } = await picksApi.getAll();
       if (!allPicks) return;
 
-      console.log(`🔍 Analyzing ${allPicks.length} total picks for duplicates...`);
-
       // Sort by created_at to keep the oldest (first) occurrence
       const sortedPicks = [...allPicks].sort((a, b) => 
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -197,39 +194,26 @@ const AdminPickManager: React.FC = () => {
         // Create unique key based on normalized teams and week
         const key = `${normalizedHome}-${normalizedAway}-${week}`;
 
-        console.log(`Checking: ${awayTeam} @ ${homeTeam} (Week ${week})`);
-        console.log(`  Normalized Key: ${key}`);
-
         if (seen.has(key)) {
           // This is a duplicate - mark it for deletion
           duplicates.push(pick.id);
-          const original = seen.get(key);
-          console.log(`🔴 DUPLICATE FOUND: ${awayTeam} @ ${homeTeam} (Week ${week})`);
-          console.log(`   Original: ${original?.id} (${original?.created_at})`);
-          console.log(`   Duplicate: ${pick.id} (${pick.created_at})`);
         } else {
           // First occurrence - keep it
           seen.set(key, pick);
-          console.log(`✅ Keeping: ${awayTeam} @ ${homeTeam} (Week ${week})`);
         }
       }
-
-      console.log(`\n📊 Found ${duplicates.length} duplicates to remove`);
 
       // Delete duplicates (keeping the first occurrence by created_at)
       let deletedCount = 0;
       for (const duplicateId of duplicates) {
-        console.log(`🗑️ Deleting pick: ${duplicateId}`);
         const { error } = await picksApi.delete(duplicateId);
         if (!error) {
           deletedCount++;
-          console.log(`✅ Deleted successfully`);
         } else {
           console.error(`❌ Failed to delete ${duplicateId}:`, error);
         }
       }
 
-      console.log(`\n✅ Removed ${deletedCount} duplicate picks`);
       alert(`Successfully removed ${deletedCount} duplicate picks!`);
 
       // Reload picks
@@ -446,7 +430,6 @@ const AdminPickManager: React.FC = () => {
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(JSON.stringify(pick, null, 2));
-                      console.log('Pick data copied to clipboard');
                     }}
                     className='px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded text-xs font-medium text-white transition-colors'
                   >

@@ -41,7 +41,6 @@ export async function executeAtomicOperations(
   try {
     // Validation phase (optional)
     if (validateBeforeCommit) {
-      console.log('Validating operations before commit...');
       for (const operation of operations) {
         if (!isValidOperation(operation)) {
           throw createAppError(
@@ -58,11 +57,9 @@ export async function executeAtomicOperations(
     }
 
     // Execution phase
-    console.log(`Executing ${operations.length} atomic operations...`);
     
     for (const operation of operations) {
       try {
-        console.log(`Executing ${operation.type} operation for pick ${operation.id}`);
         
         if (operation.type === 'update') {
           const { error } = await picksApi.update(operation.id, operation.payload!);
@@ -77,7 +74,6 @@ export async function executeAtomicOperations(
         }
 
         successfulOperations.push(operation);
-        console.log(`Successfully executed ${operation.type} for pick ${operation.id}`);
         
       } catch (error) {
         console.error(`Failed to execute ${operation.type} for pick ${operation.id}:`, error);
@@ -118,7 +114,6 @@ export async function executeAtomicOperations(
     const success = failedOperations.length === 0;
     
     if (success) {
-      console.log(`All ${operations.length} operations completed successfully`);
     } else {
       console.warn(`Completed with ${successfulOperations.length}/${operations.length} successful operations`);
     }
@@ -148,7 +143,6 @@ export async function executeAtomicOperations(
     if (successfulOperations.length > 0) {
       try {
         await rollbackOperations(successfulOperations);
-        console.log('Successfully rolled back operations after critical error');
       } catch (rollbackError) {
         console.error('Failed to rollback operations after critical error:', rollbackError);
       }
@@ -176,7 +170,6 @@ export async function executeAtomicOperations(
  * This is a best-effort operation - some rollbacks may fail.
  */
 async function rollbackOperations(operations: PendingOperation<Pick>[]): Promise<void> {
-  console.log(`Attempting to rollback ${operations.length} operations...`);
   
   // Process rollbacks in reverse order (LIFO)
   const rollbackPromises = operations.reverse().map(async (operation) => {
@@ -190,7 +183,6 @@ async function rollbackOperations(operations: PendingOperation<Pick>[]): Promise
         if (error) {
           throw error;
         }
-        console.log(`Rolled back update for pick ${operation.id}`);
         
       } else if (operation.type === 'delete') {
         // Rollback delete by recreating the pick
@@ -205,7 +197,6 @@ async function rollbackOperations(operations: PendingOperation<Pick>[]): Promise
 
   // Wait for all rollback attempts to complete
   await Promise.allSettled(rollbackPromises);
-  console.log('Rollback operations completed');
 }
 
 /**
