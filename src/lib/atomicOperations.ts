@@ -224,9 +224,10 @@ function isValidOperation(operation: PendingOperation<Pick>): boolean {
     }
     
     // Validate payload contains only allowed fields
-    const allowedUpdateFields = ['result'];
+    const allowedUpdateFields = ['result', 'game_info', 'prediction', 'spread_prediction', 'ou_prediction', 'confidence', 'reasoning', 'week', 'is_pinned', 'schedule_id'];
     const payloadKeys = Object.keys(operation.payload);
     if (!payloadKeys.every(key => allowedUpdateFields.includes(key))) {
+      console.warn('Invalid update field detected:', payloadKeys.filter(key => !allowedUpdateFields.includes(key)));
       return false;
     }
     

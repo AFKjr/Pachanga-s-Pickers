@@ -77,6 +77,15 @@ export const picksApi = {
       // Then get profile information for each pick
       const picksWithProfiles = await Promise.all(
         (picksData || []).map(async (pick) => {
+          // Skip profile fetch if user_id is null
+          if (!pick.user_id) {
+            return {
+              ...pick,
+              author_username: 'Anonymous',
+              comments_count: 0
+            };
+          }
+
           const { data: profile } = await supabase
             .from('profiles')
             .select('username')
