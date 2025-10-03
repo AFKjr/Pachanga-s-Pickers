@@ -1,9 +1,19 @@
 import { Routes, Route } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Header from './components/Header';
 import HomePage from './components/HomePage';
-import AdminPanel from './components/AdminPanel';
 import LandingPage from './components/LandingPage';
+
+// Lazy load the admin panel - only downloads when user navigates to /admin
+const AdminPanel = lazy(() => import('./components/AdminPanel'));
+
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="text-gray-400">Loading...</div>
+  </div>
+);
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -17,13 +27,15 @@ function AppRoutes() {
   }
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={user ? <HomePage /> : <LandingPage />}
-      />
-      <Route path="/admin" element={<AdminPanel />} />
-    </Routes>
+    <Suspense fallback={<LoadingFallback />}>
+      <Routes>
+        <Route
+          path="/"
+          element={user ? <HomePage /> : <LandingPage />}
+        />
+        <Route path="/admin" element={<AdminPanel />} />
+      </Routes>
+    </Suspense>
   );
 }
 

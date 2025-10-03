@@ -1,11 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import UnifiedAllTimeRecord from './UnifiedAllTimeRecord';
 import PicksDisplay from './PicksDisplay';
 import { useAuth } from '../contexts/AuthContext';
 import ProtectedContent from './ProtectedContent';
 
+// Lazy load the advanced stats component
+const ATSStatsComponent = lazy(() => import('./ATSStatsComponent'));
+
 const HomePage = () => {
   const { loading: authLoading } = useAuth();
+  const [showAdvancedStats, setShowAdvancedStats] = useState(false);
 
   useEffect(() => {
     if (authLoading) {
@@ -28,6 +32,23 @@ const HomePage = () => {
 
         {/* All Picks Display */}
         <PicksDisplay maxPicks={16} showWeekFilter={true} />
+
+        {/* Advanced Analytics Toggle */}
+        <div className="flex justify-center">
+          <button
+            onClick={() => setShowAdvancedStats(!showAdvancedStats)}
+            className="btn-secondary"
+          >
+            {showAdvancedStats ? 'Hide' : 'Show'} Advanced Analytics
+          </button>
+        </div>
+
+        {/* Lazy-loaded Advanced Stats */}
+        {showAdvancedStats && (
+          <Suspense fallback={<div className="animate-pulse h-64 bg-gray-800 rounded-lg" />}>
+            <ATSStatsComponent />
+          </Suspense>
+        )}
 
         {/* Enhanced Disclaimer */}
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
