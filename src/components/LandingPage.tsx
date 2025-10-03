@@ -3,8 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import AuthModal from './AuthModal';
 import { publicStatsApi } from '../lib/api';
 
-interface WeekStats {
-  week: number | null;
+interface BetTypeStats {
   wins: number;
   losses: number;
   pushes: number;
@@ -12,19 +11,42 @@ interface WeekStats {
   winRate: number;
 }
 
+interface WeekStats {
+  week: number | null;
+  moneyline: BetTypeStats;
+  ats: BetTypeStats;
+  overUnder: BetTypeStats;
+}
+
+interface AllTimeStats {
+  moneyline: BetTypeStats;
+  ats: BetTypeStats;
+  overUnder: BetTypeStats;
+}
+
 const LandingPage: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { user } = useAuth();
   const [weekStats, setWeekStats] = useState<WeekStats | null>(null);
+  const [allTimeStats, setAllTimeStats] = useState<AllTimeStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
 
-  // Fetch current week stats on mount
+  // Fetch current week and all-time stats on mount
   useEffect(() => {
     const fetchStats = async () => {
-      const { data, error } = await publicStatsApi.getCurrentWeekStats();
-      if (data && !error) {
-        setWeekStats(data);
+      const [weekResult, allTimeResult] = await Promise.all([
+        publicStatsApi.getCurrentWeekStats(),
+        publicStatsApi.getAllTimeStats()
+      ]);
+      
+      if (weekResult.data && !weekResult.error) {
+        setWeekStats(weekResult.data);
       }
+      
+      if (allTimeResult.data && !allTimeResult.error) {
+        setAllTimeStats(allTimeResult.data);
+      }
+      
       setStatsLoading(false);
     };
 
@@ -93,8 +115,8 @@ const LandingPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Social Proof / Stats Preview */}
-          <div className="max-w-3xl mx-auto mt-16">
+          {/* Weekly Performance Section */}
+          <div className="max-w-4xl mx-auto mt-16">
             <h2 className="text-2xl font-bold text-center mb-8">
               {statsLoading ? 'Loading Performance...' : weekStats?.week ? `Week ${weekStats.week} Performance` : 'This Week\'s Performance'}
             </h2>
@@ -103,31 +125,57 @@ const LandingPage: React.FC = () => {
               <div className="grid md:grid-cols-3 gap-6">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="bg-gray-800 p-6 rounded-lg text-center animate-pulse">
+                    <div className="h-8 bg-gray-700 rounded mb-3"></div>
                     <div className="h-10 bg-gray-700 rounded mb-2"></div>
-                    <div className="h-4 bg-gray-700 rounded w-20 mx-auto"></div>
+                    <div className="h-4 bg-gray-700 rounded w-24 mx-auto"></div>
                   </div>
                 ))}
               </div>
-            ) : weekStats && weekStats.total > 0 ? (
+            ) : weekStats && (weekStats.moneyline.total > 0 || weekStats.ats.total > 0 || weekStats.overUnder.total > 0) ? (
               <div className="grid md:grid-cols-3 gap-6">
-                <div className="bg-gray-800 p-6 rounded-lg text-center">
+                {/* Moneyline Stats */}
+                <div className="bg-gray-800 p-6 rounded-lg text-center border-t-4 border-green-500">
+                  <h3 className="text-lg font-semibold text-gray-300 mb-3">Moneyline</h3>
                   <div className="text-3xl font-bold text-green-400 mb-2">
-                    {weekStats.winRate}%
+                    {weekStats.moneyline.wins}-{weekStats.moneyline.losses}
+                    {weekStats.moneyline.pushes > 0 && `-${weekStats.moneyline.pushes}`}
                   </div>
-                  <div className="text-sm text-gray-400">Win Rate</div>
+                  <div className="text-xl text-gray-400 mb-1">
+                    {weekStats.moneyline.winRate}% Win Rate
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {weekStats.moneyline.total} picks
+                  </div>
                 </div>
-                <div className="bg-gray-800 p-6 rounded-lg text-center">
+
+                {/* ATS Stats */}
+                <div className="bg-gray-800 p-6 rounded-lg text-center border-t-4 border-blue-500">
+                  <h3 className="text-lg font-semibold text-gray-300 mb-3">Against The Spread</h3>
                   <div className="text-3xl font-bold text-blue-400 mb-2">
-                    {weekStats.wins}-{weekStats.losses}
-                    {weekStats.pushes > 0 && `-${weekStats.pushes}`}
+                    {weekStats.ats.wins}-{weekStats.ats.losses}
+                    {weekStats.ats.pushes > 0 && `-${weekStats.ats.pushes}`}
                   </div>
-                  <div className="text-sm text-gray-400">Record</div>
+                  <div className="text-xl text-gray-400 mb-1">
+                    {weekStats.ats.winRate}% Win Rate
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {weekStats.ats.total} picks
+                  </div>
                 </div>
-                <div className="bg-gray-800 p-6 rounded-lg text-center">
+
+                {/* Over/Under Stats */}
+                <div className="bg-gray-800 p-6 rounded-lg text-center border-t-4 border-purple-500">
+                  <h3 className="text-lg font-semibold text-gray-300 mb-3">Over/Under</h3>
                   <div className="text-3xl font-bold text-purple-400 mb-2">
-                    {weekStats.total}
+                    {weekStats.overUnder.wins}-{weekStats.overUnder.losses}
+                    {weekStats.overUnder.pushes > 0 && `-${weekStats.overUnder.pushes}`}
                   </div>
-                  <div className="text-sm text-gray-400">Completed Picks</div>
+                  <div className="text-xl text-gray-400 mb-1">
+                    {weekStats.overUnder.winRate}% Win Rate
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {weekStats.overUnder.total} picks
+                  </div>
                 </div>
               </div>
             ) : (
@@ -138,6 +186,60 @@ const LandingPage: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* All-Time Performance Section */}
+          {allTimeStats && (allTimeStats.moneyline.total > 0 || allTimeStats.ats.total > 0 || allTimeStats.overUnder.total > 0) && (
+            <div className="max-w-4xl mx-auto mt-16">
+              <h2 className="text-2xl font-bold text-center mb-8">All-Time Performance</h2>
+              
+              <div className="grid md:grid-cols-3 gap-6">
+                {/* Moneyline Stats */}
+                <div className="bg-gray-800 p-6 rounded-lg text-center border-t-4 border-green-500">
+                  <h3 className="text-lg font-semibold text-gray-300 mb-3">Moneyline</h3>
+                  <div className="text-3xl font-bold text-green-400 mb-2">
+                    {allTimeStats.moneyline.wins}-{allTimeStats.moneyline.losses}
+                    {allTimeStats.moneyline.pushes > 0 && `-${allTimeStats.moneyline.pushes}`}
+                  </div>
+                  <div className="text-xl text-gray-400 mb-1">
+                    {allTimeStats.moneyline.winRate}% Win Rate
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {allTimeStats.moneyline.total} picks
+                  </div>
+                </div>
+
+                {/* ATS Stats */}
+                <div className="bg-gray-800 p-6 rounded-lg text-center border-t-4 border-blue-500">
+                  <h3 className="text-lg font-semibold text-gray-300 mb-3">Against The Spread</h3>
+                  <div className="text-3xl font-bold text-blue-400 mb-2">
+                    {allTimeStats.ats.wins}-{allTimeStats.ats.losses}
+                    {allTimeStats.ats.pushes > 0 && `-${allTimeStats.ats.pushes}`}
+                  </div>
+                  <div className="text-xl text-gray-400 mb-1">
+                    {allTimeStats.ats.winRate}% Win Rate
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {allTimeStats.ats.total} picks
+                  </div>
+                </div>
+
+                {/* Over/Under Stats */}
+                <div className="bg-gray-800 p-6 rounded-lg text-center border-t-4 border-purple-500">
+                  <h3 className="text-lg font-semibold text-gray-300 mb-3">Over/Under</h3>
+                  <div className="text-3xl font-bold text-purple-400 mb-2">
+                    {allTimeStats.overUnder.wins}-{allTimeStats.overUnder.losses}
+                    {allTimeStats.overUnder.pushes > 0 && `-${allTimeStats.overUnder.pushes}`}
+                  </div>
+                  <div className="text-xl text-gray-400 mb-1">
+                    {allTimeStats.overUnder.winRate}% Win Rate
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {allTimeStats.overUnder.total} picks
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Ko-fi Support Section */}
           <div className="max-w-2xl mx-auto mt-16 bg-gray-800 border border-gray-700 rounded-lg p-8 text-center">

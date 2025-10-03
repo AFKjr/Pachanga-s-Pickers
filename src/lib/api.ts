@@ -365,29 +365,27 @@ export const agentStatsApi = {
 export const publicStatsApi = {
   getCurrentWeekStats: async () => {
     try {
-      // Import getCurrentNFLWeek dynamically to avoid circular dependencies
+      // Import dynamically to avoid circular dependencies
       const { getCurrentNFLWeek } = await import('../utils/nflWeeks');
+      const { calculateAllResultsFromScores } = await import('../utils/calculations');
       const currentWeek = getCurrentNFLWeek();
       
       if (!currentWeek) {
         return { 
           data: { 
-            week: null, 
-            wins: 0, 
-            losses: 0, 
-            pushes: 0, 
-            total: 0, 
-            winRate: 0 
+            week: null,
+            moneyline: { wins: 0, losses: 0, pushes: 0, total: 0, winRate: 0 },
+            ats: { wins: 0, losses: 0, pushes: 0, total: 0, winRate: 0 },
+            overUnder: { wins: 0, losses: 0, pushes: 0, total: 0, winRate: 0 }
           }, 
           error: null 
         };
       }
 
-      // Fetch only completed picks for current week
-      // Only count non-pending results (admin has manually updated)
+      // Fetch completed picks with scores for current week
       const { data: picks, error } = await supabase
         .from('picks')
-        .select('result')
+        .select('result, game_info, prediction, spread_prediction, ou_prediction')
         .eq('week', currentWeek)
         .neq('result', 'pending');
 
@@ -399,27 +397,148 @@ export const publicStatsApi = {
         return { data: null, error: appError };
       }
 
-      // Calculate aggregate stats (no individual pick details exposed)
-      const wins = picks?.filter(p => p.result === 'win').length || 0;
-      const losses = picks?.filter(p => p.result === 'loss').length || 0;
-      const pushes = picks?.filter(p => p.result === 'push').length || 0;
-      const total = wins + losses + pushes;
-      const winRate = total > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
+      // Initialize counters for all three bet types
+      let mlWins = 0, mlLosses = 0, mlPushes = 0;
+      let atsWins = 0, atsLosses = 0, atsPushes = 0;
+      let ouWins = 0, ouLosses = 0, ouPushes = 0;
+
+      // Calculate results for each pick
+      picks?.forEach(pick => {
+        const results = calculateAllResultsFromScores(pick as Pick);
+        
+        // Moneyline
+        if (results.moneyline === 'win') mlWins++;
+        else if (results.moneyline === 'loss') mlLosses++;
+        else if (results.moneyline === 'push') mlPushes++;
+        
+        // ATS
+        if (results.ats === 'win') atsWins++;
+        else if (results.ats === 'loss') atsLosses++;
+        else if (results.ats === 'push') atsPushes++;
+        
+        // O/U
+        if (results.overUnder === 'win') ouWins++;
+        else if (results.overUnder === 'loss') ouLosses++;
+        else if (results.overUnder === 'push') ouPushes++;
+      });
+
+      const mlTotal = mlWins + mlLosses + mlPushes;
+      const atsTotal = atsWins + atsLosses + atsPushes;
+      const ouTotal = ouWins + ouLosses + ouPushes;
 
       return {
         data: {
           week: currentWeek,
-          wins,
-          losses,
-          pushes,
-          total,
-          winRate
+          moneyline: {
+            wins: mlWins,
+            losses: mlLosses,
+            pushes: mlPushes,
+            total: mlTotal,
+            winRate: mlTotal > 0 ? Math.round((mlWins / (mlWins + mlLosses)) * 100) : 0
+          },
+          ats: {
+            wins: atsWins,
+            losses: atsLosses,
+            pushes: atsPushes,
+            total: atsTotal,
+            winRate: atsTotal > 0 ? Math.round((atsWins / (atsWins + atsLosses)) * 100) : 0
+          },
+          overUnder: {
+            wins: ouWins,
+            losses: ouLosses,
+            pushes: ouPushes,
+            total: ouTotal,
+            winRate: ouTotal > 0 ? Math.round((ouWins / (ouWins + ouLosses)) * 100) : 0
+          }
         },
         error: null
       };
     } catch (error) {
       const appError = createAppError(error, {
         operation: 'getCurrentWeekStats',
+        component: 'api.publicStatsApi'
+      }, 'PICK_LOAD_FAILED');
+      return { data: null, error: appError };
+    }
+  },
+
+  getAllTimeStats: async () => {
+    try {
+      // Import dynamically to avoid circular dependencies
+      const { calculateAllResultsFromScores } = await import('../utils/calculations');
+
+      // Fetch ALL completed picks (no week filter)
+      const { data: picks, error } = await supabase
+        .from('picks')
+        .select('result, game_info, prediction, spread_prediction, ou_prediction')
+        .neq('result', 'pending');
+
+      if (error) {
+        const appError = handleSupabaseError(error, {
+          operation: 'getAllTimeStats',
+          component: 'api.publicStatsApi'
+        });
+        return { data: null, error: appError };
+      }
+
+      // Initialize counters for all three bet types
+      let mlWins = 0, mlLosses = 0, mlPushes = 0;
+      let atsWins = 0, atsLosses = 0, atsPushes = 0;
+      let ouWins = 0, ouLosses = 0, ouPushes = 0;
+
+      // Calculate results for each pick
+      picks?.forEach(pick => {
+        const results = calculateAllResultsFromScores(pick as Pick);
+        
+        // Moneyline
+        if (results.moneyline === 'win') mlWins++;
+        else if (results.moneyline === 'loss') mlLosses++;
+        else if (results.moneyline === 'push') mlPushes++;
+        
+        // ATS
+        if (results.ats === 'win') atsWins++;
+        else if (results.ats === 'loss') atsLosses++;
+        else if (results.ats === 'push') atsPushes++;
+        
+        // O/U
+        if (results.overUnder === 'win') ouWins++;
+        else if (results.overUnder === 'loss') ouLosses++;
+        else if (results.overUnder === 'push') ouPushes++;
+      });
+
+      const mlTotal = mlWins + mlLosses + mlPushes;
+      const atsTotal = atsWins + atsLosses + atsPushes;
+      const ouTotal = ouWins + ouLosses + ouPushes;
+
+      return {
+        data: {
+          moneyline: {
+            wins: mlWins,
+            losses: mlLosses,
+            pushes: mlPushes,
+            total: mlTotal,
+            winRate: mlTotal > 0 ? Math.round((mlWins / (mlWins + mlLosses)) * 100) : 0
+          },
+          ats: {
+            wins: atsWins,
+            losses: atsLosses,
+            pushes: atsPushes,
+            total: atsTotal,
+            winRate: atsTotal > 0 ? Math.round((atsWins / (atsWins + atsLosses)) * 100) : 0
+          },
+          overUnder: {
+            wins: ouWins,
+            losses: ouLosses,
+            pushes: ouPushes,
+            total: ouTotal,
+            winRate: ouTotal > 0 ? Math.round((ouWins / (ouWins + ouLosses)) * 100) : 0
+          }
+        },
+        error: null
+      };
+    } catch (error) {
+      const appError = createAppError(error, {
+        operation: 'getAllTimeStats',
         component: 'api.publicStatsApi'
       }, 'PICK_LOAD_FAILED');
       return { data: null, error: appError };
