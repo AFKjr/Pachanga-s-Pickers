@@ -66,18 +66,9 @@ const LandingPage: React.FC = () => {
               <div className="bg-gray-800 p-6 rounded-lg">
                 <div className="text-3xl mb-3"></div>
                 <h3 className="text-lg font-semibold mb-2">Proven Track Record</h3>
-                {statsLoading ? (
-                  <p className="text-sm text-gray-400">Loading current week results...</p>
-                ) : weekStats && weekStats.total > 0 ? (
-                  <p className="text-sm text-gray-400">
-                    Week {weekStats.week}: <span className="text-green-400 font-semibold">{weekStats.wins}-{weekStats.losses}</span>
-                    {weekStats.pushes > 0 && `-${weekStats.pushes}`} ({weekStats.winRate}% win rate)
-                  </p>
-                ) : (
-                  <p className="text-sm text-gray-400">
-                    Transparent results with detailed weekly breakdowns and historical performance
-                  </p>
-                )}
+                <p className="text-sm text-gray-400">
+                  Transparent results with detailed weekly breakdowns and historical performance
+                </p>
               </div>
 
               <div className="bg-gray-800 p-6 rounded-lg">
@@ -103,11 +94,21 @@ const LandingPage: React.FC = () => {
           </div>
 
           {/* Social Proof / Stats Preview */}
-          {weekStats && weekStats.total > 0 && (
-            <div className="max-w-3xl mx-auto mt-16">
-              <h2 className="text-2xl font-bold text-center mb-8">
-                Week {weekStats.week} Performance
-              </h2>
+          <div className="max-w-3xl mx-auto mt-16">
+            <h2 className="text-2xl font-bold text-center mb-8">
+              {statsLoading ? 'Loading Performance...' : weekStats?.week ? `Week ${weekStats.week} Performance` : 'This Week\'s Performance'}
+            </h2>
+            
+            {statsLoading ? (
+              <div className="grid md:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-gray-800 p-6 rounded-lg text-center animate-pulse">
+                    <div className="h-10 bg-gray-700 rounded mb-2"></div>
+                    <div className="h-4 bg-gray-700 rounded w-20 mx-auto"></div>
+                  </div>
+                ))}
+              </div>
+            ) : weekStats && weekStats.total > 0 ? (
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="bg-gray-800 p-6 rounded-lg text-center">
                   <div className="text-3xl font-bold text-green-400 mb-2">
@@ -129,8 +130,14 @@ const LandingPage: React.FC = () => {
                   <div className="text-sm text-gray-400">Completed Picks</div>
                 </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="bg-gray-800 p-8 rounded-lg text-center">
+                <p className="text-gray-400">
+                  No completed picks yet for this week. Check back after games are played!
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Ko-fi Support Section */}
           <div className="max-w-2xl mx-auto mt-16 bg-gray-800 border border-gray-700 rounded-lg p-8 text-center">
