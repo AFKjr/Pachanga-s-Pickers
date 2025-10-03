@@ -361,8 +361,75 @@ export const agentStatsApi = {
   }
 };
 
+// Public Stats API - No authentication required
+export const publicStatsApi = {
+  getCurrentWeekStats: async () => {
+    try {
+      // Import getCurrentNFLWeek dynamically to avoid circular dependencies
+      const { getCurrentNFLWeek } = await import('../utils/nflWeeks');
+      const currentWeek = getCurrentNFLWeek();
+      
+      if (!currentWeek) {
+        return { 
+          data: { 
+            week: null, 
+            wins: 0, 
+            losses: 0, 
+            pushes: 0, 
+            total: 0, 
+            winRate: 0 
+          }, 
+          error: null 
+        };
+      }
+
+      // Fetch only completed picks for current week
+      // Only count non-pending results (admin has manually updated)
+      const { data: picks, error } = await supabase
+        .from('picks')
+        .select('game_result')
+        .eq('nfl_week', currentWeek)
+        .neq('game_result', 'pending');
+
+      if (error) {
+        const appError = handleSupabaseError(error, {
+          operation: 'getCurrentWeekStats',
+          component: 'api.publicStatsApi'
+        });
+        return { data: null, error: appError };
+      }
+
+      // Calculate aggregate stats (no individual pick details exposed)
+      const wins = picks?.filter(p => p.game_result === 'win').length || 0;
+      const losses = picks?.filter(p => p.game_result === 'loss').length || 0;
+      const pushes = picks?.filter(p => p.game_result === 'push').length || 0;
+      const total = wins + losses + pushes;
+      const winRate = total > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
+
+      return {
+        data: {
+          week: currentWeek,
+          wins,
+          losses,
+          pushes,
+          total,
+          winRate
+        },
+        error: null
+      };
+    } catch (error) {
+      const appError = createAppError(error, {
+        operation: 'getCurrentWeekStats',
+        component: 'api.publicStatsApi'
+      }, 'PICK_LOAD_FAILED');
+      return { data: null, error: appError };
+    }
+  }
+};
+
 // Simplified API export - only what you actually use
 export const api = {
   picks: picksApi,
-  stats: agentStatsApi
+  stats: agentStatsApi,
+  publicStats: publicStatsApi
 };

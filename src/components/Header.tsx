@@ -17,7 +17,7 @@ const Header = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="text-2xl font-bold text-primary-500 hover:text-primary-400 transition-colors">
-              Pachanga's Picks
+              Pachanga Picks
             </Link>
 
             <nav className="hidden md:flex space-x-6">

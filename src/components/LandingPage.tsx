@@ -1,10 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from './AuthModal';
+import { publicStatsApi } from '../lib/api';
+
+interface WeekStats {
+  week: number | null;
+  wins: number;
+  losses: number;
+  pushes: number;
+  total: number;
+  winRate: number;
+}
 
 const LandingPage: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { user } = useAuth();
+  const [weekStats, setWeekStats] = useState<WeekStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  // Fetch current week stats on mount
+  useEffect(() => {
+    const fetchStats = async () => {
+      const { data, error } = await publicStatsApi.getCurrentWeekStats();
+      if (data && !error) {
+        setWeekStats(data);
+      }
+      setStatsLoading(false);
+    };
+
+    fetchStats();
+
+    // Refresh stats every 5 minutes (during live games)
+    const interval = setInterval(fetchStats, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // If user is already logged in, don't show landing page
   if (user) {
@@ -18,7 +47,7 @@ const LandingPage: React.FC = () => {
         <div className="container mx-auto px-4 py-16">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-5xl font-bold mb-6">
-              Pachanga's NFL Picks
+              Pachanga Picks
             </h1>
             <p className="text-xl text-gray-300 mb-8">
               Smart, data-driven NFL predictions to give you an edge in your betting decisions
@@ -37,9 +66,18 @@ const LandingPage: React.FC = () => {
               <div className="bg-gray-800 p-6 rounded-lg">
                 <div className="text-3xl mb-3"></div>
                 <h3 className="text-lg font-semibold mb-2">Proven Track Record</h3>
-                <p className="text-sm text-gray-400">
-                  Transparent results with detailed weekly breakdowns and historical performance
-                </p>
+                {statsLoading ? (
+                  <p className="text-sm text-gray-400">Loading current week results...</p>
+                ) : weekStats && weekStats.total > 0 ? (
+                  <p className="text-sm text-gray-400">
+                    Week {weekStats.week}: <span className="text-green-400 font-semibold">{weekStats.wins}-{weekStats.losses}</span>
+                    {weekStats.pushes > 0 && `-${weekStats.pushes}`} ({weekStats.winRate}% win rate)
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-400">
+                    Transparent results with detailed weekly breakdowns and historical performance
+                  </p>
+                )}
               </div>
 
               <div className="bg-gray-800 p-6 rounded-lg">
@@ -65,23 +103,34 @@ const LandingPage: React.FC = () => {
           </div>
 
           {/* Social Proof / Stats Preview */}
-          <div className="max-w-3xl mx-auto mt-16">
-            <h2 className="text-2xl font-bold text-center mb-8">This Week's Performance</h2>
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="bg-gray-800 p-6 rounded-lg text-center">
-                <div className="text-3xl font-bold text-green-400 mb-2">67%</div>
-                <div className="text-sm text-gray-400">Win Rate</div>
-              </div>
-              <div className="bg-gray-800 p-6 rounded-lg text-center">
-                <div className="text-3xl font-bold text-blue-400 mb-2">12 Picks</div>
-                <div className="text-sm text-gray-400">This Week</div>
-              </div>
-              <div className="bg-gray-800 p-6 rounded-lg text-center">
-                <div className="text-3xl font-bold text-purple-400 mb-2">+8.5 Units</div>
-                <div className="text-sm text-gray-400">Weekly Profit</div>
+          {weekStats && weekStats.total > 0 && (
+            <div className="max-w-3xl mx-auto mt-16">
+              <h2 className="text-2xl font-bold text-center mb-8">
+                Week {weekStats.week} Performance
+              </h2>
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="bg-gray-800 p-6 rounded-lg text-center">
+                  <div className="text-3xl font-bold text-green-400 mb-2">
+                    {weekStats.winRate}%
+                  </div>
+                  <div className="text-sm text-gray-400">Win Rate</div>
+                </div>
+                <div className="bg-gray-800 p-6 rounded-lg text-center">
+                  <div className="text-3xl font-bold text-blue-400 mb-2">
+                    {weekStats.wins}-{weekStats.losses}
+                    {weekStats.pushes > 0 && `-${weekStats.pushes}`}
+                  </div>
+                  <div className="text-sm text-gray-400">Record</div>
+                </div>
+                <div className="bg-gray-800 p-6 rounded-lg text-center">
+                  <div className="text-3xl font-bold text-purple-400 mb-2">
+                    {weekStats.total}
+                  </div>
+                  <div className="text-sm text-gray-400">Completed Picks</div>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Ko-fi Support Section */}
           <div className="max-w-2xl mx-auto mt-16 bg-gray-800 border border-gray-700 rounded-lg p-8 text-center">
