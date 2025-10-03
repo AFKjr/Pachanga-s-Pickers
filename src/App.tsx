@@ -4,9 +4,13 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Header from './components/Header';
 import HomePage from './components/HomePage';
 import LandingPage from './components/LandingPage';
+import AdminLayout from './layouts/AdminLayout';
 
-// Lazy load the admin panel - only downloads when user navigates to /admin
-const AdminPanel = lazy(() => import('./components/AdminPanel'));
+// Lazy load all admin pages
+const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'));
+const GeneratePicksPage = lazy(() => import('./pages/admin/GeneratePicksPage'));
+const ManagePicksPage = lazy(() => import('./pages/admin/ManagePicksPage'));
+const UpdateResultsPage = lazy(() => import('./pages/admin/UpdateResultsPage'));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -33,7 +37,14 @@ function AppRoutes() {
           path="/"
           element={user ? <HomePage /> : <LandingPage />}
         />
-        <Route path="/admin" element={<AdminPanel />} />
+        
+        {/* Admin Routes with Layout */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="generate" element={<GeneratePicksPage />} />
+          <Route path="manage" element={<ManagePicksPage />} />
+          <Route path="results" element={<UpdateResultsPage />} />
+        </Route>
       </Routes>
     </Suspense>
   );
@@ -43,10 +54,17 @@ function App() {
   return (
     <AuthProvider>
       <div className="min-h-screen bg-gray-900 text-gray-100">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
-          <AppRoutes />
-        </main>
+        {/* Only show Header on non-admin routes */}
+        {!window.location.pathname.startsWith('/admin') && <Header />}
+        
+        {!window.location.pathname.startsWith('/admin') && (
+          <main className="container mx-auto px-4 py-8">
+            <AppRoutes />
+          </main>
+        )}
+        
+        {/* Admin routes render without Header or container */}
+        {window.location.pathname.startsWith('/admin') && <AppRoutes />}
       </div>
     </AuthProvider>
   );
