@@ -253,8 +253,13 @@ const AdminPickResults: React.FC = () => {
       updatedPick.result = results.moneyline; // Use moneyline result as primary
     }
 
-    // Queue the update
-    optimisticUpdate(pickId, { game_info: updatedPick.game_info, result: updatedPick.result }, pick);
+    // Queue the update - MUST include game_info with scores
+    const updatePayload = { 
+      game_info: updatedPick.game_info, 
+      result: updatedPick.result 
+    };
+    console.log(`Queuing score update for ${pickId}:`, updatePayload);
+    optimisticUpdate(pickId, updatePayload, pick);
   };
 
   if (loading) {
