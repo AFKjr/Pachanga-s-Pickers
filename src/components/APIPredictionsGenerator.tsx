@@ -31,11 +31,31 @@ export default function APIPredictionsGenerator() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate predictions');
+        const contentType = response.headers.get('content-type');
+        let errorMessage = 'Failed to generate predictions';
+        
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.details || errorMessage;
+        } else {
+          const textError = await response.text();
+          errorMessage = textError || `HTTP ${response.status}: ${response.statusText}`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('API returned non-JSON response. Check Vercel function deployment.');
       }
 
       const data = await response.json();
+      
+      if (!data.predictions || !Array.isArray(data.predictions)) {
+        throw new Error('Invalid response format from API');
+      }
+      
       setPredictions(data.predictions);
 
       // Save predictions to database
