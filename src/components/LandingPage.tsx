@@ -52,9 +52,21 @@ const LandingPage: React.FC = () => {
 
     fetchStats();
 
+    // Listen for stats refresh events from admin updates
+    const { globalEvents } = require('../lib/events');
+    const handleRefresh = () => {
+      fetchStats();
+    };
+    
+    globalEvents.on('refreshStats', handleRefresh);
+
     // Refresh stats every 5 minutes (during live games)
     const interval = setInterval(fetchStats, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      clearInterval(interval);
+      globalEvents.off('refreshStats', handleRefresh);
+    };
   }, []);
 
   // If user is already logged in, don't show landing page

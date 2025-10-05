@@ -130,40 +130,58 @@ export const calculateComprehensiveATSRecord = (
       estimatedUnits -= 1.0;
     }
     
-    // ATS tracking
+    // ATS tracking - PREFER stored ats_result field
     if (pick.game_info.spread) {
-      const atsResult = calculateATSResult(pick, actualScore);
-      if (atsResult.result === 'win') {
+      // Use stored result if available, otherwise calculate
+      let atsResultValue: 'win' | 'loss' | 'push' | 'pending';
+      if (pick.ats_result && pick.ats_result !== 'pending') {
+        atsResultValue = pick.ats_result;
+      } else {
+        const atsResult = calculateATSResult(pick, actualScore);
+        atsResultValue = atsResult.result;
+      }
+      
+      if (atsResultValue === 'win') {
         atsWins++;
         estimatedUnits += 0.91;
+        // Calculate cover margin for detail tracking
+        const atsResult = calculateATSResult(pick, actualScore);
         if (atsResult.details?.coverMargin) {
           totalCoverMargin += atsResult.details.coverMargin;
           atsGamesCount++;
         }
-      } else if (atsResult.result === 'loss') {
+      } else if (atsResultValue === 'loss') {
         atsLosses++;
         estimatedUnits -= 1.0;
-        if (atsResult.details?.coverMargin) {
-          atsGamesCount++;
-        }
-      } else if (atsResult.result === 'push') {
+        atsGamesCount++;
+      } else if (atsResultValue === 'push') {
         atsPushes++;
       }
     }
     
-    // Over/Under tracking
+    // Over/Under tracking - PREFER stored ou_result field
     if (pick.game_info.over_under) {
-      const ouResult = calculateOverUnderResult(pick, actualScore);
-      if (ouResult.result === 'win') {
+      // Use stored result if available, otherwise calculate
+      let ouResultValue: 'win' | 'loss' | 'push' | 'pending';
+      if (pick.ou_result && pick.ou_result !== 'pending') {
+        ouResultValue = pick.ou_result;
+      } else {
+        const ouResult = calculateOverUnderResult(pick, actualScore);
+        ouResultValue = ouResult.result;
+      }
+      
+      if (ouResultValue === 'win') {
         ouWins++;
         estimatedUnits += 0.91;
-      } else if (ouResult.result === 'loss') {
+      } else if (ouResultValue === 'loss') {
         ouLosses++;
         estimatedUnits -= 1.0;
-      } else if (ouResult.result === 'push') {
+      } else if (ouResultValue === 'push') {
         ouPushes++;
       }
       
+      // Calculate total points for detail tracking
+      const ouResult = calculateOverUnderResult(pick, actualScore);
       if (ouResult.details?.totalPoints) {
         totalPoints += ouResult.details.totalPoints;
         ouGamesCount++;
