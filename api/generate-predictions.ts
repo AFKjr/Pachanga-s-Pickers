@@ -29,24 +29,48 @@ export default async function handler(
     
     // Step 1: Fetch current NFL odds
     console.log('Fetching odds from The Odds API...');
-    const oddsData = await fetchNFLOdds();
-    console.log(`Found ${oddsData.length} games with odds`);
+    let oddsData;
+    try {
+      oddsData = await fetchNFLOdds();
+      console.log(`Found ${oddsData.length} games with odds`);
+    } catch (oddsError) {
+      console.error('Failed to fetch odds:', oddsError);
+      return response.status(500).json({
+        error: 'Failed to fetch odds from The Odds API',
+        details: oddsError instanceof Error ? oddsError.message : 'Unknown error',
+        hint: 'Check if ODDS_API_KEY environment variable is set in Vercel'
+      });
+    }
+
+    if (!oddsData || oddsData.length === 0) {
+      return response.status(200).json({
+        success: true,
+        predictions: [],
+        message: 'No NFL games available at this time',
+        metadata: {
+          generated_at: new Date().toISOString(),
+          games_processed: 0
+        }
+      });
+    }
 
     // Step 2: Process each game
     const predictions = [];
+    const errors = [];
     
     for (const game of oddsData) {
-      console.log(`Processing: ${game.away_team} @ ${game.home_team}`);
-      
-      // Prepare data for simulation
-      const gameData = await prepareGamePredictionData(
-        game.home_team,
-        game.away_team,
-        game
-      );
+      try {
+        console.log(`Processing: ${game.away_team} @ ${game.home_team}`);
+        
+        // Prepare data for simulation (with ESPN stats or defaults)
+        const gameData = await prepareGamePredictionData(
+          game.home_team,
+          game.away_team,
+          game
+        );
 
-      // Run Monte Carlo simulation
-      const simResult = runMonteCarloSimulation(gameData);
+        // Run Monte Carlo simulation
+        const simResult = runMonteCarloSimulation(gameData);
       
       // Generate betting recommendations
       const recommendations = generateRecommendations(gameData, simResult);
@@ -82,17 +106,28 @@ export default async function handler(
           }
         }
       });
+      } catch (gameError) {
+        console.error(`Error processing ${game.away_team} @ ${game.home_team}:`, gameError);
+        errors.push({
+          game: `${game.away_team} @ ${game.home_team}`,
+          error: gameError instanceof Error ? gameError.message : 'Unknown error'
+        });
+        // Continue processing other games
+      }
     }
 
-    console.log(`Generated ${predictions.length} predictions`);
+    console.log(`Generated ${predictions.length} predictions${errors.length > 0 ? ` (${errors.length} failures)` : ''}`);
 
     // Return predictions (frontend will save to Supabase)
     return response.status(200).json({
       success: true,
       predictions,
+      errors: errors.length > 0 ? errors : undefined,
       metadata: {
         generated_at: new Date().toISOString(),
-        games_processed: oddsData.length,
+        games_attempted: oddsData.length,
+        games_processed: predictions.length,
+        games_failed: errors.length,
         simulation_iterations: 10000
       }
     });

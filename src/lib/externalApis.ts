@@ -87,29 +87,38 @@ export async function fetchNFLOdds(): Promise<OddsData[]> {
  * Alternative: Use NFL.com API or scrape Pro Football Reference
  */
 export async function fetchTeamStats(teamName: string): Promise<TeamStats> {
-  // ESPN API endpoint (free, no key required)
-  const espnTeamId = mapTeamNameToESPNId(teamName);
-  
-  const response = await fetch(
-    `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${espnTeamId}/statistics`,
-    {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
+  try {
+    // ESPN API endpoint (free, no key required)
+    const espnTeamId = mapTeamNameToESPNId(teamName);
+    
+    const response = await fetch(
+      `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${espnTeamId}/statistics`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        },
+        // Add timeout to prevent hanging
+        signal: AbortSignal.timeout(5000)
       }
-    }
-  );
+    );
 
-  if (!response.ok) {
-    // Fallback to default stats if API fails
-    console.warn(`Failed to fetch stats for ${teamName}, using defaults`);
+    if (!response.ok) {
+      // Fallback to default stats if API fails
+      console.warn(`ESPN API returned ${response.status} for ${teamName}, using defaults`);
+      return getDefaultTeamStats(teamName);
+    }
+
+    const data = await response.json();
+    
+    // Parse ESPN response into our format
+    return parseESPNStats(data, teamName);
+  } catch (error) {
+    // Fallback to default stats on any error (network, timeout, parse, etc.)
+    console.warn(`Error fetching stats for ${teamName}:`, error instanceof Error ? error.message : 'Unknown error');
+    console.warn(`Using default stats for ${teamName}`);
     return getDefaultTeamStats(teamName);
   }
-
-  const data = await response.json();
-  
-  // Parse ESPN response into our format
-  return parseESPNStats(data, teamName);
 }
 
 /**
