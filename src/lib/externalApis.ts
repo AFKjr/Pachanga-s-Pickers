@@ -6,7 +6,9 @@
  */
 
 // API Configuration
-const ODDS_API_KEY = import.meta.env.VITE_ODDS_API_KEY;
+const ODDS_API_KEY = typeof process !== 'undefined' && process.env 
+  ? process.env.ODDS_API_KEY 
+  : import.meta.env?.VITE_ODDS_API_KEY;
 const ODDS_API_BASE_URL = 'https://api.the-odds-api.com/v4';
 
 // Types for API responses
