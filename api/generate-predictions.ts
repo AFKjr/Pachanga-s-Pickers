@@ -27,7 +27,19 @@ export default async function handler(
   try {
     console.log('Starting prediction generation...');
     
-    // Step 1: Fetch current NFL odds
+    // Temporary: Return helpful message while we fix module imports
+    return response.status(200).json({
+      success: false,
+      error: 'Feature temporarily unavailable',
+      message: 'The automated prediction generation feature is currently being configured. Please use the "Manual Data Entry" section below to add picks for now.',
+      details: 'The serverless function requires additional configuration to import modules from the src/ directory.',
+      metadata: {
+        timestamp: new Date().toISOString(),
+        status: 'configuration_pending'
+      }
+    });
+    
+    // Step 1: Fetch current NFL odds (commented out until fixed)
     console.log('Fetching odds from The Odds API...');
     let oddsData;
     try {
