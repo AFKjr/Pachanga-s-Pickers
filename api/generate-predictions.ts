@@ -2,8 +2,10 @@
 // Vercel Serverless Function to generate NFL predictions
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { fetchNFLOdds, prepareGamePredictionData } from '../src/lib/externalApis';
-import { runMonteCarloSimulation, generateRecommendations } from '../src/lib/api/monteCarloSimulation';
+
+// TODO: Re-enable these imports once module resolution is configured
+// import { fetchNFLOdds, prepareGamePredictionData } from '../src/lib/externalApis';
+// import { runMonteCarloSimulation, generateRecommendations } from '../src/lib/api/monteCarloSimulation';
 
 /**
  * Main handler for prediction generation
@@ -39,17 +41,20 @@ export default async function handler(
       }
     });
     
-    // Step 1: Fetch current NFL odds (commented out until fixed)
+    /* TODO: Uncomment when module imports are fixed
+    
+    // Step 1: Fetch current NFL odds
     console.log('Fetching odds from The Odds API...');
     let oddsData;
     try {
       oddsData = await fetchNFLOdds();
       console.log(`Found ${oddsData.length} games with odds`);
     } catch (oddsError) {
-      console.error('Failed to fetch odds:', oddsError);
+      const errorMessage = oddsError instanceof Error ? oddsError.message : String(oddsError);
+      console.error('Failed to fetch odds:', errorMessage);
       return response.status(500).json({
         error: 'Failed to fetch odds from The Odds API',
-        details: oddsError instanceof Error ? oddsError.message : 'Unknown error',
+        details: errorMessage,
         hint: 'Check if ODDS_API_KEY environment variable is set in Vercel'
       });
     }
@@ -84,11 +89,11 @@ export default async function handler(
         // Run Monte Carlo simulation
         const simResult = runMonteCarloSimulation(gameData);
       
-      // Generate betting recommendations
-      const recommendations = generateRecommendations(gameData, simResult);
+        // Generate betting recommendations
+        const recommendations = generateRecommendations(gameData, simResult);
 
-      // Format for database
-      predictions.push({
+        // Format for database
+        predictions.push({
         game_info: {
           home_team: game.home_team,
           away_team: game.away_team,
@@ -119,10 +124,11 @@ export default async function handler(
         }
       });
       } catch (gameError) {
-        console.error(`Error processing ${game.away_team} @ ${game.home_team}:`, gameError);
+        const errorMessage = gameError instanceof Error ? gameError.message : String(gameError);
+        console.error(`Error processing ${game.away_team} @ ${game.home_team}:`, errorMessage);
         errors.push({
           game: `${game.away_team} @ ${game.home_team}`,
-          error: gameError instanceof Error ? gameError.message : 'Unknown error'
+          error: errorMessage
         });
         // Continue processing other games
       }
@@ -143,19 +149,23 @@ export default async function handler(
         simulation_iterations: 10000
       }
     });
+    
+    */ // End of commented code
 
   } catch (error) {
-    console.error('Error generating predictions:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error generating predictions:', errorMessage);
     return response.status(500).json({
       error: 'Failed to generate predictions',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: errorMessage,
+      timestamp: new Date().toISOString()
     });
   }
 }
 
-/**
- * Map confidence level to numeric value
- */
+/* TODO: Uncomment utility functions when main code is enabled
+
+// Map confidence level to numeric value
 function mapConfidenceToNumber(confidence: 'High' | 'Medium' | 'Low'): number {
   switch (confidence) {
     case 'High': return 80;
@@ -165,9 +175,7 @@ function mapConfidenceToNumber(confidence: 'High' | 'Medium' | 'Low'): number {
   }
 }
 
-/**
- * Generate human-readable reasoning
- */
+// Generate human-readable reasoning
 function generateReasoning(
   gameData: any,
   simResult: any,
@@ -196,9 +204,7 @@ function generateReasoning(
   return factors.join('; ');
 }
 
-/**
- * Calculate NFL week from date
- */
+// Calculate NFL week from date
 function calculateNFLWeek(gameDate: Date): number {
   const seasonStart = new Date('2025-09-04'); // Week 1 Thursday
   const daysDiff = Math.floor(
@@ -206,3 +212,5 @@ function calculateNFLWeek(gameDate: Date): number {
   );
   return Math.max(1, Math.min(18, Math.floor(daysDiff / 7) + 1));
 }
+
+*/ // End of commented utility functions
