@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+// import { useAuth } from '../contexts/AuthContext'; // Not needed - ESPN API disabled
 import { supabase } from '../lib/supabase';
 
 interface TeamStatsData {
@@ -16,10 +16,10 @@ interface TeamStatsData {
 }
 
 const AdminTeamStats: React.FC = () => {
-  const { user } = useAuth();
+  // const { user } = useAuth(); // Not needed - ESPN API disabled
   const [stats, setStats] = useState<TeamStatsData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing] = useState(false); // Always false - ESPN API disabled
   const [error, setError] = useState('');
   const [editingTeam, setEditingTeam] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<TeamStatsData>>({});
@@ -47,6 +47,12 @@ const AdminTeamStats: React.FC = () => {
   };
 
   const refreshAllStats = async () => {
+    // COMMENTED OUT - ESPN API functionality disabled
+    // Use CSV import instead for updating team stats
+    alert('ESPN API refresh is disabled. Please use the CSV Import feature above to update team stats.');
+    return;
+
+    /* ORIGINAL ESPN API CODE - COMMENTED OUT
     if (!user) return;
 
     try {
@@ -80,6 +86,7 @@ const AdminTeamStats: React.FC = () => {
     } finally {
       setRefreshing(false);
     }
+    */
   };
 
   const startEditing = (team: TeamStatsData) => {
@@ -118,7 +125,8 @@ const AdminTeamStats: React.FC = () => {
 
   const getSourceBadge = (source: string) => {
     const styles: Record<string, string> = {
-      espn: 'bg-green-600 text-white',
+      csv: 'bg-purple-600 text-white',
+      espn: 'bg-gray-600 text-gray-300',
       manual: 'bg-blue-600 text-white',
       historical: 'bg-yellow-600 text-white',
       default: 'bg-red-600 text-white'
@@ -155,9 +163,10 @@ const AdminTeamStats: React.FC = () => {
           <button
             onClick={refreshAllStats}
             disabled={refreshing}
-            className="btn-primary disabled:opacity-50"
+            className="btn-primary disabled:opacity-50 opacity-50 cursor-not-allowed"
+            title="ESPN API disabled - Use CSV Import instead"
           >
-            {refreshing ? '🔄 Refreshing...' : '🔄 Refresh All from ESPN'}
+            🔄 Refresh All from ESPN (Disabled)
           </button>
         </div>
 
@@ -167,11 +176,7 @@ const AdminTeamStats: React.FC = () => {
           </div>
         )}
 
-        {refreshing && (
-          <div className="bg-blue-900 border border-blue-700 text-blue-200 px-4 py-3 rounded mb-4">
-            ⏳ Fetching stats from ESPN API for all 32 teams... This may take 15-20 seconds.
-          </div>
-        )}
+        {/* ESPN API refresh disabled - use CSV import instead */}
       </div>
 
       {/* Stats Table */}
@@ -344,12 +349,16 @@ const AdminTeamStats: React.FC = () => {
         <h4 className="font-semibold text-white mb-3">Data Source Legend:</h4>
         <div className="flex flex-wrap gap-4 text-sm">
           <div className="flex items-center space-x-2">
-            {getSourceBadge('espn')}
-            <span className="text-gray-300">Real-time from ESPN API</span>
+            {getSourceBadge('csv')}
+            <span className="text-gray-300">Imported from CSV file</span>
           </div>
           <div className="flex items-center space-x-2">
             {getSourceBadge('manual')}
             <span className="text-gray-300">Manually entered by admin</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            {getSourceBadge('espn')}
+            <span className="text-gray-300">ESPN API (Legacy - Disabled)</span>
           </div>
           <div className="flex items-center space-x-2">
             {getSourceBadge('historical')}

@@ -9,6 +9,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 interface TeamStats {
   team: string;
+  gamesPlayed: number;
+  
+  // Basic stats
   offensiveYardsPerGame: number;
   defensiveYardsAllowed: number;
   pointsPerGame: number;
@@ -16,6 +19,55 @@ interface TeamStats {
   turnoverDifferential: number;
   thirdDownConversionRate: number;
   redZoneEfficiency: number;
+  
+  // Offensive passing
+  passCompletions: number;
+  passAttempts: number;
+  passCompletionPct: number;
+  passingYards: number;
+  passingTds: number;
+  interceptionsThrown: number;
+  yardsPerPassAttempt: number;
+  
+  // Offensive rushing
+  rushingAttempts: number;
+  rushingYards: number;
+  rushingTds: number;
+  yardsPerRush: number;
+  
+  // Offensive totals
+  totalPlays: number;
+  yardsPerPlay: number;
+  firstDowns: number;
+  
+  // Penalties
+  penalties: number;
+  penaltyYards: number;
+  
+  // Turnovers
+  turnoversLost: number;
+  fumblesLost: number;
+  
+  // Defensive passing
+  defPassCompletionsAllowed: number;
+  defPassAttempts: number;
+  defPassingYardsAllowed: number;
+  defPassingTdsAllowed: number;
+  defInterceptions: number;
+  
+  // Defensive rushing
+  defRushingAttemptsAllowed: number;
+  defRushingYardsAllowed: number;
+  defRushingTdsAllowed: number;
+  
+  // Defensive totals
+  defTotalPlays: number;
+  defYardsPerPlayAllowed: number;
+  defFirstDownsAllowed: number;
+  
+  // Turnovers forced
+  turnoversForced: number;
+  fumblesForced: number;
 }
 
 interface OddsData {
@@ -127,35 +179,139 @@ function simulatePossession(
   const offensiveStrength = calculateOffensiveStrength(offenseStats);
   const defensiveStrength = calculateDefensiveStrength(defenseStats);
   
-  const scoringProbability = offensiveStrength / (offensiveStrength + defensiveStrength);
-  const roll = Math.random();
+  // Base scoring probability adjusted by matchup
+  const baseScoring = offensiveStrength / (offensiveStrength + defensiveStrength);
   
-  if (roll > scoringProbability) return 0;
+  // Turnover chance based on actual turnover rates
+  const turnoverChance = (
+    (offenseStats.turnoversLost / offenseStats.totalPlays) +
+    (defenseStats.turnoversForced / defenseStats.defTotalPlays)
+  ) / 2;
   
+  const turnoverRoll = Math.random();
+  if (turnoverRoll < turnoverChance) return 0; // Turnover, no points
+  
+  // Adjust scoring probability by yards per play efficiency
+  const efficiencyModifier = (
+    offenseStats.yardsPerPlay / (offenseStats.yardsPerPlay + defenseStats.defYardsPerPlayAllowed)
+  );
+  
+  const scoringProbability = baseScoring * 0.7 + efficiencyModifier * 0.3;
+  const scoreRoll = Math.random();
+  
+  if (scoreRoll > scoringProbability) return 0; // Failed to score
+  
+  // Reached scoring territory - determine TD vs FG
   const redZoneRoll = Math.random() * 100;
-  if (redZoneRoll < offenseStats.redZoneEfficiency) return 7;
-  if (redZoneRoll < offenseStats.redZoneEfficiency + 30) return 3;
   
-  return 0;
+  // TD probability based on red zone efficiency and passing/rushing balance
+  const tdProbability = (
+    offenseStats.redZoneEfficiency * 0.6 +  // Red zone efficiency
+    (offenseStats.passingTds + offenseStats.rushingTds) * 5  // TD production rate
+  );
+  
+  if (redZoneRoll < tdProbability) {
+    return 7; // Touchdown + XP
+  }
+  
+  // Field goal attempt probability
+  const fgProbability = tdProbability + 35; // ~35% FG range after TD probability
+  if (redZoneRoll < fgProbability) {
+    return 3; // Field goal
+  }
+  
+  return 0; // Failed to score despite reaching scoring position
 }
 
 function calculateOffensiveStrength(stats: TeamStats): number {
-  return (
-    stats.pointsPerGame * 2 +
-    stats.offensiveYardsPerGame / 10 +
-    stats.thirdDownConversionRate +
-    stats.redZoneEfficiency +
-    stats.turnoverDifferential * 5
+  // Comprehensive offensive strength calculation using extended stats
+  
+  // Passing efficiency (40% weight)
+  const passingEfficiency = (
+    stats.passingYards / 100 * 3 +                    // Passing yards impact
+    stats.yardsPerPassAttempt * 5 +                   // Efficiency per attempt
+    stats.passCompletionPct / 10 +                    // Completion accuracy
+    stats.passingTds * 8 -                            // TD production
+    stats.interceptionsThrown * 10                    // Turnover penalty
+  ) * 0.4;
+  
+  // Rushing efficiency (30% weight)
+  const rushingEfficiency = (
+    stats.rushingYards / 50 * 2 +                     // Rushing yards impact
+    stats.yardsPerRush * 8 +                          // Yards per carry efficiency
+    stats.rushingTds * 10                             // TD production
+  ) * 0.3;
+  
+  // Overall efficiency (20% weight)
+  const overallEfficiency = (
+    stats.yardsPerPlay * 15 +                         // Overall play efficiency
+    stats.firstDowns * 3 +                            // Drive sustainability
+    stats.thirdDownConversionRate * 1.5 +             // Third down success
+    stats.redZoneEfficiency * 2                       // Red zone scoring
+  ) * 0.2;
+  
+  // Turnover management (10% weight)
+  const turnoverImpact = (
+    -stats.turnoversLost * 15 -                       // Turnovers cost points
+    stats.fumblesLost * 12 +                          // Fumbles hurt field position
+    stats.turnoverDifferential * 8                    // Overall TO differential
+  ) * 0.1;
+  
+  // Penalties impact (negative)
+  const penaltyImpact = -(stats.penaltyYards / 10);
+  
+  return Math.max(0, 
+    passingEfficiency + 
+    rushingEfficiency + 
+    overallEfficiency + 
+    turnoverImpact + 
+    penaltyImpact +
+    stats.pointsPerGame * 2                           // Base scoring capability
   );
 }
 
 function calculateDefensiveStrength(stats: TeamStats): number {
-  return (
-    (45 - stats.pointsAllowedPerGame) * 2 +
-    (450 - stats.defensiveYardsAllowed) / 10 +
-    (50 - stats.thirdDownConversionRate) +
-    (70 - stats.redZoneEfficiency) -
-    stats.turnoverDifferential * 5
+  // Comprehensive defensive strength calculation using extended stats
+  
+  // Pass defense (40% weight)
+  const passDefense = (
+    (280 - stats.defPassingYardsAllowed) / 20 +       // Passing yards allowed (lower is better)
+    -stats.defPassingTdsAllowed * 8 +                 // TDs allowed penalty
+    stats.defInterceptions * 12 +                     // Interceptions created
+    (stats.defPassAttempts > 0 ?                      // Completion % allowed
+      (100 - (stats.defPassCompletionsAllowed / stats.defPassAttempts * 100)) / 5 
+      : 0)
+  ) * 0.4;
+  
+  // Rush defense (30% weight)
+  const rushDefense = (
+    (150 - stats.defRushingYardsAllowed) / 15 +       // Rushing yards allowed (lower is better)
+    -stats.defRushingTdsAllowed * 10 +                // Rushing TDs allowed penalty
+    (stats.defRushingAttemptsAllowed > 0 ?            // Yards per rush allowed
+      (5.0 - (stats.defRushingYardsAllowed / stats.defRushingAttemptsAllowed)) * 10
+      : 0)
+  ) * 0.3;
+  
+  // Overall defensive efficiency (20% weight)
+  const overallDefense = (
+    (7.0 - stats.defYardsPerPlayAllowed) * 15 +       // Yards per play (lower is better)
+    -stats.defFirstDownsAllowed * 2 +                 // First downs allowed
+    (50 - stats.thirdDownConversionRate) * 1.5        // Opponent 3rd down %
+  ) * 0.2;
+  
+  // Turnovers forced (10% weight)
+  const turnoverCreation = (
+    stats.turnoversForced * 15 +                      // Turnovers created
+    stats.fumblesForced * 12 +                        // Fumbles forced
+    stats.defInterceptions * 12                       // Interceptions
+  ) * 0.1;
+  
+  return Math.max(0,
+    passDefense +
+    rushDefense +
+    overallDefense +
+    turnoverCreation +
+    (45 - stats.pointsAllowedPerGame) * 2             // Base points prevention
   );
 }
 
@@ -186,16 +342,165 @@ async function fetchNFLOdds(): Promise<OddsData[]> {
   return await response.json();
 }
 
+async function fetchTeamStatsFromDatabase(teamName: string, supabaseUrl: string, supabaseKey: string): Promise<TeamStats | null> {
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/team_stats_cache?team_name=eq.${encodeURIComponent(teamName)}&select=*`,
+      {
+        method: 'GET',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`Failed to fetch stats for ${teamName}: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    if (!data || data.length === 0) {
+      console.warn(`No stats found for ${teamName} in database`);
+      return null;
+    }
+
+    const dbStats = data[0];
+    
+    // Map database fields to TeamStats interface
+    return {
+      team: teamName,
+      gamesPlayed: dbStats.games_played || 5,
+      
+      // Basic stats
+      offensiveYardsPerGame: dbStats.offensive_yards_per_game || 328.3,
+      defensiveYardsAllowed: dbStats.defensive_yards_allowed || 328.3,
+      pointsPerGame: dbStats.points_per_game || 23.4,
+      pointsAllowedPerGame: dbStats.points_allowed_per_game || 23.4,
+      turnoverDifferential: dbStats.turnover_differential || 0,
+      thirdDownConversionRate: dbStats.third_down_conversion_rate || 40.0,
+      redZoneEfficiency: dbStats.red_zone_efficiency || 55.0,
+      
+      // Offensive passing
+      passCompletions: dbStats.pass_completions || 21.6,
+      passAttempts: dbStats.pass_attempts || 32.7,
+      passCompletionPct: dbStats.pass_completion_pct || 65.9,
+      passingYards: dbStats.passing_yards || 213.8,
+      passingTds: dbStats.passing_tds || 1.6,
+      interceptionsThrown: dbStats.interceptions_thrown || 0.7,
+      yardsPerPassAttempt: dbStats.yards_per_pass_attempt || 7.0,
+      
+      // Offensive rushing
+      rushingAttempts: dbStats.rushing_attempts || 26.3,
+      rushingYards: dbStats.rushing_yards || 114.5,
+      rushingTds: dbStats.rushing_tds || 0.9,
+      yardsPerRush: dbStats.yards_per_rush || 4.4,
+      
+      // Offensive totals
+      totalPlays: dbStats.total_plays || 61.2,
+      yardsPerPlay: dbStats.yards_per_play || 5.4,
+      firstDowns: dbStats.first_downs || 19.6,
+      
+      // Penalties
+      penalties: dbStats.penalties || 7.3,
+      penaltyYards: dbStats.penalty_yards || 58.4,
+      
+      // Turnovers
+      turnoversLost: dbStats.turnovers_lost || 1.2,
+      fumblesLost: dbStats.fumbles_lost || 0.5,
+      
+      // Defensive passing
+      defPassCompletionsAllowed: dbStats.def_pass_completions_allowed || 21.6,
+      defPassAttempts: dbStats.def_pass_attempts || 32.7,
+      defPassingYardsAllowed: dbStats.def_passing_yards_allowed || 213.8,
+      defPassingTdsAllowed: dbStats.def_passing_tds_allowed || 1.6,
+      defInterceptions: dbStats.def_interceptions || 0.7,
+      
+      // Defensive rushing
+      defRushingAttemptsAllowed: dbStats.def_rushing_attempts_allowed || 26.3,
+      defRushingYardsAllowed: dbStats.def_rushing_yards_allowed || 114.5,
+      defRushingTdsAllowed: dbStats.def_rushing_tds_allowed || 0.9,
+      
+      // Defensive totals
+      defTotalPlays: dbStats.def_total_plays || 61.2,
+      defYardsPerPlayAllowed: dbStats.def_yards_per_play_allowed || 5.4,
+      defFirstDownsAllowed: dbStats.def_first_downs_allowed || 19.6,
+      
+      // Turnovers forced
+      turnoversForced: dbStats.turnovers_forced || 1.2,
+      fumblesForced: dbStats.fumbles_forced || 0.5
+    };
+  } catch (error) {
+    console.error(`Error fetching stats for ${teamName}:`, error);
+    return null;
+  }
+}
+
 function getDefaultTeamStats(teamName: string): TeamStats {
+  // League average stats for defaults (fallback only)
   return {
     team: teamName,
-    offensiveYardsPerGame: 350,
-    defensiveYardsAllowed: 350,
-    pointsPerGame: 22,
-    pointsAllowedPerGame: 22,
+    gamesPlayed: 5,
+    
+    // Basic stats
+    offensiveYardsPerGame: 328.3,
+    defensiveYardsAllowed: 328.3,
+    pointsPerGame: 23.4,
+    pointsAllowedPerGame: 23.4,
     turnoverDifferential: 0,
-    thirdDownConversionRate: 40,
-    redZoneEfficiency: 55
+    thirdDownConversionRate: 40.0,
+    redZoneEfficiency: 55.0,
+    
+    // Offensive passing
+    passCompletions: 21.6,
+    passAttempts: 32.7,
+    passCompletionPct: 65.9,
+    passingYards: 213.8,
+    passingTds: 1.6,
+    interceptionsThrown: 0.7,
+    yardsPerPassAttempt: 7.0,
+    
+    // Offensive rushing
+    rushingAttempts: 26.3,
+    rushingYards: 114.5,
+    rushingTds: 0.9,
+    yardsPerRush: 4.4,
+    
+    // Offensive totals
+    totalPlays: 61.2,
+    yardsPerPlay: 5.4,
+    firstDowns: 19.6,
+    
+    // Penalties
+    penalties: 7.3,
+    penaltyYards: 58.4,
+    
+    // Turnovers
+    turnoversLost: 1.2,
+    fumblesLost: 0.5,
+    
+    // Defensive passing
+    defPassCompletionsAllowed: 21.6,
+    defPassAttempts: 32.7,
+    defPassingYardsAllowed: 213.8,
+    defPassingTdsAllowed: 1.6,
+    defInterceptions: 0.7,
+    
+    // Defensive rushing
+    defRushingAttemptsAllowed: 26.3,
+    defRushingYardsAllowed: 114.5,
+    defRushingTdsAllowed: 0.9,
+    
+    // Defensive totals
+    defTotalPlays: 61.2,
+    defYardsPerPlayAllowed: 5.4,
+    defFirstDownsAllowed: 19.6,
+    
+    // Turnovers forced
+    turnoversForced: 1.2,
+    fumblesForced: 0.5
   };
 }
 
@@ -301,6 +606,17 @@ export default async function handler(
       });
     }
 
+    // Get Supabase credentials from env
+    const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+    
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
+      return response.status(500).json({
+        error: 'Supabase configuration missing',
+        hint: 'Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables'
+      });
+    }
+
     // Process each game
     const predictions = [];
     const errors = [];
@@ -309,9 +625,14 @@ export default async function handler(
       try {
         console.log(`Processing: ${game.away_team} @ ${game.home_team}`);
         
-        // Get default team stats (ESPN API often unreliable)
-        const homeStats = getDefaultTeamStats(game.home_team);
-        const awayStats = getDefaultTeamStats(game.away_team);
+        // Fetch team stats from database (using your imported CSV data)
+        const homeStats = await fetchTeamStatsFromDatabase(game.home_team, SUPABASE_URL, SUPABASE_KEY) 
+          || getDefaultTeamStats(game.home_team);
+        const awayStats = await fetchTeamStatsFromDatabase(game.away_team, SUPABASE_URL, SUPABASE_KEY)
+          || getDefaultTeamStats(game.away_team);
+        
+        console.log(`${game.home_team} stats: 3D%=${homeStats.thirdDownConversionRate}, RZ%=${homeStats.redZoneEfficiency}`);
+        console.log(`${game.away_team} stats: 3D%=${awayStats.thirdDownConversionRate}, RZ%=${awayStats.redZoneEfficiency}`);
 
         // Extract odds from best bookmaker
         const bookmaker = game.bookmakers.find(b => b.key === 'draftkings') || game.bookmakers[0];
