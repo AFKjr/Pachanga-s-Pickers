@@ -53,20 +53,22 @@ function AppRoutes() {
 }
 
 function App() {
+  const isAdminRoute = window.location.pathname.startsWith('/admin');
+  
   return (
     <AuthProvider>
       <div className="min-h-screen bg-gray-900 text-gray-100">
         {/* Only show Header on non-admin routes */}
-        {!window.location.pathname.startsWith('/admin') && <Header />}
+        {!isAdminRoute && <Header />}
         
-        {!window.location.pathname.startsWith('/admin') && (
+        {/* Render routes with or without container based on route type */}
+        {!isAdminRoute ? (
           <main className="container mx-auto px-4 py-8">
             <AppRoutes />
           </main>
+        ) : (
+          <AppRoutes />
         )}
-        
-        {/* Admin routes render without Header or container */}
-        {window.location.pathname.startsWith('/admin') && <AppRoutes />}
       </div>
     </AuthProvider>
   );
