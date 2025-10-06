@@ -22,7 +22,6 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
   useEffect(() => {
     loadPicks();
     
-    // Listen for global refresh events
     const handleRefreshPicks = () => {
       loadPicks();
     };
@@ -30,7 +29,6 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
     globalEvents.on('refreshPicks', handleRefreshPicks);
     globalEvents.on('refreshStats', handleRefreshPicks);
 
-    // Cleanup event listeners
     return () => {
       globalEvents.off('refreshPicks', handleRefreshPicks);
       globalEvents.off('refreshStats', handleRefreshPicks);
@@ -50,12 +48,10 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
       const allPicks = data || [];
       setPicks(allPicks);
 
-      // Get available weeks (use getPickWeek for picks without stored week)
       const weeks = [...new Set(allPicks.map(pick => pick.week || getPickWeek(pick)).filter(Boolean))]
-        .sort((a, b) => b - a); // Most recent first
+        .sort((a, b) => b - a);
       setAvailableWeeks(weeks);
       
-      // Set default to most recent week
       if (!selectedWeek && weeks.length > 0) {
         setSelectedWeek(weeks[0]);
       }
@@ -133,7 +129,7 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
             <div key={pick.id} className="bg-gray-700 rounded-lg p-4 hover:bg-gray-650 transition-colors">
               {/* Game Header */}
               <div className="flex items-center justify-between mb-3">
-                <div className="text-white font-semibold">
+                <div className="text-white font-semibold text-sm">
                   {pick.game_info.away_team} @ {pick.game_info.home_team}
                 </div>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getResultColor(pick.result)}`}>
@@ -141,39 +137,78 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
                 </span>
               </div>
 
-              {/* Prediction */}
+              {/* Moneyline Prediction */}
               <div className="mb-3">
                 <div className="text-green-400 font-medium text-sm mb-1">
                   {pick.prediction}
                 </div>
                 
-                {/* ATS and O/U Predictions */}
+                {/* Spread & O/U Predictions with Lines */}
                 {(pick.spread_prediction || pick.ou_prediction) && (
-                  <div className="flex flex-wrap gap-2 mt-2">
+                  <div className="space-y-2 mt-2">
                     {pick.spread_prediction && (
-                      <div className="bg-gray-600 px-2 py-1 rounded text-xs">
-                        <span className="text-gray-300 mr-1">ATS:</span>
-                        <span className="text-white font-medium">{pick.spread_prediction}</span>
+                      <div className="bg-gray-600 px-2 py-1.5 rounded text-xs">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-gray-300 mr-1">ATS:</span>
+                            <span className="text-white font-medium">{pick.spread_prediction}</span>
+                          </div>
+                          {pick.game_info.spread !== undefined && (
+                            <span className="text-gray-400">
+                              Line: {pick.game_info.spread > 0 ? '+' : ''}{pick.game_info.spread}
+                            </span>
+                          )}
+                        </div>
+                        {pick.ats_result && pick.ats_result !== 'pending' && (
+                          <div className={`mt-1 text-xs font-medium ${
+                            pick.ats_result === 'win' ? 'text-green-400' :
+                            pick.ats_result === 'loss' ? 'text-red-400' :
+                            'text-yellow-400'
+                          }`}>
+                            ATS: {pick.ats_result.toUpperCase()}
+                          </div>
+                        )}
                       </div>
                     )}
+                    
                     {pick.ou_prediction && (
-                      <div className="bg-gray-600 px-2 py-1 rounded text-xs">
-                        <span className="text-gray-300 mr-1">O/U:</span>
-                        <span className="text-white font-medium">{pick.ou_prediction}</span>
+                      <div className="bg-gray-600 px-2 py-1.5 rounded text-xs">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-gray-300 mr-1">O/U:</span>
+                            <span className="text-white font-medium">{pick.ou_prediction}</span>
+                          </div>
+                          {pick.game_info.over_under !== undefined && (
+                            <span className="text-gray-400">
+                              Line: {pick.game_info.over_under}
+                            </span>
+                          )}
+                        </div>
+                        {pick.ou_result && pick.ou_result !== 'pending' && (
+                          <div className={`mt-1 text-xs font-medium ${
+                            pick.ou_result === 'win' ? 'text-green-400' :
+                            pick.ou_result === 'loss' ? 'text-red-400' :
+                            'text-yellow-400'
+                          }`}>
+                            O/U: {pick.ou_result.toUpperCase()}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 )}
               </div>
 
-              {/* Key reasoning (shortened and cleaned) */}
-              <div className="text-gray-300 text-sm mb-3 line-clamp-2">
-                
+              {/* Odds Source */}
+              <div className="text-xs text-gray-500 mb-2 flex items-center">
+                <span className="mr-1">📊</span>
+                <span>Odds via DraftKings</span>
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-end text-xs text-gray-400">
+              <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-600">
                 <span>{formatGameDate(pick.game_info.game_date, true)}</span>
+                <span className="text-blue-400">{pick.confidence}% confidence</span>
               </div>
             </div>
           ))}
