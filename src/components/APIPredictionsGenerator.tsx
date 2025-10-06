@@ -169,7 +169,7 @@ export default function APIPredictionsGenerator() {
                     Predicted Score: {pred.monte_carlo_results.predicted_home_score} - {pred.monte_carlo_results.predicted_away_score}
                   </p>
                   <p className="text-gray-400">
-                    ({pred.monte_carlo_results.iterations.toLocaleString()} iterations)
+                    ML: {pred.monte_carlo_results.moneyline_probability.toFixed(1)}% | ATS: {pred.monte_carlo_results.spread_probability.toFixed(1)}% | O/U: {pred.monte_carlo_results.total_probability.toFixed(1)}%
                   </p>
                 </div>
               </div>

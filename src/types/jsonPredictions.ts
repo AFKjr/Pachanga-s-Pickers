@@ -3,13 +3,16 @@
  */
 
 export interface MonteCarloResults {
-  iterations: number;
+  moneyline_probability: number;
+  spread_probability: number;
+  total_probability: number;
   home_win_probability: number;
   away_win_probability: number;
+  spread_cover_probability: number;
+  over_probability: number;
+  under_probability: number;
   predicted_home_score: number;
   predicted_away_score: number;
-  confidence_interval_low: number;
-  confidence_interval_high: number;
 }
 
 export interface TeamRecord {

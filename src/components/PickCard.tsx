@@ -50,7 +50,14 @@ const PickCard = ({ pick, showComments = true, onCommentClick }: PickCardProps) 
 
           {/* Prediction */}
           <div className="mb-3">
-            <p className="text-gray-300 mb-2">{pick.prediction}</p>
+            <div className="flex items-center gap-2 mb-2">
+              <p className="text-gray-300">{pick.prediction}</p>
+              {pick.monte_carlo_results?.moneyline_probability && (
+                <span className="text-sm text-green-400 font-medium">
+                  ({pick.monte_carlo_results.moneyline_probability.toFixed(1)}%)
+                </span>
+              )}
+            </div>
             
             {/* ATS and O/U Predictions */}
             {(pick.spread_prediction || pick.ou_prediction) && (
@@ -59,12 +66,22 @@ const PickCard = ({ pick, showComments = true, onCommentClick }: PickCardProps) 
                   <div className="bg-gray-700 px-3 py-1.5 rounded-md">
                     <span className="text-xs text-gray-400 mr-1.5">ATS:</span>
                     <span className="text-sm text-white font-medium">{pick.spread_prediction}</span>
+                    {pick.monte_carlo_results?.spread_probability && (
+                      <span className="text-xs text-green-400 ml-1.5 font-medium">
+                        ({pick.monte_carlo_results.spread_probability.toFixed(1)}%)
+                      </span>
+                    )}
                   </div>
                 )}
                 {pick.ou_prediction && (
                   <div className="bg-gray-700 px-3 py-1.5 rounded-md">
                     <span className="text-xs text-gray-400 mr-1.5">O/U:</span>
                     <span className="text-sm text-white font-medium">{pick.ou_prediction}</span>
+                    {pick.monte_carlo_results?.total_probability && (
+                      <span className="text-xs text-green-400 ml-1.5 font-medium">
+                        ({pick.monte_carlo_results.total_probability.toFixed(1)}%)
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

@@ -14,6 +14,7 @@ export interface Pick {
   week: number;
   schedule_id: string | null;
   game_info: GameInfo;
+  monte_carlo_results?: MonteCarloResults;
   // UI/Display fields (optional)
   is_pinned?: boolean;
   user_id?: string;
@@ -21,6 +22,19 @@ export interface Pick {
   upvotes?: number;
   downvotes?: number;
   comments_count?: number;
+}
+
+export interface MonteCarloResults {
+  moneyline_probability: number;
+  spread_probability: number;
+  total_probability: number;
+  home_win_probability: number;
+  away_win_probability: number;
+  spread_cover_probability: number;
+  over_probability: number;
+  under_probability: number;
+  predicted_home_score: number;
+  predicted_away_score: number;
 }
 
 export interface GameInfo {

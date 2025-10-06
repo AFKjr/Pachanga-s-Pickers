@@ -542,18 +542,22 @@ function generateReasoning(
   const factors: string[] = [];
 
   factors.push(
-    `Monte Carlo simulation (${simResult.iterations.toLocaleString()} iterations) projects ` +
+    `Monte Carlo simulation projects ` +
     `${homeTeam} ${simResult.predictedHomeScore} - ${awayTeam} ${simResult.predictedAwayScore}`
   );
   
   const winningTeam = simResult.homeWinProbability > simResult.awayWinProbability ? homeTeam : awayTeam;
   const winProb = Math.max(simResult.homeWinProbability, simResult.awayWinProbability);
-  factors.push(`${winningTeam} has ${winProb.toFixed(1)}% win probability`);
+  factors.push(`${winningTeam} wins ${winProb.toFixed(1)}% of simulations`);
 
-  factors.push(`Spread analysis shows ${simResult.spreadCoverProbability.toFixed(1)}% cover probability`);
+  const spreadCoverProb = simResult.spreadCoverProbability > 50 
+    ? simResult.spreadCoverProbability 
+    : 100 - simResult.spreadCoverProbability;
+  factors.push(`${spreadPick} covers ${spreadCoverProb.toFixed(1)}% of simulations`);
   
   const totalPoints = simResult.predictedHomeScore + simResult.predictedAwayScore;
-  factors.push(`Projected total of ${totalPoints} points suggests ${totalPick}`);
+  const totalProb = simResult.overProbability > 50 ? simResult.overProbability : simResult.underProbability;
+  factors.push(`Projected total of ${totalPoints} points, ${totalPick} hits ${totalProb.toFixed(1)}% of simulations`);
 
   return factors.join('; ');
 }
@@ -647,7 +651,7 @@ export default async function handler(
         // Run Monte Carlo simulation
         const simResult = runMonteCarloSimulation(homeStats, awayStats, homeSpread, total);
       
-        // Generate recommendations
+        // Generate recommendations with correct logic
         const moneylinePick = simResult.homeWinProbability > simResult.awayWinProbability
           ? game.home_team : game.away_team;
         const moneylineProb = Math.max(simResult.homeWinProbability, simResult.awayWinProbability);
@@ -656,21 +660,27 @@ export default async function handler(
         const spreadPick = simResult.spreadCoverProbability > 50
           ? `${game.home_team} ${homeSpread > 0 ? '+' : ''}${homeSpread}`
           : `${game.away_team} ${-homeSpread > 0 ? '+' : ''}${-homeSpread}`;
-        const spreadConfidence = getConfidenceLevel(
-          Math.max(simResult.spreadCoverProbability, 100 - simResult.spreadCoverProbability)
-        );
+        const spreadProb = Math.max(simResult.spreadCoverProbability, 100 - simResult.spreadCoverProbability);
+        const spreadConfidence = getConfidenceLevel(spreadProb);
 
         const totalPick = simResult.overProbability > 50 ? 'Over' : 'Under';
         const totalProb = Math.max(simResult.overProbability, simResult.underProbability);
         const totalConfidence = getConfidenceLevel(totalProb);
 
+        // Convert UTC time to EST/EDT for proper game date
+        const gameDateTime = new Date(game.commence_time);
+        // Subtract 4-5 hours to convert from UTC to US Eastern time
+        const estOffset = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
+        const estDate = new Date(gameDateTime.getTime() - estOffset);
+        const formattedDate = estDate.toISOString().split('T')[0];
+        
         // Format for database
         predictions.push({
           game_info: {
             home_team: game.home_team,
             away_team: game.away_team,
             league: 'NFL',
-            game_date: game.commence_time.split('T')[0],
+            game_date: formattedDate,
             spread: homeSpread,
             over_under: total,
             home_score: null,
@@ -691,9 +701,14 @@ export default async function handler(
           result: 'pending',
           week: calculateNFLWeek(new Date(game.commence_time)),
           monte_carlo_results: {
-            iterations: simResult.iterations,
+            moneyline_probability: moneylineProb,
+            spread_probability: spreadProb,
+            total_probability: totalProb,
             home_win_probability: simResult.homeWinProbability,
             away_win_probability: simResult.awayWinProbability,
+            spread_cover_probability: simResult.spreadCoverProbability,
+            over_probability: simResult.overProbability,
+            under_probability: simResult.underProbability,
             predicted_home_score: simResult.predictedHomeScore,
             predicted_away_score: simResult.predictedAwayScore
           }
