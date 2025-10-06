@@ -140,14 +140,28 @@ const CSVImportStats: React.FC = () => {
 
     for (let i = headerLineIndex + 1; i < lines.length; i++) {
       const line = lines[i].trim();
-      if (!line || line.startsWith('"---') || line.toLowerCase().includes('avg team') || line.toLowerCase().includes('league total')) {
+      
+      // Skip empty lines, dividers, and summary rows
+      if (!line || line.startsWith('"---') || 
+          line.toLowerCase().includes('avg team') || 
+          line.toLowerCase().includes('league total') ||
+          line.toLowerCase().includes('avg tm/g')) {
         continue;
+      }
+      
+      // Stop parsing if we hit the conversions table
+      if (conversionsHeaderIndex !== -1 && i >= conversionsHeaderIndex) {
+        break;
       }
 
       const values = line.split(',').map((v: string) => v.replace(/"/g, '').trim());
       const teamName = values[1]; // Tm is at index 1
       
-      if (!teamName || teamName === '' || /^\d+$/.test(teamName)) {
+      // Skip invalid team names (single letters, numbers, summary labels)
+      if (!teamName || teamName === '' || /^\d+$/.test(teamName) || 
+          teamName.length <= 2 || // Skip "G", "Tm", etc.
+          teamName.toLowerCase() === 'tm' || 
+          teamName.toLowerCase() === 'g') {
         continue;
       }
 
@@ -244,14 +258,23 @@ const CSVImportStats: React.FC = () => {
 
     for (let i = headerLineIndex + 1; i < lines.length; i++) {
       const line = lines[i].trim();
-      if (!line || line.startsWith('"---') || line.toLowerCase().includes('avg team') || line.toLowerCase().includes('league total')) {
+      
+      // Skip empty lines, dividers, and summary rows
+      if (!line || line.startsWith('"---') || 
+          line.toLowerCase().includes('avg team') || 
+          line.toLowerCase().includes('league total') ||
+          line.toLowerCase().includes('avg tm/g')) {
         continue;
       }
 
       const values = line.split(',').map((v: string) => v.replace(/"/g, '').trim());
       const teamName = values[1]; // Tm is at index 1
       
-      if (!teamName || teamName === '' || /^\d+$/.test(teamName)) {
+      // Skip invalid team names (single letters, numbers, summary labels)
+      if (!teamName || teamName === '' || /^\d+$/.test(teamName) || 
+          teamName.length <= 2 || // Skip "G", "Tm", etc.
+          teamName.toLowerCase() === 'tm' || 
+          teamName.toLowerCase() === 'g') {
         continue;
       }
 
