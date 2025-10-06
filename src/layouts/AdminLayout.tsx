@@ -12,10 +12,11 @@ const AdminLayout: React.FC = () => {
   };
 
   const navItems = [
-    { path: '/admin', label: 'Dashboard', icon: '' },
-    { path: '/admin/generate', label: 'Generate', icon: '' },
-    { path: '/admin/manage', label: 'Manage', icon: '' },
-    { path: '/admin/results', label: 'Results', icon: '' },
+    { path: '/admin', label: 'Dashboard', icon: '📊' },
+    { path: '/admin/generate', label: 'Generate', icon: '🎲' },
+    { path: '/admin/manage', label: 'Manage', icon: '📝' },
+    { path: '/admin/results', label: 'Results', icon: '✅' },
+    { path: '/admin/team-stats', label: 'Team Stats', icon: '📈' },
   ];
 
   return (
@@ -48,7 +49,7 @@ const AdminLayout: React.FC = () => {
             to="/"
             className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
           >
-            <span></span>
+            <span>🏠</span>
             <span>Back to Site</span>
           </Link>
         </div>

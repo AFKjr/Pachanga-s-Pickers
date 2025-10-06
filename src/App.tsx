@@ -11,6 +11,7 @@ const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'));
 const GeneratePicksPage = lazy(() => import('./pages/admin/GeneratePicksPage'));
 const ManagePicksPage = lazy(() => import('./pages/admin/ManagePicksPage'));
 const UpdateResultsPage = lazy(() => import('./pages/admin/UpdateResultsPage'));
+const TeamStatsPage = lazy(() => import('./pages/admin/TeamStatsPage'));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -44,6 +45,7 @@ function AppRoutes() {
           <Route path="generate" element={<GeneratePicksPage />} />
           <Route path="manage" element={<ManagePicksPage />} />
           <Route path="results" element={<UpdateResultsPage />} />
+          <Route path="team-stats" element={<TeamStatsPage />} />
         </Route>
       </Routes>
     </Suspense>
