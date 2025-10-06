@@ -176,7 +176,9 @@ export function extractBettingDetails(jsonData: PredictionData) {
       homeWinProb: game.monte_carlo_results.home_win_probability,
       awayWinProb: game.monte_carlo_results.away_win_probability,
       predictedScore: `${game.monte_carlo_results.predicted_home_score} - ${game.monte_carlo_results.predicted_away_score}`,
-      iterations: game.monte_carlo_results.iterations
+      moneylineProb: game.monte_carlo_results.moneyline_probability,
+      spreadProb: game.monte_carlo_results.spread_probability,
+      totalProb: game.monte_carlo_results.total_probability
     },
     keyFactors: game.key_factors
   }));
