@@ -1,6 +1,5 @@
 import React from 'react';
 import APIPredictionsGenerator from '../../components/APIPredictionsGenerator';
-import AdminDataEntry from '../../components/AdminDataEntry';
 
 const GeneratePicksPage: React.FC = () => {
   return (
@@ -13,9 +12,6 @@ const GeneratePicksPage: React.FC = () => {
       </div>
 
       <APIPredictionsGenerator />
-      
-      {/* Keep the manual AdminDataEntry as fallback */}
-      <AdminDataEntry />
     </div>
   );
 };
