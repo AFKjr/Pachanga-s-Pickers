@@ -249,9 +249,16 @@ const AdminPickResults: React.FC = () => {
       }
     };
 
-    // Calculate results if both scores are provided
-    if (awayScore !== undefined && homeScore !== undefined) {
+    // Calculate results if both scores are provided (not null and not undefined)
+    if (awayScore !== undefined && awayScore !== null && homeScore !== undefined && homeScore !== null) {
+      console.log('Calculating results for:', pick.game_info.away_team, 'vs', pick.game_info.home_team);
+      console.log('Scores:', { away: awayScore, home: homeScore });
+      console.log('Prediction:', pick.prediction);
+      
       const results = calculateAllResultsFromScores(updatedPick);
+      
+      console.log('Calculated results:', results);
+      
       updatedPick.result = results.moneyline; // Moneyline result
       updatedPick.ats_result = results.ats; // ATS result
       updatedPick.ou_result = results.overUnder; // O/U result

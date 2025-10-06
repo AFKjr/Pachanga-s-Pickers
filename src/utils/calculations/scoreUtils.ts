@@ -12,24 +12,44 @@ export const extractPredictedTeam = (pick: Pick): 'home' | 'away' | 'unknown' =>
   const homeTeamLower = pick.game_info.home_team.toLowerCase();
   const awayTeamLower = pick.game_info.away_team.toLowerCase();
   
-  // Extract team city/name for matching
-  const homeCity = homeTeamLower.split(' ')[0];
-  const awayCity = awayTeamLower.split(' ')[0];
-  const homeLastWord = homeTeamLower.split(' ').pop() || '';
-  const awayLastWord = awayTeamLower.split(' ').pop() || '';
+  // First check for FULL team name match (most reliable)
+  const mentionsHomeFullName = predictionLower.includes(homeTeamLower);
+  const mentionsAwayFullName = predictionLower.includes(awayTeamLower);
   
-  // Check for specific team mentions
-  const mentionsHome = 
-    predictionLower.includes(homeTeamLower) ||
-    predictionLower.includes(homeCity) ||
-    predictionLower.includes(homeLastWord);
-    
-  const mentionsAway = 
-    predictionLower.includes(awayTeamLower) ||
-    predictionLower.includes(awayCity) ||
-    predictionLower.includes(awayLastWord);
+  if (mentionsHomeFullName && !mentionsAwayFullName) return 'home';
+  if (mentionsAwayFullName && !mentionsHomeFullName) return 'away';
   
-  // If prediction clearly mentions one team and not the other
+  // If full name doesn't work, try city + nickname combinations
+  const homeParts = homeTeamLower.split(' ');
+  const awayParts = awayTeamLower.split(' ');
+  
+  // For multi-word cities like "New Orleans" or "New York", check full city name
+  let homeCity = homeParts[0];
+  let awayCity = awayParts[0];
+  
+  // Handle two-word cities
+  if (homeParts.length >= 3 && (homeParts[0] === 'new' || homeParts[0] === 'los')) {
+    homeCity = `${homeParts[0]} ${homeParts[1]}`;
+  }
+  if (awayParts.length >= 3 && (awayParts[0] === 'new' || awayParts[0] === 'los')) {
+    awayCity = `${awayParts[0]} ${awayParts[1]}`;
+  }
+  
+  const homeNickname = homeParts[homeParts.length - 1];
+  const awayNickname = awayParts[awayParts.length - 1];
+  
+  // Check city mentions (must be more specific than just "new" or "los")
+  const mentionsHomeCity = homeCity.length > 3 && predictionLower.includes(homeCity);
+  const mentionsAwayCity = awayCity.length > 3 && predictionLower.includes(awayCity);
+  
+  // Check nickname mentions
+  const mentionsHomeNickname = homeNickname.length > 3 && predictionLower.includes(homeNickname);
+  const mentionsAwayNickname = awayNickname.length > 3 && predictionLower.includes(awayNickname);
+  
+  // If only one team is mentioned by city or nickname
+  const mentionsHome = mentionsHomeCity || mentionsHomeNickname;
+  const mentionsAway = mentionsAwayCity || mentionsAwayNickname;
+  
   if (mentionsHome && !mentionsAway) return 'home';
   if (mentionsAway && !mentionsHome) return 'away';
   
