@@ -17,8 +17,8 @@ export interface AtomicOperationResult {
 }
 
 export interface AtomicOperationOptions {
-  continueOnError?: boolean; // If false, stops on first error (default: false)
-  validateBeforeCommit?: boolean; // If true, validates all operations before executing any (default: true)
+  continueOnError?: boolean;
+  validateBeforeCommit?: boolean;
 }
 
 /**
@@ -93,8 +93,8 @@ export async function executeAtomicOperations(
       
       return {
         success: false,
-        successfulOperations: [], // All rolled back
-        failedOperations: operations, // All considered failed
+        successfulOperations: [],
+        failedOperations: operations,
         error: createAppError(
           new Error('Atomic operation failed and was rolled back'),
           {
@@ -114,6 +114,7 @@ export async function executeAtomicOperations(
     const success = failedOperations.length === 0;
     
     if (success) {
+      console.log(`Successfully completed all ${operations.length} operations`);
     } else {
       console.warn(`Completed with ${successfulOperations.length}/${operations.length} successful operations`);
     }
@@ -139,7 +140,6 @@ export async function executeAtomicOperations(
   } catch (error) {
     console.error('Atomic operations failed during execution:', error);
     
-    // If we have successful operations and a critical error occurred, attempt rollback
     if (successfulOperations.length > 0) {
       try {
         await rollbackOperations(successfulOperations);
@@ -150,7 +150,7 @@ export async function executeAtomicOperations(
 
     return {
       success: false,
-      successfulOperations: [], // All considered failed
+      successfulOperations: [],
       failedOperations: operations,
       error: error instanceof AppError ? error : createAppError(
         new Error('Critical failure during atomic operations'),
@@ -167,15 +167,13 @@ export async function executeAtomicOperations(
 
 /**
  * Attempts to rollback a list of successful operations.
- * This is a best-effort operation - some rollbacks may fail.
  */
 async function rollbackOperations(operations: PendingOperation<Pick>[]): Promise<void> {
+  console.log(`Attempting to rollback ${operations.length} operations...`);
   
-  // Process rollbacks in reverse order (LIFO)
   const rollbackPromises = operations.reverse().map(async (operation) => {
     try {
       if (operation.type === 'update') {
-        // Rollback update by restoring original values
         const originalPick = operation.originalData;
         const { error } = await picksApi.update(operation.id, {
           result: originalPick.result
@@ -185,9 +183,6 @@ async function rollbackOperations(operations: PendingOperation<Pick>[]): Promise
         }
         
       } else if (operation.type === 'delete') {
-        // Rollback delete by recreating the pick
-        // Note: This is complex as we need to recreate the entire pick
-        // For now, we'll log the issue and let the UI refresh handle it
         console.warn(`Cannot rollback delete operation for pick ${operation.id} - refresh required`);
       }
     } catch (error) {
@@ -195,7 +190,6 @@ async function rollbackOperations(operations: PendingOperation<Pick>[]): Promise
     }
   });
 
-  // Wait for all rollback attempts to complete
   await Promise.allSettled(rollbackPromises);
 }
 
@@ -203,19 +197,31 @@ async function rollbackOperations(operations: PendingOperation<Pick>[]): Promise
  * Validates that an operation is properly formed and safe to execute.
  */
 function isValidOperation(operation: PendingOperation<Pick>): boolean {
-  // Basic structure validation
   if (!operation.id || !operation.type || !operation.originalData) {
     return false;
   }
 
-  // Type-specific validation
   if (operation.type === 'update') {
     if (!operation.payload) {
       return false;
     }
     
-    // Validate payload contains only allowed fields
-    const allowedUpdateFields = ['result', 'game_info', 'prediction', 'spread_prediction', 'ou_prediction', 'confidence', 'reasoning', 'week', 'is_pinned', 'schedule_id'];
+    // FIXED: Added ats_result and ou_result to allowed fields
+    const allowedUpdateFields = [
+      'result', 
+      'ats_result',     // ← ADDED
+      'ou_result',      // ← ADDED
+      'game_info', 
+      'prediction', 
+      'spread_prediction', 
+      'ou_prediction', 
+      'confidence', 
+      'reasoning', 
+      'week', 
+      'is_pinned', 
+      'schedule_id'
+    ];
+    
     const payloadKeys = Object.keys(operation.payload);
     if (!payloadKeys.every(key => allowedUpdateFields.includes(key))) {
       console.warn('Invalid update field detected:', payloadKeys.filter(key => !allowedUpdateFields.includes(key)));
@@ -224,8 +230,24 @@ function isValidOperation(operation: PendingOperation<Pick>): boolean {
     
     // Validate result values
     if (operation.payload.result) {
-      const validResults = ['win', 'loss', 'push'];
+      const validResults = ['win', 'loss', 'push', 'pending'];
       if (!validResults.includes(operation.payload.result)) {
+        return false;
+      }
+    }
+
+    // Validate ats_result values
+    if (operation.payload.ats_result) {
+      const validResults = ['win', 'loss', 'push', 'pending'];
+      if (!validResults.includes(operation.payload.ats_result)) {
+        return false;
+      }
+    }
+
+    // Validate ou_result values
+    if (operation.payload.ou_result) {
+      const validResults = ['win', 'loss', 'push', 'pending'];
+      if (!validResults.includes(operation.payload.ou_result)) {
         return false;
       }
     }

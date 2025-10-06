@@ -3,6 +3,7 @@ import UnifiedAllTimeRecord from './UnifiedAllTimeRecord';
 import PicksDisplay from './PicksDisplay';
 import { useAuth } from '../contexts/AuthContext';
 import ProtectedContent from './ProtectedContent';
+import { globalEvents } from '../lib/events';
 
 // Lazy load the advanced stats component
 const ATSStatsComponent = lazy(() => import('./ATSStatsComponent'));
@@ -10,11 +11,26 @@ const ATSStatsComponent = lazy(() => import('./ATSStatsComponent'));
 const HomePage = () => {
   const { loading: authLoading } = useAuth();
   const [showAdvancedStats, setShowAdvancedStats] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (authLoading) {
       return;
     }
+
+    // Listen for refresh events from admin updates
+    const handleRefresh = () => {
+      console.log('HomePage: Received refresh event, updating components...');
+      setRefreshKey(prev => prev + 1);
+    };
+
+    globalEvents.on('refreshStats', handleRefresh);
+    globalEvents.on('refreshPicks', handleRefresh);
+
+    return () => {
+      globalEvents.off('refreshStats', handleRefresh);
+      globalEvents.off('refreshPicks', handleRefresh);
+    };
   }, [authLoading]);
 
   return (
@@ -28,10 +44,10 @@ const HomePage = () => {
         </div>
 
         {/* Unified All-Time Record - Combines Correct Moneyline + ATS + O/U */}
-        <UnifiedAllTimeRecord />
+        <UnifiedAllTimeRecord key={`record-${refreshKey}`} />
 
         {/* All Picks Display */}
-        <PicksDisplay maxPicks={16} showWeekFilter={true} />
+        <PicksDisplay key={`picks-${refreshKey}`} maxPicks={16} showWeekFilter={true} />
 
         {/* Advanced Analytics Toggle */}
         <div className="flex justify-center">
@@ -46,14 +62,14 @@ const HomePage = () => {
         {/* Lazy-loaded Advanced Stats */}
         {showAdvancedStats && (
           <Suspense fallback={<div className="animate-pulse h-64 bg-gray-800 rounded-lg" />}>
-            <ATSStatsComponent />
+            <ATSStatsComponent key={`stats-${refreshKey}`} />
           </Suspense>
         )}
 
         {/* Enhanced Disclaimer */}
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
           <div className="flex items-start space-x-3">
-            <span className="text-yellow-400 text-lg"></span>
+            <span className="text-yellow-400 text-lg">⚠️</span>
             <div>
               <p className="text-gray-300 text-sm">
                 <strong>Important Disclaimer:</strong> All predictions and betting analytics are for entertainment and educational purposes only.
