@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from './AuthModal';
 import { publicStatsApi } from '../lib/api';
+import { globalEvents } from '../lib/events';
 
 interface BetTypeStats {
   wins: number;
@@ -53,7 +54,6 @@ const LandingPage: React.FC = () => {
     fetchStats();
 
     // Listen for stats refresh events from admin updates
-    const { globalEvents } = require('../lib/events');
     const handleRefresh = () => {
       fetchStats();
     };
