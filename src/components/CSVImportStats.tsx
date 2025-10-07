@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { resolveTeamName } from '../utils/teamNameResolver';
 
 interface ExtendedTeamStats {
   team: string;
@@ -174,6 +175,15 @@ const CSVImportStats: React.FC = () => {
       }
 
       const games = parseFloat(values[2]) || 1; // G is at index 2
+      
+      // Debug logging for first team
+      if (teamName === 'Detroit Lions') {
+        console.log('🔍 DEBUG - Detroit Lions parsing:');
+        console.log('  Raw values[4] (total yards):', values[4]);
+        console.log('  Parsed totalYards:', parseFloat(values[4]));
+        console.log('  Games:', games);
+        console.log('  Full row:', values);
+      }
       
       statsMap.set(teamName, {
         team: teamName,
@@ -365,6 +375,14 @@ const CSVImportStats: React.FC = () => {
         const offPointsPerGame = offense ? offense.pointsFor / games : leagueAvgPoints;
         const defPointsPerGame = defense ? defense.pointsAgainst / games : leagueAvgPoints;
 
+        // Debug logging for first team
+        if (team === 'Detroit Lions') {
+          console.log('🔍 DEBUG - Detroit Lions merging:');
+          console.log('  offense.totalYards:', offense?.totalYards);
+          console.log('  games:', games);
+          console.log('  offYardsPerGame:', offYardsPerGame);
+        }
+
         // Turnover differential
         const turnoversGained = defense ? defense.turnoversForced : 0;
         const turnoversLost = offense ? offense.turnoversLost : 0;
@@ -441,6 +459,17 @@ const CSVImportStats: React.FC = () => {
       setParsedData(merged);
       setParsing(false);
 
+      // Log sample data for verification
+      const detroitData = merged.find(t => t.team === 'Detroit Lions');
+      if (detroitData) {
+        console.log('✅ PARSED DATA - Detroit Lions:', {
+          offYards: detroitData.offensiveYardsPerGame,
+          defYards: detroitData.defensiveYardsAllowed,
+          ppg: detroitData.pointsPerGame,
+          games: detroitData.gamesPlayed
+        });
+      }
+
       if (merged.length === 0) {
         setErrors(['No valid team data found in CSV files']);
       }
@@ -466,10 +495,24 @@ const CSVImportStats: React.FC = () => {
 
       for (const row of parsedData) {
         try {
+          // Resolve team name to canonical format
+          const canonicalName = resolveTeamName(row.team);
+          if (!canonicalName) {
+            console.warn(`⚠️ Skipping unknown team: "${row.team}"`);
+            importErrors.push(`Unknown team: "${row.team}" - not in NFL team list`);
+            failed++;
+            continue;
+          }
+
+          // Log if team name was normalized
+          if (canonicalName !== row.team) {
+            console.log(`📝 Normalized: "${row.team}" → "${canonicalName}"`);
+          }
+
           const { error } = await supabase
             .from('team_stats_cache')
             .upsert({
-              team_name: row.team,
+              team_name: canonicalName, // Use canonical name instead of raw CSV name
               games_played: row.gamesPlayed,
               
               // Offensive stats
@@ -533,23 +576,49 @@ const CSVImportStats: React.FC = () => {
               // Metadata
               source: 'csv',
               last_updated: new Date().toISOString()
+            }, {
+              onConflict: 'team_name',  // Explicitly specify the unique key for upsert
+              ignoreDuplicates: false    // Ensure we update existing records
             });
 
           if (error) {
+            console.error(`Error importing ${canonicalName}:`, error);
             throw error;
           }
+          
+          console.log(`✅ Imported/Updated: ${canonicalName} - Off Yds: ${row.offensiveYardsPerGame.toFixed(1)}`);
           imported++;
         } catch (err) {
           failed++;
-          importErrors.push(`${row.team}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+          const displayName = resolveTeamName(row.team) || row.team;
+          importErrors.push(`${displayName}: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
       }
 
       if (imported > 0) {
-        setSuccess(`Successfully imported ${imported} teams with extended stats (including 3rd down & red zone %)!`);
+        const timestamp = new Date().toLocaleTimeString();
+        
+        // Verify the import by fetching Detroit Lions as a test
+        const { data: verifyData } = await supabase
+          .from('team_stats_cache')
+          .select('team_name, offensive_yards_per_game, points_per_game, games_played, last_updated')
+          .eq('team_name', 'Detroit Lions')
+          .single();
+        
+        const failureNote = failed > 0 ? ` (${failed} skipped due to unknown team names)` : '';
+        
+        if (verifyData) {
+          console.log('✅ VERIFICATION - Data saved to database:', verifyData);
+          setSuccess(`✅ Successfully imported ${imported} teams at ${timestamp}${failureNote}! Detroit Lions: ${verifyData.offensive_yards_per_game.toFixed(1)} off yds/game. Refresh page (Ctrl+F5) to see all updates.`);
+        } else {
+          setSuccess(`✅ Successfully imported ${imported} teams at ${timestamp}${failureNote}! Refresh the page (Ctrl+F5) to see updated stats.`);
+        }
+        
         setParsedData([]);
         setOffensiveFile(null);
         setDefensiveFile(null);
+        
+        console.log('✅ Import completed successfully at', timestamp);
       }
 
       if (importErrors.length > 0) {

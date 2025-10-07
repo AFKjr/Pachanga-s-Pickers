@@ -3,6 +3,51 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// Team name resolution utility
+// Note: Since this is a Vercel function, we need to inline the resolver
+// or ensure the utils folder is included in the build
+const TEAM_NAME_MAPPINGS: Record<string, string> = {
+  // Full names with variations
+  'arizona cardinals': 'Arizona Cardinals',
+  'atlanta falcons': 'Atlanta Falcons',
+  'baltimore ravens': 'Baltimore Ravens',
+  'buffalo bills': 'Buffalo Bills',
+  'carolina panthers': 'Carolina Panthers',
+  'chicago bears': 'Chicago Bears',
+  'cincinnati bengals': 'Cincinnati Bengals',
+  'cleveland browns': 'Cleveland Browns',
+  'dallas cowboys': 'Dallas Cowboys',
+  'denver broncos': 'Denver Broncos',
+  'detroit lions': 'Detroit Lions',
+  'green bay packers': 'Green Bay Packers',
+  'houston texans': 'Houston Texans',
+  'indianapolis colts': 'Indianapolis Colts',
+  'jacksonville jaguars': 'Jacksonville Jaguars',
+  'kansas city chiefs': 'Kansas City Chiefs',
+  'las vegas raiders': 'Las Vegas Raiders',
+  'los angeles chargers': 'Los Angeles Chargers',
+  'los angeles rams': 'Los Angeles Rams',
+  'miami dolphins': 'Miami Dolphins',
+  'minnesota vikings': 'Minnesota Vikings',
+  'new england patriots': 'New England Patriots',
+  'new orleans saints': 'New Orleans Saints',
+  'new york giants': 'New York Giants',
+  'new york jets': 'New York Jets',
+  'philadelphia eagles': 'Philadelphia Eagles',
+  'pittsburgh steelers': 'Pittsburgh Steelers',
+  'san francisco 49ers': 'San Francisco 49ers',
+  'seattle seahawks': 'Seattle Seahawks',
+  'tampa bay buccaneers': 'Tampa Bay Buccaneers',
+  'tennessee titans': 'Tennessee Titans',
+  'washington commanders': 'Washington Commanders'
+};
+
+function resolveTeamName(teamName: string): string | null {
+  if (!teamName) return null;
+  const cleaned = teamName.trim().toLowerCase();
+  return TEAM_NAME_MAPPINGS[cleaned] || null;
+}
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -344,8 +389,14 @@ async function fetchNFLOdds(): Promise<OddsData[]> {
 
 async function fetchTeamStatsFromDatabase(teamName: string, supabaseUrl: string, supabaseKey: string): Promise<TeamStats | null> {
   try {
+    // Resolve team name to canonical format
+    const canonicalName = resolveTeamName(teamName);
+    const queryName = canonicalName || teamName; // Use canonical if found, otherwise try original
+    
+    console.log(`Fetching stats for: "${teamName}" → "${queryName}"`);
+    
     const response = await fetch(
-      `${supabaseUrl}/rest/v1/team_stats_cache?team_name=eq.${encodeURIComponent(teamName)}&select=*`,
+      `${supabaseUrl}/rest/v1/team_stats_cache?team_name=eq.${encodeURIComponent(queryName)}&select=*`,
       {
         method: 'GET',
         headers: {
@@ -357,13 +408,13 @@ async function fetchTeamStatsFromDatabase(teamName: string, supabaseUrl: string,
     );
 
     if (!response.ok) {
-      console.error(`Failed to fetch stats for ${teamName}: ${response.status}`);
+      console.error(`Failed to fetch stats for ${queryName}: ${response.status}`);
       return null;
     }
 
     const data = await response.json();
     if (!data || data.length === 0) {
-      console.warn(`No stats found for ${teamName} in database`);
+      console.warn(`No stats found for "${teamName}" (tried "${queryName}") in database`);
       return null;
     }
 
@@ -630,7 +681,12 @@ export default async function handler(
         console.log(`Processing: ${game.away_team} @ ${game.home_team}`);
         
         // Fetch team stats from database (using your imported CSV data)
-        const homeStats = await fetchTeamStatsFromDatabase(game.home_team, SUPABASE_URL, SUPABASE_KEY) 
+         const homeStats = await fetchTeamStatsFromDatabase(
+  game.home_team, // The Odds API name
+  SUPABASE_URL, 
+  SUPABASE_KEY,
+  true // new parameter: use_canonical_lookup
+)
           || getDefaultTeamStats(game.home_team);
         const awayStats = await fetchTeamStatsFromDatabase(game.away_team, SUPABASE_URL, SUPABASE_KEY)
           || getDefaultTeamStats(game.away_team);
