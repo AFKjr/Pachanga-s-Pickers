@@ -58,16 +58,31 @@ export default function APIPredictionsGenerator() {
       
       setPredictions(data.predictions);
 
-      // Save predictions to database
+      // Save predictions to database with pinned flag
       let savedCount = 0;
+      const saveErrors: string[] = [];
+      
       for (const prediction of data.predictions) {
-        const { error: saveError } = await picksApi.create(prediction);
+        const pickToSave = {
+          ...prediction,
+          is_pinned: true, // Mark AI predictions as pinned
+          user_id: session.user.id // Ensure user_id is set
+        };
+        
+        const { error: saveError } = await picksApi.create(pickToSave);
         if (!saveError) {
           savedCount++;
+        } else {
+          console.error('Failed to save prediction:', saveError);
+          saveErrors.push(`${prediction.game_info.away_team} @ ${prediction.game_info.home_team}`);
         }
       }
 
-      setSuccess(`Successfully generated and saved ${savedCount} predictions!`);
+      if (saveErrors.length > 0) {
+        setSuccess(`Saved ${savedCount} predictions. Failed: ${saveErrors.join(', ')}`);
+      } else {
+        setSuccess(`Successfully generated and saved ${savedCount} predictions!`);
+      }
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
