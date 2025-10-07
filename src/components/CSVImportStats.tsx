@@ -119,7 +119,11 @@ const CSVImportStats: React.FC = () => {
       }
     }
 
-    const headerLine = lines[headerLineIndex];
+    // Clean header line: remove surrounding quotes if the entire line is quoted
+    let headerLine = lines[headerLineIndex];
+    if (headerLine.startsWith('"') && headerLine.endsWith('"')) {
+      headerLine = headerLine.slice(1, -1); // Remove first and last quote
+    }
     const headers = headerLine.split(',').map((h: string) => h.replace(/"/g, '').trim());
     
     console.log('Offensive CSV Headers:', headers);
@@ -139,7 +143,7 @@ const CSVImportStats: React.FC = () => {
     }
 
     for (let i = headerLineIndex + 1; i < lines.length; i++) {
-      const line = lines[i].trim();
+      let line = lines[i].trim();
       
       // Skip empty lines, dividers, and summary rows
       if (!line || line.startsWith('"---') || 
@@ -154,6 +158,10 @@ const CSVImportStats: React.FC = () => {
         break;
       }
 
+      // Clean data line: remove surrounding quotes if the entire line is quoted
+      if (line.startsWith('"') && line.endsWith('"')) {
+        line = line.slice(1, -1); // Remove first and last quote
+      }
       const values = line.split(',').map((v: string) => v.replace(/"/g, '').trim());
       const teamName = values[1]; // Tm is at index 1
       
@@ -203,11 +211,15 @@ const CSVImportStats: React.FC = () => {
       console.log('Parsing conversions table...');
       
       for (let i = conversionsHeaderIndex + 1; i < lines.length; i++) {
-        const line = lines[i].trim();
+        let line = lines[i].trim();
         if (!line || line.startsWith('"---') || line.toLowerCase().includes('league total')) {
           continue;
         }
 
+        // Clean data line: remove surrounding quotes if the entire line is quoted
+        if (line.startsWith('"') && line.endsWith('"')) {
+          line = line.slice(1, -1); // Remove first and last quote
+        }
         const values = line.split(',').map((v: string) => v.replace(/"/g, '').replace('%', '').trim());
         const teamName = values[1]; // Tm is at index 1
         
@@ -248,7 +260,11 @@ const CSVImportStats: React.FC = () => {
       }
     }
 
-    const headerLine = lines[headerLineIndex];
+    // Clean header line: remove surrounding quotes if the entire line is quoted
+    let headerLine = lines[headerLineIndex];
+    if (headerLine.startsWith('"') && headerLine.endsWith('"')) {
+      headerLine = headerLine.slice(1, -1); // Remove first and last quote
+    }
     const headers = headerLine.split(',').map((h: string) => h.replace(/"/g, '').trim());
     
     console.log('Defensive CSV Headers:', headers);
@@ -257,7 +273,7 @@ const CSVImportStats: React.FC = () => {
     const statsMap = new Map<string, any>();
 
     for (let i = headerLineIndex + 1; i < lines.length; i++) {
-      const line = lines[i].trim();
+      let line = lines[i].trim();
       
       // Skip empty lines, dividers, and summary rows
       if (!line || line.startsWith('"---') || 
@@ -267,6 +283,10 @@ const CSVImportStats: React.FC = () => {
         continue;
       }
 
+      // Clean data line: remove surrounding quotes if the entire line is quoted
+      if (line.startsWith('"') && line.endsWith('"')) {
+        line = line.slice(1, -1); // Remove first and last quote
+      }
       const values = line.split(',').map((v: string) => v.replace(/"/g, '').trim());
       const teamName = values[1]; // Tm is at index 1
       
