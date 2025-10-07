@@ -685,7 +685,6 @@ export default async function handler(
   game.home_team, // The Odds API name
   SUPABASE_URL, 
   SUPABASE_KEY,
-  true // new parameter: use_canonical_lookup
 )
           || getDefaultTeamStats(game.home_team);
         const awayStats = await fetchTeamStatsFromDatabase(game.away_team, SUPABASE_URL, SUPABASE_KEY)
