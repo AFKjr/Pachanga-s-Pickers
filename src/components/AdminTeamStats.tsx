@@ -179,13 +179,20 @@ const AdminTeamStats: React.FC = () => {
         {/* ESPN API refresh disabled - use CSV import instead */}
       </div>
 
+      {/* Scroll hint */}
+      <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-3 mb-4">
+        <p className="text-sm text-blue-300">
+          💡 <strong>Tip:</strong> Scroll horizontally to see all 40+ team stats fields (passing, rushing, defense, turnovers, etc.)
+        </p>
+      </div>
+
       {/* Stats Table */}
-      <div className="bg-gray-800 rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-700">
+      <div className="bg-gray-800 rounded-lg overflow-hidden shadow-lg">
+        <div className="overflow-x-auto max-w-full">
+          <table className="w-full min-w-max">
+            <thead className="bg-gray-700 sticky top-0 z-10">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider sticky left-0 bg-gray-700 z-20">
                   Team
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
@@ -220,7 +227,7 @@ const AdminTeamStats: React.FC = () => {
             <tbody className="divide-y divide-gray-700">
               {stats.map((team) => (
                 <tr key={team.team_name} className="hover:bg-gray-750">
-                  <td className="px-4 py-3 text-sm font-medium text-white">
+                  <td className="px-4 py-3 text-sm font-medium text-white sticky left-0 bg-gray-800 z-10">
                     {team.team_name}
                   </td>
                   <td className="px-4 py-3 text-sm">

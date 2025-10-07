@@ -162,6 +162,7 @@ export const picksApi = {
           { operation: 'createPick', component: 'api.create' },
           'ADMIN_REQUIRED'
         );
+        console.error('Admin verification failed:', error);
         return { data: null, error };
       }
 
@@ -177,6 +178,17 @@ export const picksApi = {
       });
 
       if (!validation.isValid) {
+        console.error('Validation failed:', {
+          errors: validation.errors,
+          originalData: {
+            homeTeam: pick.game_info.home_team,
+            awayTeam: pick.game_info.away_team,
+            prediction: pick.prediction,
+            confidence: pick.confidence,
+            week: pick.week,
+            gameDate: pick.game_info.game_date
+          }
+        });
         const error = createAppError(
           new Error(`Invalid pick data: ${validation.errors.join(', ')}`),
           { 
@@ -200,10 +212,25 @@ export const picksApi = {
         },
         prediction: validation.sanitizedData.prediction,
         reasoning: validation.sanitizedData.reasoning,
-        confidence: validation.sanitizedData.confidence as any,
-        week: validation.sanitizedData.week as any,
-        user_id: user.id
+        // Ensure confidence is a valid number (required field)
+        confidence: validation.sanitizedData.confidence ?? 50,
+        // Ensure week is set (can be nullable in DB but validation expects it)
+        week: validation.sanitizedData.week,
+        // Use provided user_id or fall back to current user
+        user_id: pick.user_id || user.id,
+        // Ensure result fields have defaults
+        result: pick.result || 'pending',
+        ats_result: pick.ats_result || (pick.spread_prediction ? 'pending' : undefined),
+        ou_result: pick.ou_result || (pick.ou_prediction ? 'pending' : undefined)
       };
+
+      console.log('Attempting to save pick:', {
+        game: `${sanitizedPick.game_info.away_team} @ ${sanitizedPick.game_info.home_team}`,
+        week: sanitizedPick.week,
+        hasSpread: !!sanitizedPick.spread_prediction,
+        hasOU: !!sanitizedPick.ou_prediction,
+        hasMonteCarlo: !!sanitizedPick.monte_carlo_results
+      });
 
       const { data, error } = await supabase
         .from('picks')
@@ -212,6 +239,12 @@ export const picksApi = {
         .single();
 
       if (error) {
+        console.error('Supabase insert error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         const appError = handleSupabaseError(error, {
           operation: 'createPick',
           component: 'api.create',
@@ -220,8 +253,10 @@ export const picksApi = {
         return { data: null, error: appError };
       }
 
+      console.log('Pick saved successfully:', data.id);
       return { data, error: null };
     } catch (error) {
+      console.error('Unexpected error in create:', error);
       const appError = error instanceof AppError ? error : createAppError(error, {
         operation: 'createPick',
         component: 'api.create'
