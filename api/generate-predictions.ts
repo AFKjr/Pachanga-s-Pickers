@@ -3,7 +3,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { fetchGameWeather, applyWeatherAdjustments, formatWeatherForDisplay, type GameWeather } from '../src/utils/weatherService';
-import { SIMULATION_ITERATIONS, QUARTERS_PER_GAME, POSSESSIONS_PER_QUARTER, OFFENSIVE_STRENGTH_WEIGHTS, DEFENSIVE_STRENGTH_WEIGHTS, WEATHER_CONSTANTS } from '../src/utils/constants';
+import { SIMULATION_ITERATIONS, QUARTERS_PER_GAME, POSSESSIONS_PER_QUARTER } from '../src/utils/constants';
 
 // Team name resolution utility
 // Note: Since this is a Vercel function, we need to inline the resolver
@@ -152,6 +152,9 @@ interface SimulationResult {
 // MONTE CARLO SIMULATION
 // ============================================================================
 
+// Note: This basic version is kept for reference but not used
+// The weather-enhanced version (runMonteCarloSimulationWithWeather) is used instead
+/* eslint-disable @typescript-eslint/no-unused-vars */
 function runMonteCarloSimulation(
   homeStats: TeamStats,
   awayStats: TeamStats,
@@ -740,7 +743,7 @@ function generateReasoning(
   homeTeam: string,
   awayTeam: string,
   simResult: SimulationResult,
-  moneylinePick: string,
+  _moneylinePick: string, // Prefixed with _ to indicate intentionally unused
   spreadPick: string,
   totalPick: string,
   weatherExplanation?: string
@@ -889,13 +892,11 @@ export default async function handler(
         const homeSpread = spreadsMarket?.outcomes.find(o => o.name === game.home_team)?.point || 0;
         const total = totalsMarket?.outcomes[0]?.point || 45;
 
-        // ⭐ NEW: Apply weather adjustments to offensive/defensive strength
-        let adjustedHomeStats = homeStats;
-        let adjustedAwayStats = awayStats;
+        // Weather adjustments are applied inside runMonteCarloSimulationWithWeather
         let weatherExplanation = '';
         
         if (gameWeather && !gameWeather.isDome) {
-          // Apply weather adjustments to home team (offense vs away defense)
+          // Calculate weather explanation for logging
           const homeOffenseAdjustment = applyWeatherAdjustments(
             gameWeather,
             calculateOffensiveStrength(homeStats),
@@ -907,7 +908,6 @@ export default async function handler(
             }
           );
           
-          // Apply weather adjustments to away team (offense vs home defense)
           const awayOffenseAdjustment = applyWeatherAdjustments(
             gameWeather,
             calculateOffensiveStrength(awayStats),
