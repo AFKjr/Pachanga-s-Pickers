@@ -141,7 +141,7 @@ export const getNFLWeekFromDate = (gameDate: string | Date): NFLWeek | null => {
 
 /**
  * Enhanced week detection for picks
- * Prioritizes: stored week > date mapping > fallback calculation
+ * Prioritizes: stored week > date mapping > fallback ONLY for 2025 season
  */
 export const getPickWeek = (pick: { week?: number; game_info: { game_date: string; away_team: string; home_team: string } }): number => {
   const gameTeams = `${pick.game_info.away_team} @ ${pick.game_info.home_team}`;
@@ -151,7 +151,7 @@ export const getPickWeek = (pick: { week?: number; game_info: { game_date: strin
     return pick.week;
   }
 
-  // 2. Try to get week from official schedule mapping
+  // 2. Try to get week from official schedule mapping (most reliable)
   const weekFromDate = getNFLWeekFromDate(pick.game_info.game_date);
   if (weekFromDate) {
     return weekFromDate;
@@ -161,24 +161,25 @@ export const getPickWeek = (pick: { week?: number; game_info: { game_date: strin
   const dateValidation = validateGameDate(pick.game_info.game_date, pick.game_info);
   
   if (!dateValidation.isValid) {
-    console.error(`Invalid game date for ${gameTeams}: ${dateValidation.error}`);
-    // Return Week 1 as safe fallback for invalid dates
+    console.warn(`Invalid game date for ${gameTeams}: ${dateValidation.error}, defaulting to Week 1`);
     return 1 as NFLWeek;
   }
 
-  // 4. Fallback to calculation with validated date
+  // 4. Check if date is in 2025 NFL season range BEFORE calculating week
   const gameDateObj = dateValidation.date!;
+  if (!isValidNFLGameDate(gameDateObj)) {
+    console.warn(`Game date ${pick.game_info.game_date} for ${gameTeams} is outside 2025 NFL season, defaulting to Week 1`);
+    return 1 as NFLWeek;
+  }
+
+  // 5. Fallback calculation ONLY for dates within 2025 season
   const seasonStart = safeDate('2025-09-04', { throwOnInvalid: true }); // First game Thu 9/4
   
   try {
     const daysDiff = Math.floor((gameDateObj.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24));
     const calculatedWeek = Math.max(1, Math.min(18, Math.floor(daysDiff / 7) + 1)) as NFLWeek;
     
-    // Additional validation - check if date is in valid NFL season range
-    if (!isValidNFLGameDate(gameDateObj)) {
-      return 1 as NFLWeek;
-    }
-    
+    console.log(`Calculated week ${calculatedWeek} for ${gameTeams} on ${pick.game_info.game_date}`);
     return calculatedWeek;
   } catch (error) {
     console.error(`Error calculating week for ${gameTeams}:`, error);
