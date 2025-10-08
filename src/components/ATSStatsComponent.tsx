@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { NFLWeek } from '../types/index';
 import { usePickManager, useStatistics } from '../hooks';
 import { globalEvents } from '../lib/events';
+import { getPickWeek } from '../utils/nflWeeks';
 
 const ATSStatsComponent: React.FC = () => {
   const [selectedWeek, setSelectedWeek] = useState<NFLWeek | 'all'>('all');
@@ -39,11 +40,7 @@ const ATSStatsComponent: React.FC = () => {
   // Filter picks for selected week
   const filteredPicks = selectedWeek === 'all' 
     ? picks 
-    : picks.filter(pick => {
-        const gameDate = new Date(pick.game_info.game_date);
-        const weekNum = Math.ceil((gameDate.getTime() - new Date('2024-09-05').getTime()) / (7 * 24 * 60 * 60 * 1000));
-        return weekNum === selectedWeek;
-      });
+    : picks.filter(pick => getPickWeek(pick) === selectedWeek);
 
   // Recalculate stats for filtered picks
   const displayStats = selectedWeek === 'all' 
@@ -168,11 +165,7 @@ const ATSStatsComponent: React.FC = () => {
               </thead>
               <tbody>
                 {weeklyStats.map(({ week, stats }) => {
-                  const weekUnits = useStatistics(picks.filter(p => {
-                    const gameDate = new Date(p.game_info.game_date);
-                    const w = Math.ceil((gameDate.getTime() - new Date('2024-09-05').getTime()) / (7 * 24 * 60 * 60 * 1000));
-                    return w === week;
-                  })).units;
+                  const weekUnits = useStatistics(picks.filter(p => getPickWeek(p) === week)).units;
                   
                   return (
                     <tr key={week} className="border-b border-gray-700">
