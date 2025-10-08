@@ -29,6 +29,7 @@ export default function APIPredictionsGenerator() {
       if (!session) throw new Error('Not authenticated');
 
       // Call API
+      console.log('Calling /api/generate-predictions...');
       const response = await fetch('/api/generate-predictions', {
         method: 'POST',
         headers: {
@@ -37,14 +38,20 @@ export default function APIPredictionsGenerator() {
         }
       });
 
+      console.log('API Response status:', response.status);
+
       if (!response.ok) {
         const contentType = response.headers.get('content-type');
+        console.error('API Error - Content-Type:', contentType);
+        
         if (contentType?.includes('application/json')) {
           const errorData = await response.json();
-          throw new Error(errorData.error || errorData.details || 'API error');
+          console.error('API Error Data:', errorData);
+          throw new Error(errorData.error || errorData.details || errorData.hint || 'API error');
         }
         const textError = await response.text();
-        throw new Error(textError || `HTTP ${response.status}`);
+        console.error('API Error Text:', textError);
+        throw new Error(textError || `HTTP ${response.status}: Failed to generate predictions`);
       }
 
       const contentType = response.headers.get('content-type');
@@ -94,12 +101,21 @@ export default function APIPredictionsGenerator() {
   return (
     <div className="bg-gray-800 rounded-lg p-6 mb-6">
       <h2 className="text-xl font-semibold text-white mb-4">
-        Generate AI Predictions
+        Generate Monte Carlo Predictions
       </h2>
 
       <p className="text-gray-300 text-sm mb-4">
-        Generates predictions using Monte Carlo simulations with live odds and team stats.
+        Generates predictions using 10,000 Monte Carlo simulations per game with live odds, imported team stats, and weather data.
       </p>
+      
+      <div className="bg-blue-900 border border-blue-700 text-blue-200 px-4 py-2 rounded text-sm mb-4">
+        <p className="font-semibold">📊 Prerequisites:</p>
+        <ul className="list-disc list-inside mt-1 space-y-1">
+          <li>Import Week stats via Team Stats → CSV Import</li>
+          <li>Ensure ODDS_API_KEY is set in environment variables</li>
+          <li>Optional: Set OPENWEATHER_API_KEY for weather adjustments</li>
+        </ul>
+      </div>
 
       <button
         onClick={generatePredictions}
