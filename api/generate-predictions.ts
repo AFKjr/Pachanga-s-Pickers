@@ -536,25 +536,29 @@ async function fetchNFLOdds(): Promise<OddsData[]> {
   return await response.json();
 }
 
-async function fetchTeamStatsFromDatabase(teamName: string, supabaseUrl: string, supabaseKey: string): Promise<TeamStats | null> {
+async function fetchTeamStatsFromDatabase(teamName: string, supabaseUrl: string, supabaseKey: string, week?: number): Promise<TeamStats | null> {
   try {
     // Resolve team name to canonical format
     const canonicalName = resolveTeamName(teamName);
     const queryName = canonicalName || teamName; // Use canonical if found, otherwise try original
     
-    console.log(`Fetching stats for: "${teamName}" → "${queryName}"`);
+    console.log(`Fetching stats for: "${teamName}" → "${queryName}" (week: ${week || 'latest'})`);
     
-    const response = await fetch(
-      `${supabaseUrl}/rest/v1/team_stats_cache?team_name=eq.${encodeURIComponent(queryName)}&select=*`,
-      {
-        method: 'GET',
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        }
+    // Build query: filter by team name and optionally week, order by week DESC to get latest
+    let query = `${supabaseUrl}/rest/v1/team_stats_cache?team_name=eq.${encodeURIComponent(queryName)}&season_year=eq.2025`;
+    if (week) {
+      query += `&week=eq.${week}`;
+    }
+    query += '&order=week.desc&limit=1&select=*';
+    
+    const response = await fetch(query, {
+      method: 'GET',
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json'
       }
-    );
+    });
 
     if (!response.ok) {
       console.error(`Failed to fetch stats for ${queryName}: ${response.status}`);
@@ -563,11 +567,12 @@ async function fetchTeamStatsFromDatabase(teamName: string, supabaseUrl: string,
 
     const data = await response.json();
     if (!data || data.length === 0) {
-      console.warn(`No stats found for "${teamName}" (tried "${queryName}") in database`);
+      console.warn(`No stats found for "${teamName}" (tried "${queryName}") in database for 2025 season`);
       return null;
     }
 
     const dbStats = data[0];
+    console.log(`✅ Loaded stats for ${queryName} - Week ${dbStats.week}`);
     
     // Map database fields to TeamStats interface
     return {

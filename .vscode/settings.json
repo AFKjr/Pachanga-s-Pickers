@@ -34,6 +34,20 @@
     ["cn\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
   ],
   "files.associations": {
-    "*.css": "tailwindcss"
-  }
+    "*.css": "tailwindcss",
+    "*.sql": "sql"
+  },
+  
+  // Supabase Extension Settings
+  "supabase.showSQLOutputPanel": true,
+  
+  // SQL Formatting and IntelliSense
+  "[sql]": {
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2,
+    "editor.wordWrap": "on"
+  },
+  
+  // PostgreSQL Language Server
+  "postgrestools.enabled": true
 }
