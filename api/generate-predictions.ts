@@ -880,7 +880,6 @@ export default async function handler(
         
         const spreadsMarket = bookmaker.markets.find(m => m.key === 'spreads');
         const totalsMarket = bookmaker.markets.find(m => m.key === 'totals');
-        const h2hMarket = bookmaker.markets.find(m => m.key === 'h2h');
 
         const homeSpread = spreadsMarket?.outcomes.find(o => o.name === game.home_team)?.point || 0;
         const total = totalsMarket?.outcomes[0]?.point || 45;
@@ -932,8 +931,6 @@ export default async function handler(
         );
       
         // Generate recommendations with correct logic
-        const moneylinePick = simResult.homeWinProbability > simResult.awayWinProbability
-          ? game.home_team : game.away_team;
         const moneylineProb = Math.max(simResult.homeWinProbability, simResult.awayWinProbability);
         const moneylineConfidence = getConfidenceLevel(moneylineProb);
 
@@ -941,11 +938,9 @@ export default async function handler(
           ? `${game.home_team} ${homeSpread > 0 ? '+' : ''}${homeSpread}`
           : `${game.away_team} ${-homeSpread > 0 ? '+' : ''}${-homeSpread}`;
         const spreadProb = Math.max(simResult.spreadCoverProbability, 100 - simResult.spreadCoverProbability);
-        const spreadConfidence = getConfidenceLevel(spreadProb);
 
         const totalPick = simResult.overProbability > 50 ? 'Over' : 'Under';
         const totalProb = Math.max(simResult.overProbability, simResult.underProbability);
-        const totalConfidence = getConfidenceLevel(totalProb);
 
         // Convert UTC time to EST/EDT for proper game date
         const gameDateTime = new Date(game.commence_time);
@@ -966,7 +961,7 @@ export default async function handler(
             home_score: null,
             away_score: null
           },
-          prediction: `${moneylinePick} to win`,
+          prediction: `${simResult.homeWinProbability > simResult.awayWinProbability ? game.home_team : game.away_team} to win`,
           spread_prediction: spreadPick,
           ou_prediction: `${totalPick} ${total}`,
           confidence: mapConfidenceToNumber(moneylineConfidence),
@@ -974,7 +969,7 @@ export default async function handler(
             game.home_team,
             game.away_team,
             simResult,
-            moneylinePick,
+            simResult.homeWinProbability > simResult.awayWinProbability ? game.home_team : game.away_team,
             spreadPick,
             `${totalPick} ${total}`,
             weatherExplanation
