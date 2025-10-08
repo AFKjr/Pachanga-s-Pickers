@@ -35,6 +35,13 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
     isPinned: pick.is_pinned || false
   });
 
+  // Weather override state
+  const [weatherOverride, setWeatherOverride] = useState({
+    temperature: pick.weather?.temperature || '',
+    windSpeed: pick.weather?.wind_speed || '',
+    condition: pick.weather?.condition || ''
+  });
+
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   
@@ -117,6 +124,18 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
         away_score: pick.game_info.away_score
       }
     };
+
+    // Add weather override if provided
+    if (weatherOverride.temperature !== '' || weatherOverride.windSpeed !== '' || weatherOverride.condition) {
+      updates.weather = {
+        temperature: typeof weatherOverride.temperature === 'number' ? weatherOverride.temperature : (pick.weather?.temperature || 72),
+        wind_speed: typeof weatherOverride.windSpeed === 'number' ? weatherOverride.windSpeed : (pick.weather?.wind_speed || 0),
+        condition: weatherOverride.condition || pick.weather?.condition || 'Clear',
+        impact_rating: pick.weather?.impact_rating || 'none',
+        description: pick.weather?.description || 'Manually overridden'
+      };
+      updates.weather_impact = `Manual override: ${updates.weather.temperature}°F, ${updates.weather.wind_speed}mph ${updates.weather.condition}`;
+    }
 
     const { data, error } = await picksApi.update(pick.id, updates);
     if (error) throw error;
@@ -312,6 +331,43 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
           <div className="mt-1 text-xs text-gray-400">
             Current total: {formData.overUnder || 'Not set'} • Edit in prediction text (e.g., "Under 46.5")
           </div>
+        </div>
+      </div>
+
+      {/* Weather Override */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-300 mb-1">
+          Weather Override (Optional)
+        </label>
+        <div className="grid grid-cols-3 gap-2">
+          <input
+            type="number"
+            placeholder="Temp (°F)"
+            value={weatherOverride.temperature || ''}
+            onChange={(e) => setWeatherOverride({...weatherOverride, temperature: parseInt(e.target.value)})}
+            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+          />
+          <input
+            type="number"
+            placeholder="Wind (mph)"
+            value={weatherOverride.windSpeed || ''}
+            onChange={(e) => setWeatherOverride({...weatherOverride, windSpeed: parseInt(e.target.value)})}
+            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+          />
+          <select
+            value={weatherOverride.condition || ''}
+            onChange={(e) => setWeatherOverride({...weatherOverride, condition: e.target.value})}
+            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+          >
+            <option value="">Condition</option>
+            <option value="Clear">Clear</option>
+            <option value="Clouds">Cloudy</option>
+            <option value="Rain">Rain</option>
+            <option value="Snow">Snow</option>
+          </select>
+        </div>
+        <div className="mt-1 text-xs text-gray-400">
+          Current: {pick.weather_impact || 'No weather data'} • Leave blank to keep existing weather
         </div>
       </div>
 

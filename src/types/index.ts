@@ -15,6 +15,14 @@ export interface Pick {
   schedule_id: string | null;
   game_info: GameInfo;
   monte_carlo_results?: MonteCarloResults;
+  weather?: {
+    temperature: number;
+    wind_speed: number;
+    condition: string;
+    impact_rating: 'none' | 'low' | 'medium' | 'high' | 'extreme';
+    description: string;
+  } | null;
+  weather_impact?: string;
   // UI/Display fields (optional)
   is_pinned?: boolean;
   user_id?: string;

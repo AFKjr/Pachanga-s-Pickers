@@ -2,6 +2,7 @@
 // Vercel Serverless Function to generate NFL predictions with Monte Carlo simulation
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { fetchGameWeather, applyWeatherAdjustments, formatWeatherForDisplay, type GameWeather } from '../src/utils/weatherService';
 
 // Team name resolution utility
 // Note: Since this is a Vercel function, we need to inline the resolver
@@ -360,6 +361,157 @@ function calculateDefensiveStrength(stats: TeamStats): number {
   );
 }
 
+// ⭐ NEW: Enhanced Monte Carlo with Weather
+function runMonteCarloSimulationWithWeather(
+  homeStats: TeamStats,
+  awayStats: TeamStats,
+  spread: number,
+  total: number,
+  weather: GameWeather | null
+): SimulationResult {
+  const homeScores: number[] = [];
+  const awayScores: number[] = [];
+  let homeWins = 0;
+  let awayWins = 0;
+  let spreadCovers = 0;
+  let overs = 0;
+
+  for (let iteration = 0; iteration < SIMULATION_ITERATIONS; iteration++) {
+    const gameResult = simulateSingleGameWithWeather(homeStats, awayStats, weather);
+    
+    homeScores.push(gameResult.homeScore);
+    awayScores.push(gameResult.awayScore);
+
+    if (gameResult.homeScore > gameResult.awayScore) homeWins++;
+    if (gameResult.awayScore > gameResult.homeScore) awayWins++;
+
+    const adjustedHomeScore = gameResult.homeScore + spread;
+    if (adjustedHomeScore > gameResult.awayScore) spreadCovers++;
+
+    const totalPoints = gameResult.homeScore + gameResult.awayScore;
+    if (totalPoints > total) overs++;
+  }
+
+  const avgHomeScore = homeScores.reduce((a, b) => a + b, 0) / homeScores.length;
+  const avgAwayScore = awayScores.reduce((a, b) => a + b, 0) / awayScores.length;
+
+  return {
+    homeWinProbability: (homeWins / SIMULATION_ITERATIONS) * 100,
+    awayWinProbability: (awayWins / SIMULATION_ITERATIONS) * 100,
+    predictedHomeScore: Math.round(avgHomeScore),
+    predictedAwayScore: Math.round(avgAwayScore),
+    spreadCoverProbability: (spreadCovers / SIMULATION_ITERATIONS) * 100,
+    overProbability: (overs / SIMULATION_ITERATIONS) * 100,
+    underProbability: ((SIMULATION_ITERATIONS - overs) / SIMULATION_ITERATIONS) * 100,
+    iterations: SIMULATION_ITERATIONS
+  };
+}
+
+// ⭐ NEW: Enhanced single game simulation
+function simulateSingleGameWithWeather(
+  homeStats: TeamStats,
+  awayStats: TeamStats,
+  weather: GameWeather | null
+): { homeScore: number; awayScore: number } {
+  let homeScore = 0;
+  let awayScore = 0;
+
+  // Apply weather adjustments
+  const homeWeatherAdj = weather ? applyWeatherAdjustments(
+    weather,
+    calculateOffensiveStrength(homeStats),
+    calculateDefensiveStrength(awayStats),
+    {
+      passingYards: homeStats.passingYards,
+      rushingYards: homeStats.rushingYards,
+      yardsPerPlay: homeStats.yardsPerPlay
+    }
+  ) : null;
+
+  const awayWeatherAdj = weather ? applyWeatherAdjustments(
+    weather,
+    calculateOffensiveStrength(awayStats),
+    calculateDefensiveStrength(homeStats),
+    {
+      passingYards: awayStats.passingYards,
+      rushingYards: awayStats.rushingYards,
+      yardsPerPlay: awayStats.yardsPerPlay
+    }
+  ) : null;
+
+  for (let quarter = 0; quarter < QUARTERS_PER_GAME; quarter++) {
+    for (let possession = 0; possession < POSSESSIONS_PER_QUARTER / 2; possession++) {
+      homeScore += simulatePossessionWithWeather(
+        homeStats, 
+        awayStats, 
+        homeWeatherAdj
+      );
+    }
+    for (let possession = 0; possession < POSSESSIONS_PER_QUARTER / 2; possession++) {
+      awayScore += simulatePossessionWithWeather(
+        awayStats, 
+        homeStats, 
+        awayWeatherAdj
+      );
+    }
+  }
+
+  return { homeScore, awayScore };
+}
+
+// ⭐ NEW: Enhanced possession simulation
+function simulatePossessionWithWeather(
+  offenseStats: TeamStats,
+  defenseStats: TeamStats,
+  weatherAdjustment: ReturnType<typeof applyWeatherAdjustments> | null
+): number {
+  // Use weather-adjusted strength if available
+  const offensiveStrength = weatherAdjustment 
+    ? weatherAdjustment.adjustedOffensiveStrength 
+    : calculateOffensiveStrength(offenseStats);
+    
+  const defensiveStrength = weatherAdjustment
+    ? weatherAdjustment.adjustedDefensiveStrength
+    : calculateDefensiveStrength(defenseStats);
+  
+  // Rest of possession simulation logic remains the same
+  const baseScoring = offensiveStrength / (offensiveStrength + defensiveStrength);
+  
+  const turnoverChance = (
+    (offenseStats.turnoversLost / offenseStats.totalPlays) +
+    (defenseStats.turnoversForced / defenseStats.defTotalPlays)
+  ) / 2;
+  
+  const turnoverRoll = Math.random();
+  if (turnoverRoll < turnoverChance) return 0;
+  
+  const efficiencyModifier = (
+    offenseStats.yardsPerPlay / (offenseStats.yardsPerPlay + defenseStats.defYardsPerPlayAllowed)
+  );
+  
+  const scoringProbability = baseScoring * 0.7 + efficiencyModifier * 0.3;
+  const scoreRoll = Math.random();
+  
+  if (scoreRoll > scoringProbability) return 0;
+  const redZoneRoll = Math.random() * 100;
+  
+  const tdProbability = (
+    offenseStats.redZoneEfficiency * 0.6 +
+    (offenseStats.passingTds + offenseStats.rushingTds) * 5
+  );
+  
+  if (redZoneRoll < tdProbability) {
+    return 7;
+  }
+  
+  const fgProbability = tdProbability + 35;
+  if (redZoneRoll < fgProbability) {
+    return 3;
+  }
+  
+  return 0;
+}
+
 // ============================================================================
 // EXTERNAL API FUNCTIONS
 // ============================================================================
@@ -588,7 +740,8 @@ function generateReasoning(
   simResult: SimulationResult,
   moneylinePick: string,
   spreadPick: string,
-  totalPick: string
+  totalPick: string,
+  weatherExplanation?: string
 ): string {
   const factors: string[] = [];
 
@@ -609,6 +762,11 @@ function generateReasoning(
   const totalPoints = simResult.predictedHomeScore + simResult.predictedAwayScore;
   const totalProb = simResult.overProbability > 50 ? simResult.overProbability : simResult.underProbability;
   factors.push(`Projected total of ${totalPoints} points, ${totalPick} hits ${totalProb.toFixed(1)}% of simulations`);
+
+  // ⭐ NEW: Add weather context if applicable
+  if (weatherExplanation && !weatherExplanation.includes('No weather') && !weatherExplanation.includes('Dome')) {
+    factors.push(`Weather impact: ${weatherExplanation}`);
+  }
 
   return factors.join('; ');
 }
@@ -672,6 +830,12 @@ export default async function handler(
       });
     }
 
+    // Check for weather API key (optional)
+    const WEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
+    if (!WEATHER_API_KEY) {
+      console.warn('⚠️ OPENWEATHER_API_KEY not set - predictions will run without weather data');
+    }
+
     // Process each game
     const predictions = [];
     const errors = [];
@@ -693,6 +857,27 @@ export default async function handler(
         console.log(`${game.home_team} stats: 3D%=${homeStats.thirdDownConversionRate}, RZ%=${homeStats.redZoneEfficiency}`);
         console.log(`${game.away_team} stats: 3D%=${awayStats.thirdDownConversionRate}, RZ%=${awayStats.redZoneEfficiency}`);
 
+        // ⭐ NEW: Fetch weather data
+        let gameWeather: GameWeather | null = null;
+        let weatherImpact = 'No weather data';
+        
+        if (WEATHER_API_KEY) {
+          try {
+            gameWeather = await fetchGameWeather(
+              game.home_team,
+              game.commence_time,
+              WEATHER_API_KEY
+            );
+            
+            if (gameWeather) {
+              console.log(`🌤️ Weather for ${game.home_team}: ${formatWeatherForDisplay(gameWeather)}`);
+              weatherImpact = formatWeatherForDisplay(gameWeather);
+            }
+          } catch (weatherError) {
+            console.error(`Failed to fetch weather for ${game.home_team}:`, weatherError);
+          }
+        }
+
         // Extract odds from best bookmaker
         const bookmaker = game.bookmakers.find(b => b.key === 'draftkings') || game.bookmakers[0];
         
@@ -703,8 +888,51 @@ export default async function handler(
         const homeSpread = spreadsMarket?.outcomes.find(o => o.name === game.home_team)?.point || 0;
         const total = totalsMarket?.outcomes[0]?.point || 45;
 
-        // Run Monte Carlo simulation
-        const simResult = runMonteCarloSimulation(homeStats, awayStats, homeSpread, total);
+        // ⭐ NEW: Apply weather adjustments to offensive/defensive strength
+        let adjustedHomeStats = homeStats;
+        let adjustedAwayStats = awayStats;
+        let weatherExplanation = '';
+        
+        if (gameWeather && !gameWeather.isDome) {
+          // Apply weather adjustments to home team (offense vs away defense)
+          const homeOffenseAdjustment = applyWeatherAdjustments(
+            gameWeather,
+            calculateOffensiveStrength(homeStats),
+            calculateDefensiveStrength(awayStats),
+            {
+              passingYards: homeStats.passingYards,
+              rushingYards: homeStats.rushingYards,
+              yardsPerPlay: homeStats.yardsPerPlay
+            }
+          );
+          
+          // Apply weather adjustments to away team (offense vs home defense)
+          const awayOffenseAdjustment = applyWeatherAdjustments(
+            gameWeather,
+            calculateOffensiveStrength(awayStats),
+            calculateDefensiveStrength(homeStats),
+            {
+              passingYards: awayStats.passingYards,
+              rushingYards: awayStats.rushingYards,
+              yardsPerPlay: awayStats.yardsPerPlay
+            }
+          );
+          
+          weatherExplanation = homeOffenseAdjustment.explanation;
+          
+          console.log(`⚙️ Weather adjustments:`);
+          console.log(`  Home offense: ${(homeOffenseAdjustment.adjustedOffensiveStrength / calculateOffensiveStrength(homeStats) * 100 - 100).toFixed(1)}%`);
+          console.log(`  Away offense: ${(awayOffenseAdjustment.adjustedOffensiveStrength / calculateOffensiveStrength(awayStats) * 100 - 100).toFixed(1)}%`);
+        }
+
+        // Run Monte Carlo simulation WITH weather-adjusted stats
+        const simResult = runMonteCarloSimulationWithWeather(
+          homeStats,
+          awayStats,
+          homeSpread,
+          total,
+          gameWeather
+        );
       
         // Generate recommendations with correct logic
         const moneylinePick = simResult.homeWinProbability > simResult.awayWinProbability
@@ -751,7 +979,8 @@ export default async function handler(
             simResult,
             moneylinePick,
             spreadPick,
-            `${totalPick} ${total}`
+            `${totalPick} ${total}`,
+            weatherExplanation
           ),
           result: 'pending',
           week: calculateNFLWeek(new Date(game.commence_time)),
@@ -766,7 +995,16 @@ export default async function handler(
             under_probability: simResult.underProbability,
             predicted_home_score: simResult.predictedHomeScore,
             predicted_away_score: simResult.predictedAwayScore
-          }
+          },
+          // ⭐ NEW: Add weather data to prediction
+          weather: gameWeather ? {
+            temperature: gameWeather.temperature,
+            wind_speed: gameWeather.windSpeed,
+            condition: gameWeather.condition,
+            impact_rating: gameWeather.impactRating,
+            description: gameWeather.description
+          } : null,
+          weather_impact: weatherImpact
         });
       } catch (gameError) {
         const errorMessage = gameError instanceof Error ? gameError.message : String(gameError);
