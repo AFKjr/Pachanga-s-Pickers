@@ -198,6 +198,7 @@ function runMonteCarloSimulation(
     iterations: SIMULATION_ITERATIONS
   };
 }
+/* eslint-enable @typescript-eslint/no-unused-vars */
 
 function simulateSingleGame(
   homeStats: TeamStats,
