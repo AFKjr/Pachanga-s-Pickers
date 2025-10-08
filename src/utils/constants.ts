@@ -1,0 +1,140 @@
+// src/utils/constants.ts
+// Centralized constants for the NFL prediction system
+// This file contains all magic numbers that were previously hardcoded
+
+// === MONTE CARLO SIMULATION CONSTANTS ===
+export const SIMULATION_ITERATIONS = 10000;
+export const QUARTERS_PER_GAME = 4;
+export const POSSESSIONS_PER_QUARTER = 6;
+
+// === STATISTICAL WEIGHTS ===
+export const OFFENSIVE_STRENGTH_WEIGHTS = {
+  RED_ZONE_EFFICIENCY: 0.6,
+  THIRD_DOWN_CONVERSION: 0.4,
+  TURNOVER_DIFFERENTIAL: 0.3,
+  DEFENSIVE_YARDS: 0.2,
+  POINTS_PER_GAME: 0.1,
+  DEFENSIVE_STRENGTH_MULTIPLIER: 0.5,
+  OFFENSIVE_STRENGTH_MULTIPLIER: 0.7,
+} as const;
+
+export const DEFENSIVE_STRENGTH_WEIGHTS = {
+  POINTS_ALLOWED_BASE: 45,
+  YARDS_ALLOWED_BASE: 450,
+  THIRD_DOWN_BASE: 50,
+  RED_ZONE_BASE: 70,
+  TURNOVER_MULTIPLIER: 5,
+} as const;
+
+// === WEATHER IMPACT CONSTANTS ===
+export const WEATHER_CONSTANTS = {
+  FORECAST_HOURS_THRESHOLD: 120,
+  DOME_DEFAULTS: {
+    TEMPERATURE: 72,
+    WIND_SPEED: 0,
+    PRECIPITATION: 0,
+    HUMIDITY: 50,
+  },
+  TEMPERATURE_THRESHOLDS: {
+    EXTREME_COLD: 20,
+    FREEZING: 32,
+    COLD: 40,
+    EXTREME_HEAT: 95,
+  },
+  WIND_THRESHOLDS: {
+    EXTREME: 25,
+    HIGH: 20,
+    MODERATE: 15,
+    LIGHT: 10,
+  },
+  IMPACT_SCORES: {
+    TEMPERATURE: {
+      EXTREME_COLD: 3,
+      FREEZING: 2,
+      COLD: 1,
+      EXTREME_HEAT: 1,
+    },
+    WIND: {
+      EXTREME: 4,
+      HIGH: 3,
+      MODERATE: 2,
+      LIGHT: 1,
+    },
+    PRECIPITATION: {
+      SNOW: 3,
+      HEAVY_RAIN: 2,
+      RAIN: 1,
+    },
+  },
+  IMPACT_RATING_THRESHOLDS: {
+    EXTREME: 7,
+    HIGH: 5,
+    MEDIUM: 3,
+    LOW: 1,
+  },
+  WEATHER_MODIFIERS: {
+    PASSING: {
+      HIGH_WINDS: 0.65,
+      MODERATE_WINDS: 0.80,
+      LIGHT_WINDS: 0.90,
+      EXTREME_COLD: 0.85,
+      FREEZING: 0.92,
+      SNOW: 0.75,
+      HEAVY_RAIN: 0.85,
+      LIGHT_RAIN: 0.95,
+    },
+    RUSHING: {
+      HIGH_WINDS: 1.10,
+      MODERATE_WINDS: 1.05,
+      EXTREME_COLD: 0.95,
+      SNOW: 0.90,
+      HEAVY_RAIN: 0.95,
+    },
+  },
+  DEFENSIVE_WEATHER_BENEFIT: 0.3,
+} as const;
+
+// === BETTING CALCULATION CONSTANTS ===
+export const BETTING_CONSTANTS = {
+  PUSH_THRESHOLD: 0.5,
+  CONFIDENCE_THRESHOLDS: {
+    HIGH: 65,
+    MEDIUM: 55,
+  },
+  STATISTICAL_CONSTANTS: {
+    CONFIDENCE_INTERVAL_Z_SCORE: 1.96,
+    FIELD_GOAL_PROBABILITY_ADDITION: 30,
+  },
+} as const;
+
+// === SCORE GENERATION CONSTANTS ===
+export const SCORE_CONSTANTS = {
+  BASE_SCORES: {
+    HOME_MIN: 17,
+    HOME_RANGE: 14,
+    AWAY_MIN: 14,
+    AWAY_RANGE: 17,
+  },
+  RESULT_ADJUSTMENT: 7,
+} as const;
+
+// === API CONSTANTS ===
+export const API_CONSTANTS = {
+  TIMEOUT_MS: 5000,
+  DEFAULT_STATS: {
+    YARDS_PER_GAME: 350,
+    POINTS_PER_GAME: 22,
+    TURNOVER_DIFFERENTIAL: 0,
+    THIRD_DOWN_CONVERSION_RATE: 40,
+    RED_ZONE_EFFICIENCY: 55,
+  },
+  DEFAULT_ODDS: {
+    TOTAL: 45,
+    MONEYLINE: -110,
+  },
+} as const;
+
+// === TEAM NAME PARSING CONSTANTS ===
+export const TEAM_NAME_CONSTANTS = {
+  MIN_NAME_LENGTH: 3,
+} as const;

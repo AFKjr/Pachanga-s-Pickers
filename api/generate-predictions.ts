@@ -3,6 +3,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { fetchGameWeather, applyWeatherAdjustments, formatWeatherForDisplay, type GameWeather } from '../src/utils/weatherService';
+import { SIMULATION_ITERATIONS, QUARTERS_PER_GAME, POSSESSIONS_PER_QUARTER, OFFENSIVE_STRENGTH_WEIGHTS, DEFENSIVE_STRENGTH_WEIGHTS, WEATHER_CONSTANTS } from '../src/utils/constants';
 
 // Team name resolution utility
 // Note: Since this is a Vercel function, we need to inline the resolver
@@ -150,10 +151,6 @@ interface SimulationResult {
 // ============================================================================
 // MONTE CARLO SIMULATION
 // ============================================================================
-
-const SIMULATION_ITERATIONS = 10000;
-const QUARTERS_PER_GAME = 4;
-const POSSESSIONS_PER_QUARTER = 6;
 
 function runMonteCarloSimulation(
   homeStats: TeamStats,

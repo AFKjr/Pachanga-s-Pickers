@@ -6,10 +6,7 @@
  */
 
 import { TeamStats, GamePredictionInput } from '../externalApis';
-
-const SIMULATION_ITERATIONS = 10000;
-const QUARTERS_PER_GAME = 4;
-const POSSESSIONS_PER_QUARTER = 6; // Average
+import { SIMULATION_ITERATIONS, QUARTERS_PER_GAME, POSSESSIONS_PER_QUARTER, DEFENSIVE_STRENGTH_WEIGHTS, BETTING_CONSTANTS } from '../../utils/constants';
 
 export interface SimulationResult {
   homeWinProbability: number;
@@ -90,8 +87,8 @@ export function runMonteCarloSimulation(
     awayWinProbability: (awayWins / SIMULATION_ITERATIONS) * 100,
     predictedHomeScore: Math.round(avgHomeScore),
     predictedAwayScore: Math.round(avgAwayScore),
-    confidenceIntervalLow: Math.round(avgHomeScore - 1.96 * stdDev),
-    confidenceIntervalHigh: Math.round(avgHomeScore + 1.96 * stdDev),
+    confidenceIntervalLow: Math.round(avgHomeScore - BETTING_CONSTANTS.STATISTICAL_CONSTANTS.CONFIDENCE_INTERVAL_Z_SCORE * stdDev),
+    confidenceIntervalHigh: Math.round(avgHomeScore + BETTING_CONSTANTS.STATISTICAL_CONSTANTS.CONFIDENCE_INTERVAL_Z_SCORE * stdDev),
     spreadCoverProbability: (spreadCovers / SIMULATION_ITERATIONS) * 100,
     overProbability: (overs / SIMULATION_ITERATIONS) * 100,
     underProbability: ((SIMULATION_ITERATIONS - overs) / SIMULATION_ITERATIONS) * 100,
@@ -151,7 +148,7 @@ function simulatePossession(
   
   if (redZoneRoll < offenseStats.redZoneEfficiency) {
     return 7; // Touchdown
-  } else if (redZoneRoll < offenseStats.redZoneEfficiency + 30) {
+  } else if (redZoneRoll < offenseStats.redZoneEfficiency + BETTING_CONSTANTS.STATISTICAL_CONSTANTS.FIELD_GOAL_PROBABILITY_ADDITION) {
     return 3; // Field goal
   }
   
@@ -176,11 +173,11 @@ function calculateOffensiveStrength(stats: TeamStats): number {
  */
 function calculateDefensiveStrength(stats: TeamStats): number {
   return (
-    (45 - stats.pointsAllowedPerGame) * 2 +
-    (450 - stats.defensiveYardsAllowed) / 10 +
-    (50 - stats.thirdDownConversionRate) +
-    (70 - stats.redZoneEfficiency) -
-    stats.turnoverDifferential * 5
+    (DEFENSIVE_STRENGTH_WEIGHTS.POINTS_ALLOWED_BASE - stats.pointsAllowedPerGame) * 2 +
+    (DEFENSIVE_STRENGTH_WEIGHTS.YARDS_ALLOWED_BASE - stats.defensiveYardsAllowed) / 10 +
+    (DEFENSIVE_STRENGTH_WEIGHTS.THIRD_DOWN_BASE - stats.thirdDownConversionRate) +
+    (DEFENSIVE_STRENGTH_WEIGHTS.RED_ZONE_BASE - stats.redZoneEfficiency) -
+    stats.turnoverDifferential * DEFENSIVE_STRENGTH_WEIGHTS.TURNOVER_MULTIPLIER
   );
 }
 
@@ -238,8 +235,8 @@ export function generateRecommendations(
  * Convert probability to confidence level
  */
 function getConfidenceLevel(probability: number): 'High' | 'Medium' | 'Low' {
-  if (probability >= 65) return 'High';
-  if (probability >= 55) return 'Medium';
+  if (probability >= BETTING_CONSTANTS.CONFIDENCE_THRESHOLDS.HIGH) return 'High';
+  if (probability >= BETTING_CONSTANTS.CONFIDENCE_THRESHOLDS.MEDIUM) return 'Medium';
   return 'Low';
 }
 

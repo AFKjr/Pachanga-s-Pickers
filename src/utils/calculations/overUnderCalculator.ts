@@ -3,6 +3,7 @@
  */
 import { Pick } from '../../types/index';
 import { GameScore, ATSResult } from './types';
+import { BETTING_CONSTANTS } from '../constants';
 
 /**
  * Calculate Over/Under result
@@ -60,7 +61,7 @@ export const calculateOverUnderResult = (
   let result: 'win' | 'loss' | 'push';
   
   // Check for push first (within 0.5 points)
-  if (Math.abs(totalPoints - line) < 0.5) {
+  if (Math.abs(totalPoints - line) < BETTING_CONSTANTS.PUSH_THRESHOLD) {
     result = 'push';
   } else if ((totalPoints > line && ouType === 'over') || 
              (totalPoints < line && ouType === 'under')) {

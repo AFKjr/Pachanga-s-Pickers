@@ -1,6 +1,8 @@
 // utils/weatherService.ts
 // Weather data integration for game predictions
 
+import { WEATHER_CONSTANTS } from './constants';
+
 export interface WeatherConditions {
   temperature: number; // Fahrenheit
   windSpeed: number; // mph
@@ -71,11 +73,11 @@ export async function fetchGameWeather(
       gameId: `${homeTeam}_${gameDateTime}`,
       stadium: stadium.city,
       isDome: true,
-      temperature: 72,
-      windSpeed: 0,
-      precipitation: 0,
+      temperature: WEATHER_CONSTANTS.DOME_DEFAULTS.TEMPERATURE,
+      windSpeed: WEATHER_CONSTANTS.DOME_DEFAULTS.WIND_SPEED,
+      precipitation: WEATHER_CONSTANTS.DOME_DEFAULTS.PRECIPITATION,
       condition: 'Dome',
-      humidity: 50,
+      humidity: WEATHER_CONSTANTS.DOME_DEFAULTS.HUMIDITY,
       description: 'Indoor stadium - no weather impact',
       impactRating: 'none'
     };
@@ -90,7 +92,7 @@ export async function fetchGameWeather(
     let weatherData;
 
     // Use forecast API if game is within 5 days (120 hours)
-    if (hoursUntilGame > 0 && hoursUntilGame <= 120) {
+    if (hoursUntilGame > 0 && hoursUntilGame <= WEATHER_CONSTANTS.FORECAST_HOURS_THRESHOLD) {
       const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${stadium.lat}&lon=${stadium.lon}&appid=${apiKey}&units=imperial`;
       const forecastResponse = await fetch(forecastUrl);
 
@@ -162,27 +164,27 @@ function calculateWeatherImpact(
   let impactScore = 0;
 
   // Temperature impact
-  if (temp < 20) impactScore += 3; // Extreme cold
-  else if (temp < 32) impactScore += 2; // Freezing
-  else if (temp < 40) impactScore += 1; // Cold
-  else if (temp > 95) impactScore += 1; // Extreme heat
+  if (temp < WEATHER_CONSTANTS.TEMPERATURE_THRESHOLDS.EXTREME_COLD) impactScore += WEATHER_CONSTANTS.IMPACT_SCORES.TEMPERATURE.EXTREME_COLD; // Extreme cold
+  else if (temp < WEATHER_CONSTANTS.TEMPERATURE_THRESHOLDS.FREEZING) impactScore += WEATHER_CONSTANTS.IMPACT_SCORES.TEMPERATURE.FREEZING; // Freezing
+  else if (temp < WEATHER_CONSTANTS.TEMPERATURE_THRESHOLDS.COLD) impactScore += WEATHER_CONSTANTS.IMPACT_SCORES.TEMPERATURE.COLD; // Cold
+  else if (temp > WEATHER_CONSTANTS.TEMPERATURE_THRESHOLDS.EXTREME_HEAT) impactScore += WEATHER_CONSTANTS.IMPACT_SCORES.TEMPERATURE.EXTREME_HEAT; // Extreme heat
 
   // Wind impact (most critical for passing)
-  if (wind >= 25) impactScore += 4; // Extreme wind
-  else if (wind >= 20) impactScore += 3; // High wind
-  else if (wind >= 15) impactScore += 2; // Moderate wind
-  else if (wind >= 10) impactScore += 1; // Light wind
+  if (wind >= WEATHER_CONSTANTS.WIND_THRESHOLDS.EXTREME) impactScore += WEATHER_CONSTANTS.IMPACT_SCORES.WIND.EXTREME; // Extreme wind
+  else if (wind >= WEATHER_CONSTANTS.WIND_THRESHOLDS.HIGH) impactScore += WEATHER_CONSTANTS.IMPACT_SCORES.WIND.HIGH; // High wind
+  else if (wind >= WEATHER_CONSTANTS.WIND_THRESHOLDS.MODERATE) impactScore += WEATHER_CONSTANTS.IMPACT_SCORES.WIND.MODERATE; // Moderate wind
+  else if (wind >= WEATHER_CONSTANTS.WIND_THRESHOLDS.LIGHT) impactScore += WEATHER_CONSTANTS.IMPACT_SCORES.WIND.LIGHT; // Light wind
 
   // Precipitation impact
-  if (condition === 'Snow') impactScore += 3;
-  else if (condition === 'Rain' && precip > 50) impactScore += 2;
-  else if (condition === 'Rain') impactScore += 1;
+  if (condition === 'Snow') impactScore += WEATHER_CONSTANTS.IMPACT_SCORES.PRECIPITATION.SNOW;
+  else if (condition === 'Rain' && precip > 50) impactScore += WEATHER_CONSTANTS.IMPACT_SCORES.PRECIPITATION.HEAVY_RAIN;
+  else if (condition === 'Rain') impactScore += WEATHER_CONSTANTS.IMPACT_SCORES.PRECIPITATION.RAIN;
 
   // Map score to rating
-  if (impactScore >= 7) return 'extreme';
-  if (impactScore >= 5) return 'high';
-  if (impactScore >= 3) return 'medium';
-  if (impactScore >= 1) return 'low';
+  if (impactScore >= WEATHER_CONSTANTS.IMPACT_RATING_THRESHOLDS.EXTREME) return 'extreme';
+  if (impactScore >= WEATHER_CONSTANTS.IMPACT_RATING_THRESHOLDS.HIGH) return 'high';
+  if (impactScore >= WEATHER_CONSTANTS.IMPACT_RATING_THRESHOLDS.MEDIUM) return 'medium';
+  if (impactScore >= WEATHER_CONSTANTS.IMPACT_RATING_THRESHOLDS.LOW) return 'low';
   return 'none';
 }
 
@@ -213,44 +215,44 @@ export function applyWeatherAdjustments(
   const adjustments: string[] = [];
 
   // Wind affects passing significantly
-  if (weather.windSpeed >= 20) {
-    passingModifier = 0.65; // 35% reduction in passing efficiency
-    rushingModifier = 1.10; // 10% boost to rushing
+  if (weather.windSpeed >= WEATHER_CONSTANTS.WIND_THRESHOLDS.HIGH) {
+    passingModifier = WEATHER_CONSTANTS.WEATHER_MODIFIERS.PASSING.HIGH_WINDS; // 35% reduction in passing efficiency
+    rushingModifier = WEATHER_CONSTANTS.WEATHER_MODIFIERS.RUSHING.HIGH_WINDS; // 10% boost to rushing
     adjustments.push(`High winds (${weather.windSpeed}mph) severely limit passing`);
-  } else if (weather.windSpeed >= 15) {
-    passingModifier = 0.80; // 20% reduction
-    rushingModifier = 1.05;
+  } else if (weather.windSpeed >= WEATHER_CONSTANTS.WIND_THRESHOLDS.MODERATE) {
+    passingModifier = WEATHER_CONSTANTS.WEATHER_MODIFIERS.PASSING.MODERATE_WINDS; // 20% reduction
+    rushingModifier = WEATHER_CONSTANTS.WEATHER_MODIFIERS.RUSHING.MODERATE_WINDS;
     adjustments.push(`Moderate winds (${weather.windSpeed}mph) reduce passing efficiency`);
-  } else if (weather.windSpeed >= 10) {
-    passingModifier = 0.90; // 10% reduction
+  } else if (weather.windSpeed >= WEATHER_CONSTANTS.WIND_THRESHOLDS.LIGHT) {
+    passingModifier = WEATHER_CONSTANTS.WEATHER_MODIFIERS.PASSING.LIGHT_WINDS; // 10% reduction
     adjustments.push(`Light winds (${weather.windSpeed}mph) slightly affect passing`);
   }
 
   // Cold weather
-  if (weather.temperature < 20) {
-    passingModifier *= 0.85; // Additional 15% penalty
-    rushingModifier *= 0.95; // Slight penalty for ball handling
+  if (weather.temperature < WEATHER_CONSTANTS.TEMPERATURE_THRESHOLDS.EXTREME_COLD) {
+    passingModifier *= WEATHER_CONSTANTS.WEATHER_MODIFIERS.PASSING.EXTREME_COLD; // Additional 15% penalty
+    rushingModifier *= WEATHER_CONSTANTS.WEATHER_MODIFIERS.RUSHING.EXTREME_COLD; // Slight penalty for ball handling
     adjustments.push(`Extreme cold (${weather.temperature}°F) affects ball handling`);
-  } else if (weather.temperature < 32) {
-    passingModifier *= 0.92;
+  } else if (weather.temperature < WEATHER_CONSTANTS.TEMPERATURE_THRESHOLDS.FREEZING) {
+    passingModifier *= WEATHER_CONSTANTS.WEATHER_MODIFIERS.PASSING.FREEZING;
     adjustments.push(`Freezing temps (${weather.temperature}°F) reduce passing accuracy`);
   }
 
   // Snow
   if (weather.condition === 'Snow') {
-    passingModifier *= 0.75; // Major penalty
-    rushingModifier *= 0.90; // Footing issues
+    passingModifier *= WEATHER_CONSTANTS.WEATHER_MODIFIERS.PASSING.SNOW; // Major penalty
+    rushingModifier *= WEATHER_CONSTANTS.WEATHER_MODIFIERS.RUSHING.SNOW; // Footing issues
     adjustments.push('Snow conditions significantly impact both offense types');
   }
 
   // Rain
   if (weather.condition === 'Rain') {
     if (weather.precipitation > 50) {
-      passingModifier *= 0.85;
-      rushingModifier *= 0.95;
+      passingModifier *= WEATHER_CONSTANTS.WEATHER_MODIFIERS.PASSING.HEAVY_RAIN;
+      rushingModifier *= WEATHER_CONSTANTS.WEATHER_MODIFIERS.RUSHING.HEAVY_RAIN;
       adjustments.push('Heavy rain affects ball security');
     } else {
-      passingModifier *= 0.95;
+      passingModifier *= WEATHER_CONSTANTS.WEATHER_MODIFIERS.PASSING.LIGHT_RAIN;
       adjustments.push('Light rain may cause minor issues');
     }
   }
@@ -265,7 +267,7 @@ export function applyWeatherAdjustments(
   const adjustedOffensiveStrength = offensiveStrength * overallOffensiveModifier;
 
   // Defense slightly benefits from bad weather (harder to score)
-  const defensiveModifier = 1.0 + ((1.0 - overallOffensiveModifier) * 0.3);
+  const defensiveModifier = 1.0 + ((1.0 - overallOffensiveModifier) * WEATHER_CONSTANTS.DEFENSIVE_WEATHER_BENEFIT);
   const adjustedDefensiveStrength = defensiveStrength * defensiveModifier;
 
   const explanation = adjustments.length > 0

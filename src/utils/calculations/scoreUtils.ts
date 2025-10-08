@@ -3,6 +3,7 @@
  */
 import { Pick } from '../../types/index';
 import { GameScore } from './types';
+import { SCORE_CONSTANTS } from '../constants';
 
 /**
  * Determines which team was predicted to win based on prediction text
@@ -80,23 +81,23 @@ export const generateRealisticScore = (pick: Pick): GameScore | null => {
   if (!pick.result || pick.result === 'pending') return null;
   
   // Generate realistic NFL scores (14-35 range typically)
-  const baseHome = 17 + Math.floor(Math.random() * 14);
-  const baseAway = 14 + Math.floor(Math.random() * 17);
+  const baseHome = SCORE_CONSTANTS.BASE_SCORES.HOME_MIN + Math.floor(Math.random() * SCORE_CONSTANTS.BASE_SCORES.HOME_RANGE);
+  const baseAway = SCORE_CONSTANTS.BASE_SCORES.AWAY_MIN + Math.floor(Math.random() * SCORE_CONSTANTS.BASE_SCORES.AWAY_RANGE);
   
   // Adjust based on actual moneyline result
   if (pick.result === 'win') {
     const predictedTeam = extractPredictedTeam(pick);
     if (predictedTeam === 'home') {
-      return { home: baseHome + 7, away: baseAway };
+      return { home: baseHome + SCORE_CONSTANTS.RESULT_ADJUSTMENT, away: baseAway };
     } else if (predictedTeam === 'away') {
-      return { home: baseHome, away: baseAway + 7 };
+      return { home: baseHome, away: baseAway + SCORE_CONSTANTS.RESULT_ADJUSTMENT };
     }
   } else if (pick.result === 'loss') {
     const predictedTeam = extractPredictedTeam(pick);
     if (predictedTeam === 'home') {
-      return { home: baseHome, away: baseAway + 7 };
+      return { home: baseHome, away: baseAway + SCORE_CONSTANTS.RESULT_ADJUSTMENT };
     } else if (predictedTeam === 'away') {
-      return { home: baseHome + 7, away: baseAway };
+      return { home: baseHome + SCORE_CONSTANTS.RESULT_ADJUSTMENT, away: baseAway };
     }
   } else if (pick.result === 'push') {
     return { home: baseHome, away: baseHome }; // Tie game

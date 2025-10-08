@@ -5,6 +5,8 @@
  * Handles odds and team statistics from paid APIs
  */
 
+import { API_CONSTANTS } from '../utils/constants';
+
 // API Configuration
 const ODDS_API_KEY = typeof process !== 'undefined' && process.env 
   ? process.env.ODDS_API_KEY 
@@ -99,7 +101,7 @@ export async function fetchTeamStats(teamName: string): Promise<TeamStats> {
           'Accept': 'application/json'
         },
         // Add timeout to prevent hanging
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(API_CONSTANTS.TIMEOUT_MS)
       }
     );
 
@@ -172,13 +174,13 @@ function parseESPNStats(espnData: any, teamName: string): TeamStats {
   
   return {
     team: teamName,
-    offensiveYardsPerGame: extractStat(stats, 'totalYards') || 350,
-    defensiveYardsAllowed: extractStat(stats, 'totalYardsAllowed') || 350,
-    pointsPerGame: extractStat(stats, 'avgPointsFor') || 22,
-    pointsAllowedPerGame: extractStat(stats, 'avgPointsAgainst') || 22,
-    turnoverDifferential: extractStat(stats, 'turnoverDifferential') || 0,
-    thirdDownConversionRate: extractStat(stats, 'thirdDownConversionPct') || 40,
-    redZoneEfficiency: extractStat(stats, 'redZoneConversionPct') || 55
+    offensiveYardsPerGame: extractStat(stats, 'totalYards') || API_CONSTANTS.DEFAULT_STATS.YARDS_PER_GAME,
+    defensiveYardsAllowed: extractStat(stats, 'totalYardsAllowed') || API_CONSTANTS.DEFAULT_STATS.YARDS_PER_GAME,
+    pointsPerGame: extractStat(stats, 'avgPointsFor') || API_CONSTANTS.DEFAULT_STATS.POINTS_PER_GAME,
+    pointsAllowedPerGame: extractStat(stats, 'avgPointsAgainst') || API_CONSTANTS.DEFAULT_STATS.POINTS_PER_GAME,
+    turnoverDifferential: extractStat(stats, 'turnoverDifferential') || API_CONSTANTS.DEFAULT_STATS.TURNOVER_DIFFERENTIAL,
+    thirdDownConversionRate: extractStat(stats, 'thirdDownConversionPct') || API_CONSTANTS.DEFAULT_STATS.THIRD_DOWN_CONVERSION_RATE,
+    redZoneEfficiency: extractStat(stats, 'redZoneConversionPct') || API_CONSTANTS.DEFAULT_STATS.RED_ZONE_EFFICIENCY
   };
 }
 
@@ -197,13 +199,13 @@ function extractStat(stats: any, statName: string): number | null {
 function getDefaultTeamStats(teamName: string): TeamStats {
   return {
     team: teamName,
-    offensiveYardsPerGame: 350,
-    defensiveYardsAllowed: 350,
-    pointsPerGame: 22,
-    pointsAllowedPerGame: 22,
-    turnoverDifferential: 0,
-    thirdDownConversionRate: 40,
-    redZoneEfficiency: 55
+    offensiveYardsPerGame: API_CONSTANTS.DEFAULT_STATS.YARDS_PER_GAME,
+    defensiveYardsAllowed: API_CONSTANTS.DEFAULT_STATS.YARDS_PER_GAME,
+    pointsPerGame: API_CONSTANTS.DEFAULT_STATS.POINTS_PER_GAME,
+    pointsAllowedPerGame: API_CONSTANTS.DEFAULT_STATS.POINTS_PER_GAME,
+    turnoverDifferential: API_CONSTANTS.DEFAULT_STATS.TURNOVER_DIFFERENTIAL,
+    thirdDownConversionRate: API_CONSTANTS.DEFAULT_STATS.THIRD_DOWN_CONVERSION_RATE,
+    redZoneEfficiency: API_CONSTANTS.DEFAULT_STATS.RED_ZONE_EFFICIENCY
   };
 }
 
@@ -229,9 +231,9 @@ export async function prepareGamePredictionData(
   const h2hMarket = bookmaker.markets.find(m => m.key === 'h2h');
 
   const homeSpread = spreadsMarket?.outcomes.find(o => o.name === homeTeam)?.point || 0;
-  const total = totalsMarket?.outcomes[0]?.point || 45;
-  const homeML = h2hMarket?.outcomes.find(o => o.name === homeTeam)?.price || -110;
-  const awayML = h2hMarket?.outcomes.find(o => o.name === awayTeam)?.price || -110;
+  const total = totalsMarket?.outcomes[0]?.point || API_CONSTANTS.DEFAULT_ODDS.TOTAL;
+  const homeML = h2hMarket?.outcomes.find(o => o.name === homeTeam)?.price || API_CONSTANTS.DEFAULT_ODDS.MONEYLINE;
+  const awayML = h2hMarket?.outcomes.find(o => o.name === awayTeam)?.price || API_CONSTANTS.DEFAULT_ODDS.MONEYLINE;
 
   return {
     homeTeam,

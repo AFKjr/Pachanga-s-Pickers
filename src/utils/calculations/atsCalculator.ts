@@ -4,6 +4,7 @@
 import { Pick } from '../../types/index';
 import { GameScore, ATSResult } from './types';
 import { extractPredictedTeam } from './scoreUtils';
+import { BETTING_CONSTANTS } from '../constants';
 
 /**
  * Calculate Against The Spread result
@@ -39,7 +40,7 @@ export const calculateATSResult = (
   let result: 'win' | 'loss' | 'push';
   
   // Check for push first (within 0.5 points)
-  if (Math.abs(adjustedHomeDiff) < 0.5) {
+  if (Math.abs(adjustedHomeDiff) < BETTING_CONSTANTS.PUSH_THRESHOLD) {
     result = 'push';
   } else {
     // Determine if pick covered the spread
