@@ -18,6 +18,7 @@ import AdminPickResults from './AdminPickResults';
 import { usePickManager, useDuplicateDetection } from '../hooks';
 import ErrorNotification from './ErrorNotification';
 import { globalEvents } from '../lib/events';
+import { getPickWeek } from '../utils/nflWeeks';
 
 type ViewMode = 'list' | 'results' | 'revision';
 
@@ -47,11 +48,8 @@ const AdminPickManagerRefactored: React.FC = () => {
   const [selectedPick, setSelectedPick] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Get available weeks from picks
-  const availableWeeks = [...new Set(picks.map(pick => {
-    const gameDate = new Date(pick.game_info.game_date);
-    return Math.ceil((gameDate.getTime() - new Date('2024-09-05').getTime()) / (7 * 24 * 60 * 60 * 1000)) as NFLWeek;
-  }))].sort((a, b) => b - a);
+  // Get available weeks from picks using proper week calculation
+  const availableWeeks = [...new Set(picks.map(pick => getPickWeek(pick) as NFLWeek))].sort((a, b) => b - a);
 
   // Set default week on load
   useEffect(() => {
