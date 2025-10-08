@@ -53,6 +53,8 @@ const CSVImportStats: React.FC = () => {
   const [parsedData, setParsedData] = useState<ExtendedTeamStats[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [success, setSuccess] = useState('');
+  const [weekNumber, setWeekNumber] = useState<number>(1);
+  const [seasonYear, setSeasonYear] = useState<number>(2025);
 
   const handleOffensiveFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -84,10 +86,45 @@ const CSVImportStats: React.FC = () => {
     }
   };
 
+  const extractWeekFromCSV = (lines: string[], filename: string): { week: number; season: number } => {
+    // Try to extract week from metadata lines (lines starting with #)
+    for (const line of lines.slice(0, 10)) {
+      if (line.startsWith('#')) {
+        const weekMatch = line.match(/Week:\s*(\d+)/i);
+        const seasonMatch = line.match(/Season:\s*(\d{4})/i);
+        
+        if (weekMatch) {
+          const week = parseInt(weekMatch[1]);
+          const season = seasonMatch ? parseInt(seasonMatch[1]) : 2025;
+          console.log(`📅 Extracted from metadata: Week ${week}, Season ${season}`);
+          return { week, season };
+        }
+      }
+    }
+    
+    // Fallback: Try to extract from filename (e.g., "week 6 offense.csv")
+    const filenameWeekMatch = filename.match(/week\s*(\d+)/i);
+    if (filenameWeekMatch) {
+      const week = parseInt(filenameWeekMatch[1]);
+      console.log(`📅 Extracted from filename: Week ${week}`);
+      return { week, season: 2025 };
+    }
+    
+    console.warn('⚠️ Could not extract week from CSV, defaulting to Week 1');
+    return { week: 1, season: 2025 };
+  };
+
   const findHeaderLine = (lines: string[]): number => {
     // Look for the line that contains the actual column headers (Rk, Tm, G, and either PF or PA)
-    for (let i = 0; i < Math.min(10, lines.length); i++) {
-      const lineLower = lines[i].toLowerCase();
+    for (let i = 0; i < Math.min(15, lines.length); i++) {
+      const line = lines[i];
+      
+      // Skip metadata lines
+      if (line.startsWith('#')) {
+        continue;
+      }
+      
+      const lineLower = line.toLowerCase();
       // Check if this line has Rk, Tm, G and looks like actual headers (not category labels)
       if (lineLower.includes('rk,tm') && lineLower.includes(',g,') && 
           (lineLower.includes(',pf,') || lineLower.includes(',pa,'))) {
@@ -280,6 +317,17 @@ const CSVImportStats: React.FC = () => {
     setParsedData([]);
 
     try {
+      // Extract week information from the first available CSV file
+      const fileToCheck = offensiveFile || defensiveFile;
+      if (fileToCheck) {
+        const text = await fileToCheck.text();
+        const lines = text.split('\n').filter((line: string) => line.trim());
+        const { week, season } = extractWeekFromCSV(lines, fileToCheck.name);
+        setWeekNumber(week);
+        setSeasonYear(season);
+        console.log(`📊 Processing stats for Week ${week}, Season ${season}`);
+      }
+
       const offensiveStats = offensiveFile ? await parseOffensiveCSV(offensiveFile) : new Map();
       const defensiveStats = defensiveFile ? await parseDefensiveCSV(defensiveFile) : new Map();
       
@@ -405,6 +453,8 @@ const CSVImportStats: React.FC = () => {
             .from('team_stats_cache')
             .upsert({
               team_name: canonicalName,
+              week: weekNumber,
+              season_year: seasonYear,
               games_played: row.gamesPlayed,
               offensive_yards_per_game: row.offensiveYardsPerGame,
               points_per_game: row.pointsPerGame,
@@ -447,7 +497,7 @@ const CSVImportStats: React.FC = () => {
               source: 'csv',
               last_updated: new Date().toISOString()
             }, {
-              onConflict: 'team_name',
+              onConflict: 'team_name,week,season_year',
               ignoreDuplicates: false
             });
 
@@ -546,6 +596,14 @@ const CSVImportStats: React.FC = () => {
           )}
         </div>
       </div>
+
+      {weekNumber > 1 && (
+        <div className="mb-4 bg-blue-900 border border-blue-700 text-blue-200 px-4 py-2 rounded">
+          <p className="text-sm">
+            📅 <strong>Detected:</strong> Week {weekNumber}, Season {seasonYear}
+          </p>
+        </div>
+      )}
 
       <div className="mb-4">
         <button
