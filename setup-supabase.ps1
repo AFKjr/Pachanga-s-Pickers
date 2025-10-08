@@ -1,15 +1,15 @@
 # Supabase VS Code Quick Setup Script
 # Run this in PowerShell: .\setup-supabase.ps1
 
-Write-Host "🚀 Pachanga's Picks - Supabase VS Code Setup" -ForegroundColor Cyan
-Write-Host "=============================================" -ForegroundColor Cyan
+Write-Host "Pachanga's Picks - Supabase VS Code Setup" -ForegroundColor Cyan
+Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Check if Supabase CLI is installed
 Write-Host "Checking for Supabase CLI..." -ForegroundColor Yellow
 $supabaseVersion = supabase --version 2>$null
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "❌ Supabase CLI not found!" -ForegroundColor Red
+    Write-Host "[ERROR] Supabase CLI not found!" -ForegroundColor Red
     Write-Host ""
     Write-Host "Please install Supabase CLI first:" -ForegroundColor Yellow
     Write-Host "  Option 1 (Scoop): scoop bucket add supabase https://github.com/supabase/scoop-bucket.git && scoop install supabase" -ForegroundColor White
@@ -18,13 +18,13 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Write-Host "✅ Supabase CLI found: $supabaseVersion" -ForegroundColor Green
+Write-Host "[OK] Supabase CLI found: $supabaseVersion" -ForegroundColor Green
 Write-Host ""
 
 # Check if .env file exists
 Write-Host "Checking environment variables..." -ForegroundColor Yellow
 if (-not (Test-Path ".env")) {
-    Write-Host "⚠️  .env file not found!" -ForegroundColor Yellow
+    Write-Host "[WARNING] .env file not found!" -ForegroundColor Yellow
     Write-Host "Please create a .env file with your Supabase credentials" -ForegroundColor Yellow
     Write-Host ""
     
@@ -33,8 +33,8 @@ if (-not (Test-Path ".env")) {
         $response = Read-Host "Copy from .env.example? (y/n)"
         if ($response -eq "y") {
             Copy-Item ".env.example" ".env"
-            Write-Host "✅ Created .env from template" -ForegroundColor Green
-            Write-Host "⚠️  Please edit .env and add your actual Supabase credentials!" -ForegroundColor Yellow
+            Write-Host "[OK] Created .env from template" -ForegroundColor Green
+            Write-Host "[WARNING] Please edit .env and add your actual Supabase credentials!" -ForegroundColor Yellow
             Write-Host ""
         }
     }
@@ -44,28 +44,28 @@ if (-not (Test-Path ".env")) {
 Write-Host "Checking Supabase login status..." -ForegroundColor Yellow
 $loginStatus = supabase projects list 2>&1
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "⚠️  Not logged in to Supabase" -ForegroundColor Yellow
+    Write-Host "[WARNING] Not logged in to Supabase" -ForegroundColor Yellow
     Write-Host ""
     $response = Read-Host "Login now? (y/n)"
     if ($response -eq "y") {
         supabase login
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "❌ Login failed!" -ForegroundColor Red
+            Write-Host "[ERROR] Login failed!" -ForegroundColor Red
             exit 1
         }
-        Write-Host "✅ Successfully logged in!" -ForegroundColor Green
+        Write-Host "[OK] Successfully logged in!" -ForegroundColor Green
     } else {
-        Write-Host "⚠️  Skipping login. Run 'supabase login' later" -ForegroundColor Yellow
+        Write-Host "[WARNING] Skipping login. Run 'supabase login' later" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "✅ Already logged in to Supabase" -ForegroundColor Green
+    Write-Host "[OK] Already logged in to Supabase" -ForegroundColor Green
 }
 Write-Host ""
 
 # Check if project is linked
 Write-Host "Checking project link..." -ForegroundColor Yellow
 if (-not (Test-Path ".supabase/config.toml")) {
-    Write-Host "⚠️  Project not linked yet" -ForegroundColor Yellow
+    Write-Host "[WARNING] Project not linked yet" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "To link your project, run:" -ForegroundColor Cyan
     Write-Host "  supabase link --project-ref YOUR_PROJECT_ID" -ForegroundColor White
@@ -81,14 +81,14 @@ if (-not (Test-Path ".supabase/config.toml")) {
         Write-Host "Linking project..." -ForegroundColor Yellow
         supabase link --project-ref $projectRef
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✅ Project linked successfully!" -ForegroundColor Green
+            Write-Host "[OK] Project linked successfully!" -ForegroundColor Green
         } else {
-            Write-Host "❌ Failed to link project" -ForegroundColor Red
+            Write-Host "[ERROR] Failed to link project" -ForegroundColor Red
             exit 1
         }
     }
 } else {
-    Write-Host "✅ Project already linked" -ForegroundColor Green
+    Write-Host "[OK] Project already linked" -ForegroundColor Green
 }
 Write-Host ""
 
@@ -113,16 +113,16 @@ if ($response -eq "y") {
             
             supabase gen types typescript --project-id $projectRef > src/types/database.types.ts
             if ($LASTEXITCODE -eq 0) {
-                Write-Host "✅ Types generated successfully!" -ForegroundColor Green
-                Write-Host "   → src/types/database.types.ts" -ForegroundColor Gray
+                Write-Host "[OK] Types generated successfully!" -ForegroundColor Green
+                Write-Host "   -> src/types/database.types.ts" -ForegroundColor Gray
             } else {
-                Write-Host "❌ Failed to generate types" -ForegroundColor Red
+                Write-Host "[ERROR] Failed to generate types" -ForegroundColor Red
             }
         }
     } else {
         npm run types:generate
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✅ Types generated successfully!" -ForegroundColor Green
+            Write-Host "[OK] Types generated successfully!" -ForegroundColor Green
         }
     }
 }
@@ -130,7 +130,7 @@ Write-Host ""
 
 # Summary
 Write-Host "=============================================" -ForegroundColor Cyan
-Write-Host "✨ Setup Complete!" -ForegroundColor Green
+Write-Host "Setup Complete!" -ForegroundColor Green
 Write-Host "=============================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Next Steps:" -ForegroundColor Yellow
@@ -143,5 +143,5 @@ Write-Host "  npm run types:generate  - Regenerate types from database" -Foregro
 Write-Host "  supabase db push        - Push migrations to remote" -ForegroundColor White
 Write-Host "  supabase db pull        - Pull schema from remote" -ForegroundColor White
 Write-Host ""
-Write-Host "📚 Full documentation: SUPABASE_VSCODE_SETUP.md" -ForegroundColor Cyan
+Write-Host "Full documentation: SUPABASE_VSCODE_SETUP.md" -ForegroundColor Cyan
 Write-Host ""
