@@ -7,7 +7,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // CONSTANTS
 // ============================================================================
 
-const SIMULATION_ITERATIONS = 100; // Reduced from 100 for serverless
+const SIMULATION_ITERATIONS = 10000;
 const QUARTERS_PER_GAME = 4;
 const POSSESSIONS_PER_QUARTER = 6;
 
