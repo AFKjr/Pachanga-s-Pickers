@@ -8,8 +8,6 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // ============================================================================
 
 const SIMULATION_ITERATIONS = 10000;
-const QUARTERS_PER_GAME = 4;
-const POSSESSIONS_PER_QUARTER = 6;
 
 const WEATHER_CONSTANTS = {
   FORECAST_HOURS_THRESHOLD: 120,
@@ -193,6 +191,14 @@ interface TeamStats {
   defFirstDownsAllowed: number;
   turnoversForced: number;
   fumblesForced: number;
+
+  // NEW DRIVE-LEVEL STATS
+  drivesPerGame: number;
+  playsPerDrive: number;
+  pointsPerDrive: number;
+  scoringPercentage: number;
+  yardsPerDrive: number;
+  timePerDriveSeconds: number;
 }
 
 interface OddsData {
@@ -662,6 +668,15 @@ function simulateSingleGameWithWeather(
   let homeScore = 0;
   let awayScore = 0;
 
+  // Use actual drive data for possessions
+  const homePossessions = Math.round(homeStats.drivesPerGame);
+  const awayPossessions = Math.round(awayStats.drivesPerGame);
+  
+  // Average the two teams' pace to get realistic game flow
+  const possessionsPerTeam = Math.round((homePossessions + awayPossessions) / 2);
+
+  console.log(`Simulating with ${possessionsPerTeam} possessions per team (Home: ${homePossessions}, Away: ${awayPossessions})`);
+
   const homeWeatherAdj = weather ? applyWeatherAdjustments(
     weather,
     calculateOffensiveStrength(homeStats),
@@ -684,21 +699,21 @@ function simulateSingleGameWithWeather(
     }
   ) : null;
 
-  for (let quarter = 0; quarter < QUARTERS_PER_GAME; quarter++) {
-    for (let possession = 0; possession < POSSESSIONS_PER_QUARTER / 2; possession++) {
-      homeScore += simulatePossessionWithWeather(
-        homeStats, 
-        awayStats, 
-        homeWeatherAdj
-      );
-    }
-    for (let possession = 0; possession < POSSESSIONS_PER_QUARTER / 2; possession++) {
-      awayScore += simulatePossessionWithWeather(
-        awayStats, 
-        homeStats, 
-        awayWeatherAdj
-      );
-    }
+  // Simulate actual number of possessions per team
+  for (let possession = 0; possession < possessionsPerTeam; possession++) {
+    homeScore += simulatePossessionWithWeather(
+      homeStats, 
+      awayStats, 
+      homeWeatherAdj
+    );
+  }
+  
+  for (let possession = 0; possession < possessionsPerTeam; possession++) {
+    awayScore += simulatePossessionWithWeather(
+      awayStats, 
+      homeStats, 
+      awayWeatherAdj
+    );
   }
 
   return { homeScore, awayScore };
@@ -893,7 +908,15 @@ async function fetchTeamStatsFromDatabase(
       defYardsPerPlayAllowed: dbStats.def_yards_per_play_allowed || 5.4,
       defFirstDownsAllowed: dbStats.def_first_downs_allowed || 19.6,
       turnoversForced: dbStats.turnovers_forced || 1.2,
-      fumblesForced: dbStats.fumbles_forced || 0.5
+      fumblesForced: dbStats.fumbles_forced || 0.5,
+
+      // NEW DRIVE-LEVEL STATS with fallback calculation
+      drivesPerGame: dbStats.drives_per_game || (dbStats.total_plays / dbStats.games_played / 5.5),
+      playsPerDrive: dbStats.plays_per_drive || 5.5,
+      pointsPerDrive: dbStats.points_per_drive || 2.0,
+      scoringPercentage: dbStats.scoring_percentage || 40.0,
+      yardsPerDrive: dbStats.yards_per_drive || 30.0,
+      timePerDriveSeconds: dbStats.time_per_drive_seconds || 162
     };
   } catch (error) {
     console.error(`Error fetching stats for ${teamName}:`, error);
@@ -942,7 +965,15 @@ function getDefaultTeamStats(teamName: string): TeamStats {
     defYardsPerPlayAllowed: 5.4,
     defFirstDownsAllowed: 19.6,
     turnoversForced: 1.2,
-    fumblesForced: 0.5
+    fumblesForced: 0.5,
+    
+    // NEW DEFAULTS
+    drivesPerGame: 11.0,
+    playsPerDrive: 5.5,
+    pointsPerDrive: 2.0,
+    scoringPercentage: 40.0,
+    yardsPerDrive: 30.0,
+    timePerDriveSeconds: 162
   };
 }
 

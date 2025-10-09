@@ -1,20 +1,28 @@
-# Pachanga's Picks - AI Coding Agent Instructions
+# Pa**Tech Stack**: React 18 + TypeScript + Vite + Tailwind CSS + Supabase + Monte Carlo Simulationsa's Picks - AI Coding Agent Instructions
 
 ## Architecture Overview
 
-**Tech Stack**: React 18 + TypeScript + Vite + Tailwind CSS + Supabase + Relevance AI
+**Tech Stack**: React 18 + TypeScript + Vite + Tailw### AI Integration
+- Monte Carlo simulations are computationally intensive - optimize iteration counts
+- Always provide fallback data for development/testing
+- Validate simulation results before storing in production
+- Data collection: Manual entry through admin interface (no automated scraping)SS + Supabase + Monte Carlo Simulations
 
 **Core Components**:
-- **Frontend**: Single-page React app with React Router (routes: `/`, `/game/:gameId`, `/admin`)
-- **Backend**: Supabase (PostgreSQL + Auth + Real-time subscriptions)
-- **AI Layer**: AI-powered sports prediction system with Relevance AI integration
-- **Data Flow**: User input → Relevance AI agents → Supabase storage → React components
+- **Frontend**: Single-page React app with React Router (routes: `/`, `/admin`, `/admin/generate`, `/admin/manage`, `/admin/results`, `/admin/team-stats`)
+- **Backend**: Supabase (PostgreSQL + Auth + Real-time subscriptions) + Vercel Serverless Functions
+- **AI Layer**: Monte Carlo simulation-based sports prediction system (10,000 iterations per game)
+- **Data Flow**: Admin triggers Monte Carlo sim → Vercel function generates predictions → Supabase storage → React components
 
 **Key Data Models** (`src/types/index.ts`):
-- `Pick`: AI-generated predictions with confidence scores (0-100)
-- `Post`: Forum threads linked to picks
-- `Comment`: Nested comment system with parent relationships
-- `GameInfo`: JSONB structure for flexible game metadata
+- `Pick`: Monte Carlo-generated predictions with confidence scores (0-100), includes moneyline/spread/O/U predictions
+- `GameInfo`: JSONB structure for flexible game metadata (league, teams, scores, odds)
+- `MonteCarloResults`: Detailed simulation results (win probabilities, predicted scores)
+
+**Additional Database Tables**:
+- `profiles`: User profiles with admin status
+- `team_stats_cache`: Cached team statistics from ESPN API
+- `team_name_mapping`: Team name normalization for API consistency
 
 ## Critical Patterns & Conventions
 
@@ -23,25 +31,29 @@
 - **Admin Check**: Query `profiles.is_admin` field, never assume admin status
 - **User Profiles**: Store in `profiles` table with `username` as unique identifier
 - **RLS Policies**: All database access controlled by Supabase Row Level Security
+- **Protected Routes**: Admin routes require authentication + admin privileges
 
 ### API Layer (`src/lib/api.ts`)
 - **Consistent Structure**: All API functions return `{ data, error }` objects
 - **Error Handling**: Check `error` field before using `data`
 - **Profile Enrichment**: Always join user profiles for display names (`author_username`)
-- **Real-time**: Use `supabase.channel()` for live updates on picks/posts
+- **Real-time**: Use `supabase.channel()` for live updates on picks
+- **Admin Verification**: Helper function `verifyAdminUser()` for admin-only operations
 
 ### AI Analysis Workflow
-- **Agent Integration**: Relevance AI agents for complex reasoning (`RelevanceAIAgentEmbed`)
+- **Monte Carlo Simulation**: 10,000 iterations per game in Vercel serverless function
 - **Prediction Storage**: Save to `picks` table with structured `game_info` JSONB
 - **Confidence Scoring**: 0-100 scale with reasoning text
-- **Data Sources**: Manual data entry through admin interface (ESPN scraper removed)
+- **Data Sources**: Manual data entry through admin interface, team stats from ESPN API
+- **Weather Integration**: Weather impact analysis included in simulations
 
 ### Database Schema Patterns
 - **UUID Primary Keys**: All tables use `gen_random_uuid()`
 - **Timestamps**: `created_at`/`updated_at` with timezone
 - **Enums**: `game_result` ('win', 'loss', 'push', 'pending')
 - **Relationships**: Foreign keys with CASCADE deletes
-- **JSONB Flexibility**: `game_info` stores complex game metadata
+- **JSONB Flexibility**: `game_info`, `monte_carlo_results`, `weather` store complex data
+- **Team Stats**: Cached in `team_stats_cache` with ESPN API integration
 
 ## Essential Developer Workflows
 
@@ -50,7 +62,6 @@
 # Required env vars (prefix with VITE_ for client access)
 VITE_SUPABASE_URL=your-project-url
 VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_RELEVANCE_AGENT_ID=your-agent-id      # Optional
 ```
 
 ### Build & Development
@@ -62,10 +73,10 @@ npm run preview  # Preview production build
 ```
 
 ### AI Prediction Generation
-1. Access `/admin` route (requires `is_admin: true`)
-2. Use `RelevanceAIAgentEmbed` component for AI queries
-3. Agent automatically saves predictions to `picks` table
-4. Predictions include: game analysis, confidence %, reasoning
+1. Access `/admin/generate` route (requires `is_admin: true`)
+2. Use `APIPredictionsGenerator` component to trigger Monte Carlo sim
+3. Vercel function runs 10,000 iterations and saves predictions to `picks` table
+4. Predictions include: game analysis, confidence %, reasoning, Monte Carlo results
 
 
 ```
@@ -102,11 +113,8 @@ if (error) console.error('Failed to fetch picks:', error);
 - `AdminPanel.tsx`: AI prediction interface (admin-only)
 - `HomePage.tsx`: Main picks feed with `PickCard` components
 - `AuthModal.tsx`: Sign-in/sign-up forms
-- `DataCollectionStatus.tsx`: Data collection status (ESPN scraper removed)
-- `RelevanceAIAgentEmbed.tsx`: AI agent integration component
+- `APIPredictionsGenerator.tsx`: Monte Carlo prediction generation component
 - `admin/`: Admin-specific components
-  - `AgentTextInput.tsx`: Text input for AI agents
-  - `ProcessingActions.tsx`: Processing action components
   - `StatusMessage.tsx`: Status message display
   - `WeekSelector.tsx`: NFL week selection component
 
@@ -128,9 +136,9 @@ if (error) console.error('Failed to fetch picks:', error);
 - Respect RLS policies - don't bypass with service keys
 
 ### AI Integration
-- LLM calls are expensive - implement caching where possible
+- Monte Carlo simulations are computationally intensive - optimize iteration counts
 - Always provide fallback data for development/testing
-- Validate AI-generated data before storing in production
+- Validate simulation results before storing in production
 - Data collection: Manual entry through admin interface (no automated scraping)
 
 ### Real-time Features
@@ -141,7 +149,7 @@ if (error) console.error('Failed to fetch picks:', error);
 ## Performance Considerations
 
 - **Database Queries**: Use appropriate indexes (defined in schema)
-- **API Calls**: Cache LLM responses in Supabase tables
+- **API Calls**: Cache Monte Carlo results in Supabase tables
 - **Bundle Size**: Lazy load admin components
 - **Real-time**: Limit subscription scope to necessary data only
 

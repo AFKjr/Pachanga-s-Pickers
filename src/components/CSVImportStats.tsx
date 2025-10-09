@@ -43,6 +43,20 @@ interface ExtendedTeamStats {
   turnoverDifferential: number;
   thirdDownPct: number;
   redZonePct: number;
+  
+  // NEW DRIVE-LEVEL STATS
+  drivesPerGame: number;
+  playsPerDrive: number;
+  pointsPerDrive: number;
+  scoringPercentage: number;
+  yardsPerDrive: number;
+  timePerDriveSeconds: number;
+  thirdDownAttempts?: number;
+  thirdDownConversions?: number;
+  fourthDownAttempts?: number;
+  fourthDownConversions?: number;
+  redZoneAttempts?: number;
+  redZoneTouchdowns?: number;
 }
 
 const CSVImportStats: React.FC = () => {
@@ -55,6 +69,18 @@ const CSVImportStats: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [weekNumber, setWeekNumber] = useState<number>(1);
   const [seasonYear, setSeasonYear] = useState<number>(2025);
+
+  const parseTimeToSeconds = (timeString: string): number => {
+    if (!timeString || typeof timeString !== 'string') return 162;
+    
+    const parts = timeString.split(':');
+    if (parts.length === 2) {
+      const minutes = parseInt(parts[0]) || 0;
+      const seconds = parseInt(parts[1]) || 0;
+      return minutes * 60 + seconds;
+    }
+    return 162; // Default 2:42 in seconds
+  };
 
   const handleOffensiveFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -224,7 +250,24 @@ const CSVImportStats: React.FC = () => {
         penaltyFirstDowns: parseFloat(values[24]) || 0,
         redZonePct: parseFloat(values[25]) || 50.0,
         turnoverPct: parseFloat(values[26]) || 0,
-        thirdDownPct: 40.0
+        
+        // DRIVE STATS (adjust column indices based on your actual CSV structure)
+        thirdDownAttempts: parseFloat(values[27]) || 0,
+        thirdDownConversions: parseFloat(values[28]) || 0,
+        thirdDownPct: parseFloat(values[29]?.replace('%', '')) || 40.0,
+        fourthDownAttempts: parseFloat(values[30]) || 0,
+        fourthDownConversions: parseFloat(values[31]) || 0,
+        redZoneAttempts: parseFloat(values[33]) || 0,
+        redZoneTouchdowns: parseFloat(values[34]) || 0,
+        
+        // AVERAGE DRIVE STATS (these might be at different column positions)
+        totalDrives: parseFloat(values[36]) || 0,  // #Dr column
+        totalDrivePlays: parseFloat(values[37]) || 0,  // Total plays in all drives
+        scoringPct: parseFloat(values[38]?.replace('%', '')) || 0,  // Sc%
+        avgPlaysPerDrive: parseFloat(values[41]) || 5.5,  // Average plays per drive
+        avgYardsPerDrive: parseFloat(values[42]) || 30.0,  // Average yards per drive
+        avgTimePerDrive: values[44] || '2:42',  // Time string like "2:47"
+        avgPointsPerDrive: parseFloat(values[45]) || 2.0  // Points per drive
       });
     }
 
@@ -394,7 +437,21 @@ const CSVImportStats: React.FC = () => {
           turnoversForced: defense ? defense.turnoversForced / games : 0,
           fumblesForced: defense ? defense.fumblesForced / games : 0,
           turnoverDifferential: turnoverDiff / games,
+          
+          // DRIVE-LEVEL STATS
+          drivesPerGame: offense ? offense.totalDrives / games : (offense?.totalPlays / games / 5.5 || 11.0),
+          playsPerDrive: offense ? offense.avgPlaysPerDrive : 5.5,
+          pointsPerDrive: offense ? offense.avgPointsPerDrive : 2.0,
+          scoringPercentage: offense ? offense.scoringPct : 40.0,
+          yardsPerDrive: offense ? offense.avgYardsPerDrive : 30.0,
+          timePerDriveSeconds: offense ? parseTimeToSeconds(offense.avgTimePerDrive) : 162,
+          
+          // THIRD DOWN & RED ZONE (updated with more accurate data)
+          thirdDownAttempts: offense ? offense.thirdDownAttempts / games : 0,
+          thirdDownConversions: offense ? offense.thirdDownConversions / games : 0,
           thirdDownPct: offense?.thirdDownPct || 40.0,
+          redZoneAttempts: offense ? offense.redZoneAttempts / games : 0,
+          redZoneTouchdowns: offense ? offense.redZoneTouchdowns / games : 0,
           redZonePct: offense?.redZonePct || 50.0
         });
       });
@@ -494,6 +551,23 @@ const CSVImportStats: React.FC = () => {
               turnover_differential: row.turnoverDifferential,
               third_down_conversion_rate: row.thirdDownPct,
               red_zone_efficiency: row.redZonePct,
+              
+              // Optional drive stats
+              third_down_attempts: row.thirdDownAttempts,
+              third_down_conversions: row.thirdDownConversions,
+              fourth_down_attempts: row.fourthDownAttempts,
+              fourth_down_conversions: row.fourthDownConversions,
+              red_zone_attempts: row.redZoneAttempts,
+              red_zone_touchdowns: row.redZoneTouchdowns,
+              
+              // NEW DRIVE-LEVEL STATS
+              drives_per_game: row.drivesPerGame,
+              plays_per_drive: row.playsPerDrive,
+              points_per_drive: row.pointsPerDrive,
+              scoring_percentage: row.scoringPercentage,
+              yards_per_drive: row.yardsPerDrive,
+              time_per_drive_seconds: row.timePerDriveSeconds,
+              
               source: 'csv',
               last_updated: new Date().toISOString()
             }, {
@@ -657,6 +731,9 @@ const CSVImportStats: React.FC = () => {
                   <th className="px-2 py-2 text-right">Def Yds</th>
                   <th className="px-2 py-2 text-right">PPG</th>
                   <th className="px-2 py-2 text-right">PA/G</th>
+                  <th className="px-2 py-2 text-right">Drives/G</th>
+                  <th className="px-2 py-2 text-right">Pts/Dr</th>
+                  <th className="px-2 py-2 text-right">Sc%</th>
                 </tr>
               </thead>
               <tbody className="bg-gray-900">
@@ -668,6 +745,9 @@ const CSVImportStats: React.FC = () => {
                     <td className="px-2 py-2 text-right">{row.defensiveYardsAllowed.toFixed(1)}</td>
                     <td className="px-2 py-2 text-right">{row.pointsPerGame.toFixed(1)}</td>
                     <td className="px-2 py-2 text-right">{row.pointsAllowedPerGame.toFixed(1)}</td>
+                    <td className="px-2 py-2 text-right">{row.drivesPerGame?.toFixed(1) || 'N/A'}</td>
+                    <td className="px-2 py-2 text-right">{row.pointsPerDrive?.toFixed(2) || 'N/A'}</td>
+                    <td className="px-2 py-2 text-right">{row.scoringPercentage?.toFixed(1) || 'N/A'}%</td>
                   </tr>
                 ))}
               </tbody>
