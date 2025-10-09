@@ -3,7 +3,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 // ⭐ FIXED: Import from local serverless-compatible weather service
-import { fetchGameWeather, applyWeatherAdjustments, formatWeatherForDisplay, type GameWeather } from './utils/weatherService';
+import { fetchGameWeather, applyWeatherAdjustments, formatWeatherForDisplay, type GameWeather } from './utils/weatherService.js';
 
 // ⭐ FIXED: Inline constants to avoid build path issues
 const SIMULATION_ITERATIONS = 10000;
