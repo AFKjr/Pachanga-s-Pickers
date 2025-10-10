@@ -6,12 +6,16 @@ import { GameScore } from './types';
 import { SCORE_CONSTANTS } from '../constants';
 
 /**
- * Determines which team was predicted to win based on prediction text
+ * Helper function to extract predicted team from any prediction text
  */
-export const extractPredictedTeam = (pick: Pick): 'home' | 'away' | 'unknown' => {
-  const predictionLower = pick.prediction.toLowerCase();
-  const homeTeamLower = pick.game_info.home_team.toLowerCase();
-  const awayTeamLower = pick.game_info.away_team.toLowerCase();
+export const extractPredictedTeamFromText = (
+  predictionText: string,
+  homeTeam: string,
+  awayTeam: string
+): 'home' | 'away' | 'unknown' => {
+  const predictionLower = predictionText.toLowerCase();
+  const homeTeamLower = homeTeam.toLowerCase();
+  const awayTeamLower = awayTeam.toLowerCase();
   
   // First check for FULL team name match (most reliable)
   const mentionsHomeFullName = predictionLower.includes(homeTeamLower);
@@ -55,6 +59,18 @@ export const extractPredictedTeam = (pick: Pick): 'home' | 'away' | 'unknown' =>
   if (mentionsAway && !mentionsHome) return 'away';
   
   return 'unknown';
+};
+
+/**
+ * Determines which team was predicted to win based on prediction text
+ * This uses the main prediction field from the pick
+ */
+export const extractPredictedTeam = (pick: Pick): 'home' | 'away' | 'unknown' => {
+  return extractPredictedTeamFromText(
+    pick.prediction,
+    pick.game_info.home_team,
+    pick.game_info.away_team
+  );
 };
 
 /**

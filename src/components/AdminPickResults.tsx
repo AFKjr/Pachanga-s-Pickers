@@ -1,10 +1,3 @@
-/**
- * AdminPickResults - REFACTORED
- * Manages pick results with optimistic updates and batch operations
- * 
- * Reduced from 573 lines to ~200 lines (65% reduction)
- */
-
 import React, { useState, useEffect } from 'react';
 import { Pick, NFLWeek } from '../types/index';
 import { useSecureConfirmation } from './SecureConfirmationModal';
@@ -20,6 +13,7 @@ import ErrorNotification from './ErrorNotification';
 
 const AdminPickResults: React.FC = () => {
   const [selectedWeek, setSelectedWeek] = useState<NFLWeek | null>(null);
+  const [editingScores, setEditingScores] = useState<Record<string, { away: string; home: string }>>({});
   
   // Use hooks for business logic
   const { 
@@ -96,6 +90,67 @@ const AdminPickResults: React.FC = () => {
 
     const { updatePayload } = updatePickWithScores(pick, awayScore, homeScore);
     optimisticUpdate(pickId, updatePayload, pick);
+  };
+
+  // Save scores for a specific pick
+  const saveScoresForPick = (pickId: string) => {
+    const editedScores = editingScores[pickId];
+    if (!editedScores) return;
+
+    // Parse and validate both scores
+    const awayScore = editedScores.away === '' ? null : parseInt(editedScores.away, 10);
+    const homeScore = editedScores.home === '' ? null : parseInt(editedScores.home, 10);
+
+    // Validate that at least one score is provided and both are in valid range
+    if (awayScore === null && homeScore === null) return;
+    if (awayScore !== null && (awayScore < 0 || awayScore > 99)) return;
+    if (homeScore !== null && (homeScore < 0 || homeScore > 99)) return;
+
+    // Queue the score update
+    queueScoreUpdate(pickId, awayScore, homeScore);
+
+    // Clear editing state for this pick
+    setEditingScores(prev => {
+      const updated = { ...prev };
+      delete updated[pickId];
+      return updated;
+    });
+  };
+
+  // Handle key press on score inputs
+  const handleScoreKeyDown = (event: React.KeyboardEvent, pickId: string) => {
+    if (event.key === 'Enter') {
+      saveScoresForPick(pickId);
+    }
+  };
+
+  // Check if scores have been edited for a pick
+  const hasEditedScores = (pickId: string): boolean => {
+    return editingScores[pickId] !== undefined;
+  };
+
+  // Check if both scores are valid for saving
+  const canSaveScores = (pickId: string): boolean => {
+    const editedScores = editingScores[pickId];
+    if (!editedScores) return false;
+    
+    const awayValue = editedScores.away;
+    const homeValue = editedScores.home;
+    
+    // At least one score must be entered
+    if (awayValue === '' && homeValue === '') return false;
+    
+    // If entered, must be valid numbers
+    if (awayValue !== '') {
+      const away = parseInt(awayValue, 10);
+      if (isNaN(away) || away < 0 || away > 99) return false;
+    }
+    if (homeValue !== '') {
+      const home = parseInt(homeValue, 10);
+      if (isNaN(home) || home < 0 || home > 99) return false;
+    }
+    
+    return true;
   };
 
   // Queue delete
@@ -266,18 +321,21 @@ const AdminPickResults: React.FC = () => {
               ? pendingOp.payload?.result || pick.result
               : pick.result;
 
+            const isEditingScores = hasEditedScores(pick.id);
+            const canSave = canSaveScores(pick.id);
+
             return (
-              <div key={pick.id} className={`bg-gray-700 rounded-lg p-4 ${hasPending ? 'ring-2 ring-yellow-400' : ''}`}>
+                <div key={pick.id} className={`bg-gray-700 rounded-lg p-5 ${hasPending ? 'ring-2 ring-yellow-400' : ''}`}>
                 {hasPending && (
-                  <span className='inline-block px-2 py-1 rounded-full text-xs bg-yellow-900 text-yellow-200 mb-2'>
+                  <span className='inline-block px-2 py-1 rounded-full text-xs bg-yellow-900 text-yellow-200 mb-3'>
                     Pending
                   </span>
                 )}
 
-                <div className='flex justify-between items-start'>
+                <div className='flex justify-between items-start gap-4'>
                   <div className='flex-1'>
-                    <div className='flex items-center space-x-2 mb-2'>
-                      <span className='text-white font-medium'>
+                    <div className='flex items-center space-x-3 mb-3'>
+                      <span className='text-white font-medium text-base'>
                         {pick.game_info.away_team} @ {pick.game_info.home_team}
                       </span>
                       <span className='text-gray-400 text-sm'>
@@ -285,49 +343,106 @@ const AdminPickResults: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className='text-gray-300 text-sm mb-2'>
+                    <div className='text-gray-300 text-sm mb-3'>
                       {pick.prediction}
                     </div>
 
                     {/* Score Inputs */}
-                    <div className='flex items-center space-x-2 mb-2'>
-                      <input
-                        type='number'
-                        min='0'
-                        value={pick.game_info.away_score ?? ''}
-                        onChange={(e) => queueScoreUpdate(
-                          pick.id, 
-                          e.target.value === '' ? null : parseInt(e.target.value),
-                          pick.game_info.home_score
-                        )}
-                        className='w-14 px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-xs'
-                        placeholder='Away'
-                      />
-                      <span className='text-gray-400 text-xs'>@</span>
-                      <input
-                        type='number'
-                        min='0'
-                        value={pick.game_info.home_score ?? ''}
-                        onChange={(e) => queueScoreUpdate(
-                          pick.id,
-                          pick.game_info.away_score,
-                          e.target.value === '' ? null : parseInt(e.target.value)
-                        )}
-                        className='w-14 px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-xs'
-                        placeholder='Home'
-                      />
+                    <div className='flex items-center space-x-3 mb-3'>
+                      <div className='flex flex-col'>
+                        <label className='text-gray-400 text-xs mb-1'>Away Score</label>
+                        <input
+                          type='text'
+                          inputMode='numeric'
+                          value={
+                            editingScores[pick.id]?.away !== undefined 
+                              ? editingScores[pick.id].away 
+                              : (pick.game_info.away_score?.toString() ?? '')
+                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Only allow digits or empty string
+                            if (!/^[0-9]*$/.test(value)) return;
+                            
+                            // Validate range if not empty
+                            if (value !== '') {
+                              const numValue = parseInt(value, 10);
+                              if (numValue > 99) return;
+                            }
+                            
+                            // Update local editing state only
+                            setEditingScores(prev => ({
+                              ...prev,
+                              [pick.id]: { 
+                                away: value,
+                                home: prev[pick.id]?.home ?? (pick.game_info.home_score?.toString() ?? '')
+                              }
+                            }));
+                          }}
+                          onKeyDown={(e) => handleScoreKeyDown(e, pick.id)}
+                          className='w-20 px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                          placeholder='0'
+                        />
+                      </div>
+                      <span className='text-gray-400 text-sm mt-5'>@</span>
+                      <div className='flex flex-col'>
+                        <label className='text-gray-400 text-xs mb-1'>Home Score</label>
+                        <input
+                          type='text'
+                          inputMode='numeric'
+                          value={
+                            editingScores[pick.id]?.home !== undefined 
+                              ? editingScores[pick.id].home 
+                              : (pick.game_info.home_score?.toString() ?? '')
+                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Only allow digits or empty string
+                            if (!/^[0-9]*$/.test(value)) return;
+                            
+                            // Validate range if not empty
+                            if (value !== '') {
+                              const numValue = parseInt(value, 10);
+                              if (numValue > 99) return;
+                            }
+                            
+                            // Update local editing state only
+                            setEditingScores(prev => ({
+                              ...prev,
+                              [pick.id]: { 
+                                away: prev[pick.id]?.away ?? (pick.game_info.away_score?.toString() ?? ''),
+                                home: value
+                              }
+                            }));
+                          }}
+                          onKeyDown={(e) => handleScoreKeyDown(e, pick.id)}
+                          className='w-20 px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                          placeholder='0'
+                        />
+                      </div>
+                      
+                      {/* Save Scores Button */}
+                      {isEditingScores && (
+                        <button
+                          onClick={() => saveScoresForPick(pick.id)}
+                          disabled={!canSave}
+                          className='px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm font-medium text-white transition-colors mt-5'
+                        >
+                          Save Scores
+                        </button>
+                      )}
                     </div>
 
                     {/* Calculated Results */}
                     {pick.game_info.home_score != null && pick.game_info.away_score != null && (
-                      <div className='flex gap-1 mb-2'>
+                      <div className='flex gap-2 mb-3'>
                         {(() => {
                           const results = calculateAllResultsFromScores(pick);
                           const badge = (result: string, label: string) => {
                             const color = result === 'win' ? 'bg-green-600' : 
                                         result === 'loss' ? 'bg-red-600' : 'bg-yellow-600';
                             return (
-                              <span className={`px-2 py-0.5 rounded text-xs ${color} text-white`}>
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${color} text-white`}>
                                 {label}: {result.toUpperCase()}
                               </span>
                             );
@@ -345,16 +460,16 @@ const AdminPickResults: React.FC = () => {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className='flex flex-col space-y-2 ml-4'>
+                  <div className='flex flex-col space-y-2 min-w-[90px]'>
                     <button
                       onClick={() => queueDelete(pick.id, pick.game_info.home_team, pick.game_info.away_team)}
-                      className='px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded text-xs'
+                      className='px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm font-medium text-white transition-colors'
                     >
                       Delete
                     </button>
                     <button
                       onClick={() => queueUpdateResult(pick.id, 'win')}
-                      className={`px-3 py-1 rounded text-xs ${
+                      className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
                         currentResult === 'win' ? 'bg-green-700 ring-2 ring-green-400' : 'bg-green-600 hover:bg-green-700'
                       }`}
                     >
@@ -362,7 +477,7 @@ const AdminPickResults: React.FC = () => {
                     </button>
                     <button
                       onClick={() => queueUpdateResult(pick.id, 'loss')}
-                      className={`px-3 py-1 rounded text-xs ${
+                      className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
                         currentResult === 'loss' ? 'bg-red-700 ring-2 ring-red-400' : 'bg-red-600 hover:bg-red-700'
                       }`}
                     >
@@ -370,7 +485,7 @@ const AdminPickResults: React.FC = () => {
                     </button>
                     <button
                       onClick={() => queueUpdateResult(pick.id, 'push')}
-                      className={`px-3 py-1 rounded text-xs ${
+                      className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
                         currentResult === 'push' ? 'bg-yellow-700 ring-2 ring-yellow-400' : 'bg-yellow-600 hover:bg-yellow-700'
                       }`}
                     >
