@@ -347,6 +347,24 @@ const AdminPickResults: React.FC = () => {
                       {pick.prediction}
                     </div>
 
+                    {/* ATS and O/U Predictions */}
+                    {(pick.spread_prediction || pick.ou_prediction) && (
+                      <div className='flex flex-wrap gap-2 mb-3'>
+                        {pick.spread_prediction && (
+                          <div className='bg-gray-600 px-2 py-1 rounded text-xs'>
+                            <span className='text-gray-400'>ATS:</span>
+                            <span className='text-white ml-1'>{pick.spread_prediction}</span>
+                          </div>
+                        )}
+                        {pick.ou_prediction && (
+                          <div className='bg-gray-600 px-2 py-1 rounded text-xs'>
+                            <span className='text-gray-400'>O/U:</span>
+                            <span className='text-white ml-1'>{pick.ou_prediction}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {/* Score Inputs */}
                     <div className='flex items-center space-x-3 mb-3'>
                       <div className='flex flex-col'>

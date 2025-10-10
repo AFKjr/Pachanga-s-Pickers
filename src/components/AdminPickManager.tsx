@@ -216,6 +216,23 @@ const AdminPickManagerRefactored: React.FC = () => {
                   <div className="text-gray-400 text-sm mt-1">
                     {pick.prediction}
                   </div>
+                  {/* ATS and O/U Predictions */}
+                  {(pick.spread_prediction || pick.ou_prediction) && (
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {pick.spread_prediction && (
+                        <div className="bg-gray-600 px-2 py-0.5 rounded text-xs">
+                          <span className="text-gray-400">ATS:</span>
+                          <span className="text-white ml-1">{pick.spread_prediction}</span>
+                        </div>
+                      )}
+                      {pick.ou_prediction && (
+                        <div className="bg-gray-600 px-2 py-0.5 rounded text-xs">
+                          <span className="text-gray-400">O/U:</span>
+                          <span className="text-white ml-1">{pick.ou_prediction}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="text-gray-500 text-xs mt-1">
                     {new Date(pick.game_info.game_date).toLocaleString()}
                   </div>
