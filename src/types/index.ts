@@ -15,6 +15,12 @@ export interface Pick {
   schedule_id: string | null;
   game_info: GameInfo;
   monte_carlo_results?: MonteCarloResults;
+  
+  // Edge values for each bet type
+  moneyline_edge?: number;
+  spread_edge?: number;
+  ou_edge?: number;
+  
   weather?: {
     temperature: number;
     wind_speed: number;
@@ -27,8 +33,6 @@ export interface Pick {
   is_pinned?: boolean;
   user_id?: string;
   author_username?: string;
-  upvotes?: number;
-  downvotes?: number;
   comments_count?: number;
 }
 
@@ -50,8 +54,19 @@ export interface GameInfo {
   home_team: string;
   away_team: string;
   game_date: string;
+  
+  // Lines
   spread?: number;
   over_under?: number;
+  
+  // Actual odds from sportsbooks
+  home_ml_odds?: number;      // e.g., -175
+  away_ml_odds?: number;      // e.g., +145
+  spread_odds?: number;        // e.g., -110 (usually same for both sides)
+  over_odds?: number;          // e.g., -110
+  under_odds?: number;         // e.g., -110
+  
+  // Scores
   home_score?: number | null;
   away_score?: number | null;
 }

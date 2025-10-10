@@ -7,6 +7,7 @@ import { picksApi } from '../lib/api';
 import { Pick, NFLWeek } from '../types';
 import { getPickWeek } from '../utils/nflWeeks';
 import { calculateAllResultsFromScores } from '../utils/atsCalculator';
+import { calculatePickEdges } from '../utils/edgeCalculator';
 import { AppError, createAppError } from '../utils/errorHandling';
 
 export interface PicksByWeek {
@@ -222,13 +223,31 @@ export function filterPicks(
 }
 
 /**
- * Create a new pick
+ * Create a new pick with edge calculations
  */
 export async function createPick(
   pickData: Omit<Pick, 'id' | 'created_at' | 'updated_at'>
 ): Promise<{ data: Pick | null; error: AppError | null }> {
   try {
-    const { data, error } = await picksApi.create(pickData);
+    // Calculate edge values if Monte Carlo results are available
+    let enrichedPickData = { ...pickData };
+    
+    if (pickData.monte_carlo_results && pickData.game_info) {
+      const edges = calculatePickEdges(
+        pickData as Pick,
+        pickData.monte_carlo_results,
+        pickData.game_info
+      );
+      
+      enrichedPickData = {
+        ...enrichedPickData,
+        moneyline_edge: edges.moneyline_edge,
+        spread_edge: edges.spread_edge,
+        ou_edge: edges.ou_edge
+      };
+    }
+    
+    const { data, error } = await picksApi.create(enrichedPickData);
     
     if (error) {
       return { data: null, error };
@@ -244,4 +263,25 @@ export async function createPick(
       })
     };
   }
+}
+
+/**
+ * Recalculate edge values for a pick
+ */
+export function recalculatePickEdges(pick: Pick): Partial<Pick> {
+  if (!pick.monte_carlo_results || !pick.game_info) {
+    return {};
+  }
+  
+  const edges = calculatePickEdges(
+    pick,
+    pick.monte_carlo_results,
+    pick.game_info
+  );
+  
+  return {
+    moneyline_edge: edges.moneyline_edge,
+    spread_edge: edges.spread_edge,
+    ou_edge: edges.ou_edge
+  };
 }

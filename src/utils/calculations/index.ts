@@ -1,8 +1,3 @@
-/**
- * Main entry point for betting calculations
- * Re-exports all calculation functions for backward compatibility
- */
-
 // Export all types
 export * from './types';
 

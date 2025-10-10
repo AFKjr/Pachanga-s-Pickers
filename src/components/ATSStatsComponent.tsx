@@ -1,10 +1,3 @@
-/**
- * ATSStatsComponent - REFACTORED
- * Displays comprehensive betting analytics with minimal business logic
- * 
- * Reduced from 362 lines to ~150 lines (59% reduction)
- */
-
 import React, { useState, useEffect } from 'react';
 import { NFLWeek } from '../types/index';
 import { usePickManager, useStatistics } from '../hooks';

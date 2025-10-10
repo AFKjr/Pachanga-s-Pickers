@@ -11,21 +11,9 @@ const PickCard = ({ pick, showComments = true, onCommentClick }: PickCardProps) 
     }
   };
 
-  const score = (pick.upvotes || 0) - (pick.downvotes || 0);
-
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-lg mb-4 hover:border-gray-600 transition-colors">
-      {/* Reddit-style layout */}
-      <div className="flex">
-        {/* Upvote/Downvote section */}
-        <div className="flex flex-col items-center p-2 bg-gray-900 rounded-l-lg min-w-[40px]">
-          <button className="text-gray-400 hover:text-orange-400 text-lg">▲</button>
-          <span className="text-sm font-medium text-gray-300 my-1">{score}</span>
-          <button className="text-gray-400 hover:text-blue-400 text-lg">▼</button>
-        </div>
-
-        {/* Main content */}
-        <div className="flex-1 p-4">
+      <div className="p-4">
           {/* Header with title and metadata */}
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1">
@@ -115,7 +103,6 @@ const PickCard = ({ pick, showComments = true, onCommentClick }: PickCardProps) 
             )}
           </div>
         </div>
-      </div>
     </div>
   );
 };
