@@ -29,7 +29,6 @@ const PickCard = ({ pick, showComments = true, onCommentClick }: PickCardProps) 
                 <span className="text-sm text-gray-400">{pick.game_info.league}</span>
                 {pick.is_pinned && pick.reasoning?.includes('AI-generated') && (
                   <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-medium">
-                    AI
                   </span>
                 )}
               </div>

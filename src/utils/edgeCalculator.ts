@@ -198,7 +198,8 @@ export function getEdgeTextColor(edge: number): string {
 /**
  * Format edge value for display
  */
-export function formatEdge(edge: number): string {
+export function formatEdge(edge?: number): string {
+  if (edge === undefined || edge === null) return '+0.0%';
   const sign = edge >= 0 ? '+' : '';
   return `${sign}${edge.toFixed(1)}%`;
 }

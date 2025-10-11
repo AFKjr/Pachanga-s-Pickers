@@ -1,16 +1,12 @@
-import { useEffect, useState, lazy, Suspense } from 'react';
-import UnifiedAllTimeRecord from './UnifiedAllTimeRecord';
+import { useEffect, useState } from 'react';
+import StatsDashboard from './StatsDashboard';
 import PicksDisplay from './PicksDisplay';
 import { useAuth } from '../contexts/AuthContext';
 import ProtectedContent from './ProtectedContent';
 import { globalEvents } from '../lib/events';
 
-// Lazy load the advanced stats component
-const ATSStatsComponent = lazy(() => import('./ATSStatsComponent'));
-
 const HomePage = () => {
   const { loading: authLoading } = useAuth();
-  const [showAdvancedStats, setShowAdvancedStats] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -43,28 +39,11 @@ const HomePage = () => {
           </p>
         </div>
 
-        {/* Unified All-Time Record - Combines Correct Moneyline + ATS + O/U */}
-        <UnifiedAllTimeRecord key={`record-${refreshKey}`} />
+        {/* Pachanga Stats Dashboard */}
+        <StatsDashboard key={`stats-${refreshKey}`} />
 
         {/* All Picks Display */}
         <PicksDisplay key={`picks-${refreshKey}`} maxPicks={16} showWeekFilter={true} />
-
-        {/* Advanced Analytics Toggle */}
-        <div className="flex justify-center">
-          <button
-            onClick={() => setShowAdvancedStats(!showAdvancedStats)}
-            className="btn-secondary"
-          >
-            {showAdvancedStats ? 'Hide' : 'Show'} Advanced Analytics
-          </button>
-        </div>
-
-        {/* Lazy-loaded Advanced Stats */}
-        {showAdvancedStats && (
-          <Suspense fallback={<div className="animate-pulse h-64 bg-gray-800 rounded-lg" />}>
-            <ATSStatsComponent key={`stats-${refreshKey}`} />
-          </Suspense>
-        )}
 
         {/* Enhanced Disclaimer */}
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">

@@ -57,7 +57,7 @@ function App() {
   
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-gray-900 text-gray-100">
+      <div className="min-h-screen bg-[#0a0a0a] text-gray-100">
         {/* Only show Header on non-admin routes */}
         {!isAdminRoute && <Header />}
         
