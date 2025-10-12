@@ -1,8 +1,6 @@
 /**
- * APIPredictionsGenerator - REFACTORED
- * Generates AI predictions from API with minimal business logic
- * 
- * Reduced from 210 lines to ~100 lines (52% reduction)
+ * APIPredictionsGenerator - REFACTORED with Week Selection
+ * Generates AI predictions from API with week selection capability
  */
 
 import { useState } from 'react';
@@ -15,9 +13,20 @@ export default function APIPredictionsGenerator() {
   const [success, setSuccess] = useState('');
   const [predictions, setPredictions] = useState<any[]>([]);
 
+  // NEW: Week selection state
+  const [mode, setMode] = useState<'live' | 'historical'>('live');
+  const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
+  const [useStoredOdds, setUseStoredOdds] = useState(false);
+
   const { createPick } = usePickManager();
 
   const generatePredictions = async () => {
+    // Validation: Historical mode requires week selection
+    if (mode === 'historical' && !selectedWeek) {
+      setError('Please select a week for historical mode');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setSuccess('');
@@ -28,14 +37,21 @@ export default function APIPredictionsGenerator() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
+      // Build request body
+      const requestBody = mode === 'historical' && selectedWeek
+        ? { targetWeek: selectedWeek, useStoredOdds }
+        : {};
+
+      console.log(`Calling /api/generate-predictions in ${mode} mode...`, requestBody);
+
       // Call API
-      console.log('Calling /api/generate-predictions...');
       const response = await fetch('/api/generate-predictions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify(requestBody)
       });
 
       console.log('API Response status:', response.status);
@@ -43,7 +59,7 @@ export default function APIPredictionsGenerator() {
       if (!response.ok) {
         const contentType = response.headers.get('content-type');
         console.error('API Error - Content-Type:', contentType);
-        
+
         if (contentType?.includes('application/json')) {
           const errorData = await response.json();
           console.error('API Error Data:', errorData);
@@ -88,7 +104,8 @@ export default function APIPredictionsGenerator() {
       if (saveErrors.length > 0) {
         setSuccess(`Saved ${savedCount}/${data.predictions.length}. Failed: ${saveErrors.join(', ')}`);
       } else {
-        setSuccess(`Successfully saved ${savedCount} predictions!`);
+        const modeText = mode === 'historical' ? `Week ${selectedWeek}` : 'upcoming games';
+        setSuccess(`Successfully saved ${savedCount} predictions for ${modeText}!`);
       }
 
     } catch (err) {
@@ -107,22 +124,147 @@ export default function APIPredictionsGenerator() {
       <p className="text-gray-300 text-sm mb-4">
         Generates predictions using 10,000 Monte Carlo simulations per game with live odds, imported team stats, and weather data.
       </p>
-      
+
+      {/* Mode Selector */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Prediction Mode
+        </label>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setMode('live');
+              setSelectedWeek(null);
+              setUseStoredOdds(false);
+            }}
+            disabled={loading}
+            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              mode === 'live'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <span>🔴</span>
+              <span>Live (Upcoming Games)</span>
+            </div>
+          </button>
+          <button
+            onClick={() => setMode('historical')}
+            disabled={loading}
+            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              mode === 'historical'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <span>📅</span>
+              <span>Historical (Specific Week)</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Week Selector (only show in historical mode) */}
+      {mode === 'historical' && (
+        <>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Select Week
+            </label>
+            <select
+              value={selectedWeek || ''}
+              onChange={(e) => setSelectedWeek(e.target.value ? parseInt(e.target.value) : null)}
+              disabled={loading}
+              className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white disabled:opacity-50"
+            >
+              <option value="">Choose a week...</option>
+              {Array.from({ length: 18 }, (_, i) => i + 1).map(week => (
+                <option key={week} value={week}>Week {week}</option>
+              ))}
+            </select>
+          </div>
+          
+          {/* NEW: Stored Odds Toggle */}
+          <div className="mb-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={useStoredOdds}
+                onChange={(e) => setUseStoredOdds(e.target.checked)}
+                disabled={loading}
+                className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800"
+              />
+              <span className="text-sm text-gray-300">
+                Use stored historical odds (True Historical Mode)
+              </span>
+            </label>
+            <p className="text-xs text-gray-400 mt-1 ml-6">
+              {useStoredOdds 
+                ? '✅ Will use odds captured when Week ' + (selectedWeek || '?') + ' games were originally played'
+                : '⚠️ Will use current odds from The Odds API (Hybrid Mode)'}
+            </p>
+          </div>
+        </>
+      )}
+
+      {/* Mode Description */}
+      <div className={`mb-4 px-4 py-2 rounded text-sm ${
+        mode === 'live'
+          ? 'bg-blue-900 border border-blue-700 text-blue-200'
+          : useStoredOdds
+            ? 'bg-purple-900 border border-purple-700 text-purple-200'
+            : 'bg-yellow-900 border border-yellow-700 text-yellow-200'
+      }`}>
+        {mode === 'live' ? (
+          <>
+            <p className="font-semibold">📊 Live Mode:</p>
+            <ul className="list-disc list-inside mt-1 space-y-1">
+              <li>Fetches current NFL games from The Odds API</li>
+              <li>Uses latest available team stats</li>
+              <li>Captures live odds at time of generation</li>
+            </ul>
+          </>
+        ) : useStoredOdds ? (
+          <>
+            <p className="font-semibold">�️ True Historical Mode:</p>
+            <ul className="list-disc list-inside mt-1 space-y-1">
+              <li>Uses Week {selectedWeek || '?'} team stats from database</li>
+              <li>Uses odds stored when Week {selectedWeek || '?'} was originally played</li>
+              <li>Generates predictions as they would have been at that time</li>
+              <li>Requires: Week {selectedWeek || '?'} must have been generated previously</li>
+            </ul>
+          </>
+        ) : (
+          <>
+            <p className="font-semibold">📅 Hybrid Historical Mode:</p>
+            <ul className="list-disc list-inside mt-1 space-y-1">
+              <li>Uses Week {selectedWeek || '?'} team stats from database</li>
+              <li>Uses current odds from The Odds API</li>
+              <li>Useful for "what-if" analysis or backtesting</li>
+            </ul>
+          </>
+        )}
+      </div>
+
+      {/* Prerequisites Info */}
       <div className="bg-blue-900 border border-blue-700 text-blue-200 px-4 py-2 rounded text-sm mb-4">
         <p className="font-semibold">📊 Prerequisites:</p>
         <ul className="list-disc list-inside mt-1 space-y-1">
-          <li>Import Week stats via Team Stats → CSV Import</li>
+          <li>Import {mode === 'historical' ? `Week ${selectedWeek || '[X]'}` : 'latest'} stats via Team Stats → CSV Import</li>
           <li>Ensure ODDS_API_KEY is set in environment variables</li>
           <li>Optional: Set OPENWEATHER_API_KEY for weather adjustments</li>
         </ul>
       </div>
 
+      {/* Generate Button */}
       <button
         onClick={generatePredictions}
-        disabled={loading}
-        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-md text-white font-medium"
+        disabled={loading || (mode === 'historical' && !selectedWeek)}
+        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md text-white font-medium transition-colors"
       >
-        {loading ? 'Generating...' : 'Generate Predictions'}
+        {loading ? 'Generating...' : `Generate ${mode === 'live' ? 'Live' : `Week ${selectedWeek || '?'}`} Predictions`}
       </button>
 
       {/* Error Message */}

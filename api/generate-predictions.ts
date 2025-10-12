@@ -978,6 +978,310 @@ function getDefaultTeamStats(teamName: string): TeamStats {
 }
 
 // ============================================================================
+// HISTORICAL GAMES QUERY
+// ============================================================================
+
+/**
+ * Fetch historical games from database for a specific week
+ * This retrieves games that were previously saved with odds
+ */
+async function fetchHistoricalGamesFromDatabase(
+  week: number,
+  supabaseUrl: string,
+  supabaseKey: string
+): Promise<Array<{
+  home_team: string;
+  away_team: string;
+  game_date: string;
+  spread: number;
+  over_under: number;
+  home_ml_odds?: number;
+  away_ml_odds?: number;
+  spread_odds?: number;
+  over_odds?: number;
+  under_odds?: number;
+}> | null> {
+  try {
+    console.log(`📚 Fetching historical games for Week ${week} from database...`);
+
+    const query = `${supabaseUrl}/rest/v1/picks?week=eq.${week}&season_year=eq.2025&order=created_at.desc&select=game_info`;
+
+    const response = await fetch(query, {
+      method: 'GET',
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      console.error(`Failed to fetch historical games: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+
+    if (!data || data.length === 0) {
+      console.warn(`No historical games found for Week ${week}`);
+      return null;
+    }
+
+    // Extract unique games (avoid duplicates from multiple picks)
+    const gamesMap = new Map();
+
+    for (const pick of data) {
+      const gameInfo = pick.game_info;
+      const gameKey = `${gameInfo.away_team}_${gameInfo.home_team}`;
+
+      // Only add if we have stored odds
+      if (gameInfo.home_ml_odds || gameInfo.spread_odds || gameInfo.over_odds) {
+        if (!gamesMap.has(gameKey)) {
+          gamesMap.set(gameKey, {
+            home_team: gameInfo.home_team,
+            away_team: gameInfo.away_team,
+            game_date: gameInfo.game_date,
+            spread: gameInfo.spread || 0,
+            over_under: gameInfo.over_under || 45,
+            home_ml_odds: gameInfo.home_ml_odds,
+            away_ml_odds: gameInfo.away_ml_odds,
+            spread_odds: gameInfo.spread_odds || -110,
+            over_odds: gameInfo.over_odds || -110,
+            under_odds: gameInfo.under_odds || -110
+          });
+        }
+      }
+    }
+
+    const games = Array.from(gamesMap.values());
+    console.log(`✅ Found ${games.length} historical games with stored odds for Week ${week}`);
+
+    return games;
+
+  } catch (error) {
+    console.error(`Error fetching historical games:`, error);
+    return null;
+  }
+}
+
+// ============================================================================
+// HISTORICAL PREDICTIONS GENERATOR
+// ============================================================================
+
+/**
+ * Generate predictions using historical data (stored odds + historical stats)
+ */
+async function generateHistoricalPredictions(
+  targetWeek: number,
+  supabaseUrl: string,
+  supabaseKey: string,
+  weatherApiKey: string | undefined
+): Promise<{
+  predictions: any[];
+  errors: any[];
+  metadata: any;
+}> {
+  const startTime = Date.now();
+
+  console.log(`\n🕰️  HISTORICAL MODE: Generating predictions for Week ${targetWeek}`);
+  console.log(`📊 Will use Week ${targetWeek} team stats + stored odds\n`);
+
+  // Fetch historical games with stored odds
+  const historicalGames = await fetchHistoricalGamesFromDatabase(
+    targetWeek,
+    supabaseUrl,
+    supabaseKey
+  );
+
+  if (!historicalGames || historicalGames.length === 0) {
+    return {
+      predictions: [],
+      errors: [{
+        message: `No historical games found for Week ${targetWeek}. Generate live predictions first to capture odds.`
+      }],
+      metadata: {
+        generated_at: new Date().toISOString(),
+        mode: 'historical',
+        target_week: targetWeek,
+        games_attempted: 0,
+        games_processed: 0,
+        games_failed: 0,
+        simulation_iterations: SIMULATION_ITERATIONS,
+        execution_time_seconds: ((Date.now() - startTime) / 1000).toFixed(2)
+      }
+    };
+  }
+
+  const predictions = [];
+  const errors = [];
+
+  for (let gameIndex = 0; gameIndex < historicalGames.length; gameIndex++) {
+    const game = historicalGames[gameIndex];
+
+    try {
+      console.log(`\n🏈 [${gameIndex + 1}/${historicalGames.length}] Processing: ${game.away_team} @ ${game.home_team}`);
+
+      // Fetch week-specific team stats
+      const homeStats = await fetchTeamStatsFromDatabase(
+        game.home_team,
+        supabaseUrl,
+        supabaseKey,
+        targetWeek
+      ) || getDefaultTeamStats(game.home_team);
+
+      const awayStats = await fetchTeamStatsFromDatabase(
+        game.away_team,
+        supabaseUrl,
+        supabaseKey,
+        targetWeek
+      ) || getDefaultTeamStats(game.away_team);
+
+      console.log(`📈 Using Week ${targetWeek} stats for both teams`);
+      console.log(`💰 Using stored odds: ML ${game.home_ml_odds || 'N/A'}/${game.away_ml_odds || 'N/A'}, Spread ${game.spread_odds}, O/U ${game.over_odds}/${game.under_odds}`);
+
+      // Fetch weather (if available)
+      let gameWeather: GameWeather | null = null;
+      let weatherImpact = 'No weather data';
+
+      if (weatherApiKey) {
+        try {
+          gameWeather = await fetchGameWeather(
+            game.home_team,
+            game.game_date,
+            weatherApiKey
+          );
+
+          if (gameWeather) {
+            weatherImpact = formatWeatherForDisplay(gameWeather);
+            console.log(`🌤️ Weather: ${weatherImpact}`);
+          }
+        } catch (weatherError) {
+          console.error(`⚠️ Weather fetch failed:`, weatherError);
+        }
+      }
+
+      let weatherExplanation = '';
+      if (gameWeather && !gameWeather.isDome) {
+        const homeOffenseAdj = applyWeatherAdjustments(
+          gameWeather,
+          calculateOffensiveStrength(homeStats),
+          calculateDefensiveStrength(awayStats),
+          {
+            passingYards: homeStats.passingYards,
+            rushingYards: homeStats.rushingYards,
+            yardsPerPlay: homeStats.yardsPerPlay
+          }
+        );
+        weatherExplanation = homeOffenseAdj.explanation;
+      }
+
+      console.log(`⚙️ Running ${SIMULATION_ITERATIONS.toLocaleString()} Monte Carlo simulations...`);
+      const simResult = runMonteCarloSimulationWithWeather(
+        homeStats,
+        awayStats,
+        game.spread,
+        game.over_under,
+        gameWeather
+      );
+
+      const moneylineProb = Math.max(simResult.homeWinProbability, simResult.awayWinProbability);
+      const moneylineConfidence = getConfidenceLevel(moneylineProb);
+
+      const spreadPick = simResult.spreadCoverProbability > 50
+        ? `${game.home_team} ${game.spread > 0 ? '+' : ''}${game.spread}`
+        : `${game.away_team} ${-game.spread > 0 ? '+' : ''}${-game.spread}`;
+      const spreadProb = Math.max(simResult.spreadCoverProbability, 100 - simResult.spreadCoverProbability);
+
+      const totalPick = simResult.overProbability > 50 ? 'Over' : 'Under';
+      const totalProb = Math.max(simResult.overProbability, simResult.underProbability);
+
+      console.log(`✅ Prediction complete: ${simResult.homeWinProbability > simResult.awayWinProbability ? game.home_team : game.away_team} to win (${moneylineProb.toFixed(1)}%)`);
+
+      predictions.push({
+        game_info: {
+          home_team: game.home_team,
+          away_team: game.away_team,
+          league: 'NFL',
+          game_date: game.game_date,
+          spread: game.spread,
+          over_under: game.over_under,
+          home_score: null,
+          away_score: null,
+
+          // Use stored historical odds
+          home_ml_odds: game.home_ml_odds,
+          away_ml_odds: game.away_ml_odds,
+          spread_odds: game.spread_odds,
+          over_odds: game.over_odds,
+          under_odds: game.under_odds
+        },
+        prediction: `${simResult.homeWinProbability > simResult.awayWinProbability ? game.home_team : game.away_team} to win`,
+        spread_prediction: spreadPick,
+        ou_prediction: `${totalPick} ${game.over_under}`,
+        confidence: mapConfidenceToNumber(moneylineConfidence),
+        reasoning: generateReasoning(
+          game.home_team,
+          game.away_team,
+          simResult,
+          simResult.homeWinProbability > simResult.awayWinProbability ? game.home_team : game.away_team,
+          spreadPick,
+          `${totalPick} ${game.over_under}`,
+          weatherExplanation
+        ),
+        result: 'pending',
+        week: targetWeek,
+        monte_carlo_results: {
+          moneyline_probability: moneylineProb,
+          spread_probability: spreadProb,
+          total_probability: totalProb,
+          home_win_probability: simResult.homeWinProbability,
+          away_win_probability: simResult.awayWinProbability,
+          spread_cover_probability: simResult.spreadCoverProbability,
+          over_probability: simResult.overProbability,
+          under_probability: simResult.underProbability,
+          predicted_home_score: simResult.predictedHomeScore,
+          predicted_away_score: simResult.predictedAwayScore
+        },
+        weather: gameWeather ? {
+          temperature: gameWeather.temperature,
+          wind_speed: gameWeather.windSpeed,
+          condition: gameWeather.condition,
+          impact_rating: gameWeather.impactRating,
+          description: gameWeather.description
+        } : null,
+        weather_impact: weatherImpact
+      });
+
+    } catch (gameError) {
+      const errorMessage = gameError instanceof Error ? gameError.message : String(gameError);
+      console.error(`❌ Error processing ${game.away_team} @ ${game.home_team}:`, errorMessage);
+      errors.push({
+        game: `${game.away_team} @ ${game.home_team}`,
+        error: errorMessage
+      });
+    }
+  }
+
+  const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(2);
+  console.log(`\n🎉 Generated ${predictions.length} historical predictions in ${elapsedSeconds}s${errors.length > 0 ? ` (${errors.length} failures)` : ''}`);
+
+  return {
+    predictions,
+    errors,
+    metadata: {
+      generated_at: new Date().toISOString(),
+      mode: 'historical',
+      target_week: targetWeek,
+      games_attempted: historicalGames.length,
+      games_processed: predictions.length,
+      games_failed: errors.length,
+      simulation_iterations: SIMULATION_ITERATIONS,
+      execution_time_seconds: elapsedSeconds
+    }
+  };
+}
+
+// ============================================================================
 // MAIN HANDLER
 // ============================================================================
 
@@ -1005,7 +1309,38 @@ export default async function handler(
   try {
     console.log('🎲 Starting prediction generation...');
     logMemory('Function started');
-    
+
+    // Extract parameters from request body
+    const { targetWeek, useStoredOdds } = request.body || {};
+    console.log(`📋 Parameters: targetWeek=${targetWeek}, useStoredOdds=${useStoredOdds}`);
+
+    // Initialize environment variables early
+    const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+    const WEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
+
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
+      return response.status(500).json({
+        error: 'Supabase configuration missing',
+        hint: 'Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables'
+      });
+    }
+
+    // Route to appropriate generation function
+    if (useStoredOdds && targetWeek) {
+      console.log('📚 Using historical mode with stored odds...');
+      const result = await generateHistoricalPredictions(targetWeek, SUPABASE_URL, SUPABASE_KEY, WEATHER_API_KEY);
+      return response.status(200).json({
+        success: true,
+        ...result
+      });
+    } else if (targetWeek && !useStoredOdds) {
+      console.log('🔄 Using hybrid historical mode (current odds + week stats)...');
+      // This will be implemented next - for now fall through to live mode
+    }
+
+    // Default: Live mode (current odds + latest stats)
+    console.log('📊 Using live mode (current odds + latest stats)...');
     console.log('📊 Fetching odds from The Odds API...');
     let oddsData: OddsData[];
     try {
@@ -1034,17 +1369,6 @@ export default async function handler(
       });
     }
 
-    const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-    const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-    
-    if (!SUPABASE_URL || !SUPABASE_KEY) {
-      return response.status(500).json({
-        error: 'Supabase configuration missing',
-        hint: 'Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables'
-      });
-    }
-
-    const WEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
     if (!WEATHER_API_KEY) {
       console.warn('⚠️ OPENWEATHER_API_KEY not set - predictions will run without weather data');
     }
