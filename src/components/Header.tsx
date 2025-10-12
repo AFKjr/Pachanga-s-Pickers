@@ -13,45 +13,61 @@ const Header = () => {
 
   return (
     <>
-      <header className="bg-gray-800 border-b border-gray-700">
-        <div className="container mx-auto px-4 py-4">
+      <header className="bg-[#0a0a0a] border-b border-[rgba(255,255,255,0.05)]">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/" className="text-2xl font-bold text-primary-500 hover:text-primary-400 transition-colors">
-              Pachanga Picks
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-3 group">
+              <div className="w-10 h-10 bg-gradient-to-br from-lime-500 to-lime-600 rounded-lg flex items-center justify-center transform group-hover:scale-105 transition-transform">
+                <span className="text-black font-bold text-xl">P</span>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-white group-hover:text-lime-400 transition-colors">
+                  Pachanga Picks
+                </h1>
+              </div>
             </Link>
 
-            <nav className="hidden md:flex space-x-6">
-              <Link to="/" className="text-gray-300 hover:text-white transition-colors">
+            {/* Navigation */}
+            <nav className="hidden md:flex items-center gap-6">
+              <Link
+                to="/"
+                className="text-sm text-gray-400 hover:text-white transition-colors font-medium"
+              >
                 Home
               </Link>
               {user && (
-                <Link to="/admin" className="text-gray-300 hover:text-white transition-colors">
+                <Link
+                  to="/admin"
+                  className="text-sm text-gray-400 hover:text-white transition-colors font-medium"
+                >
                   Admin
                 </Link>
               )}
             </nav>
 
-            <div className="flex items-center space-x-4">
+            {/* User Section */}
+            <div className="flex items-center gap-4">
               {loading ? (
-                <span className="text-gray-400">Loading...</span>
+                <span className="text-gray-400 text-sm">Loading...</span>
               ) : user ? (
                 <>
-                  <span className="text-gray-300">
+                  <span className="text-sm text-gray-300 hidden md:inline">
                     Welcome, {user.user_metadata?.username || user.email}
                   </span>
                   <button
                     onClick={handleSignOut}
-                    className="btn-secondary text-sm"
+                    className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white border border-[rgba(255,255,255,0.1)] hover:border-gray-600 rounded-lg transition-all"
                   >
                     Sign Out
                   </button>
                 </>
               ) : (
                 <>
-                  <span className="text-gray-400">Welcome, Guest</span>
+                  <span className="text-sm text-gray-400 hidden md:inline">Welcome, Guest</span>
                   <button
                     onClick={() => setShowAuthModal(true)}
-                    className="btn-secondary text-sm"
+                    className="px-4 py-2 text-sm font-bold text-black bg-lime-500 hover:bg-lime-400 rounded-lg transition-colors shadow-lg shadow-lime-500/20"
                   >
                     Sign In
                   </button>

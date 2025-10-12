@@ -3,6 +3,7 @@ import { NFLWeek } from '../types/index';
 import { usePickManager, useStatistics } from '../hooks';
 import { globalEvents } from '../lib/events';
 import { getPickWeek } from '../utils/nflWeeks';
+import SegmentedWeekSelector from './SegmentedWeekSelector';
 
 const ATSStatsComponent: React.FC = () => {
   const [selectedWeek, setSelectedWeek] = useState<NFLWeek | 'all'>('all');
@@ -60,16 +61,13 @@ const ATSStatsComponent: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-white">Advanced Betting Analytics</h2>
-        <select
-          value={selectedWeek}
-          onChange={(e) => setSelectedWeek(e.target.value === 'all' ? 'all' : parseInt(e.target.value) as NFLWeek)}
-          className="bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white text-sm"
-        >
-          <option value="all">All Weeks</option>
-          {availableWeeks.map(week => (
-            <option key={week} value={week}>Week {week}</option>
-          ))}
-        </select>
+        <SegmentedWeekSelector
+          selectedWeek={selectedWeek === 'all' ? null : selectedWeek}
+          availableWeeks={availableWeeks}
+          onChange={(week) => setSelectedWeek(week === null ? 'all' : week as NFLWeek)}
+          showAllOption={true}
+          maxVisibleWeeks={6}
+        />
       </div>
 
       {/* Tab Navigation */}

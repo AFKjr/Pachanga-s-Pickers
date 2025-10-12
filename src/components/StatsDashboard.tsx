@@ -3,6 +3,7 @@ import { agentStatsApi, picksApi } from '../lib/api';
 import { globalEvents } from '../lib/events';
 import { ATSCalculator } from '../utils/atsCalculator';
 import { getPickWeek } from '../utils/nflWeeks';
+import SegmentedWeekSelector from './SegmentedWeekSelector';
 
 interface BetTypeStats {
   wins: number;
@@ -33,8 +34,7 @@ const StatCard: React.FC<{
   record: string;
   winRate: number;
   units: number;
-  pushes?: number;
-}> = ({ label, record, winRate, units, pushes }) => {
+}> = ({ label, record, winRate, units }) => {
 
   const getWinRateColor = (rate: number): string => {
     if (rate >= 60) return 'text-lime-400';
@@ -42,56 +42,37 @@ const StatCard: React.FC<{
     return 'text-red-400';
   };
 
+  const getProgressBarColor = (rate: number): string => {
+    if (rate >= 60) return 'bg-lime-500';
+    if (rate >= 52.4) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
   return (
-    <div className="bg-[#1a1a1a] rounded-lg p-6 border border-[rgba(255,255,255,0.05)] hover:border-[rgba(132,204,22,0.3)] transition-all">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xs uppercase tracking-wider text-gray-500 font-semibold">
-          {label}
-        </h3>
-        {pushes !== undefined && pushes > 0 && (
-          <span className="text-xs text-gray-600 bg-gray-800 px-2 py-0.5 rounded">
-            {pushes} push{pushes !== 1 ? 'es' : ''}
-          </span>
-        )}
+    <div className="bg-[#0f0f0f] rounded-lg p-4 border border-[rgba(255,255,255,0.05)]">
+      <div className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3">
+        {label}
       </div>
-
-      <div className="space-y-3">
-        <div>
-          <div className={`text-3xl font-bold mb-1 ${getWinRateColor(winRate)}`}>
-            {winRate.toFixed(1)}%
-          </div>
-          <div className="text-gray-400 text-sm font-medium">{record}</div>
-        </div>
-
-        <div className="pt-3 border-t border-[rgba(255,255,255,0.05)]">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">Units</span>
-            <span className={`text-sm font-bold ${units >= 0 ? 'text-lime-400' : 'text-red-400'}`}>
-              {units > 0 ? '+' : ''}{units.toFixed(1)}
-            </span>
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        <div className="bg-gray-700 rounded-full h-1.5 overflow-hidden">
-          <div
-            className={`h-full transition-all duration-500 ${
-              winRate >= 60 ? 'bg-lime-500' :
-              winRate >= 52.4 ? 'bg-yellow-500' : 'bg-red-500'
-            }`}
-            style={{ width: `${Math.min(winRate, 100)}%` }}
-          />
-        </div>
+      <div className={`text-3xl font-bold mb-1 ${getWinRateColor(winRate)}`}>
+        {winRate.toFixed(1)}%
+      </div>
+      <div className="text-sm text-gray-400 mb-3">{record}</div>
+      <div className="text-xs text-gray-500 mb-2">Units: <span className={`font-bold ${units >= 0 ? 'text-lime-400' : 'text-red-400'}`}>{units > 0 ? '+' : ''}{units.toFixed(1)}</span></div>
+      <div className="bg-gray-700 rounded-full h-1.5 overflow-hidden">
+        <div
+          className={`h-full transition-all duration-500 ${getProgressBarColor(winRate)}`}
+          style={{ width: `${Math.min(winRate, 100)}%` }}
+        />
       </div>
     </div>
   );
 };
 
-const CurrentWeekDashboard: React.FC<{ 
+const CurrentWeekDashboard: React.FC<{
   weekStats: WeekStats;
   selectedWeek: number | null;
   availableWeeks: number[];
-  onWeekChange: (week: number) => void;
+  onWeekChange: (week: number | null) => void;
 }> = ({ weekStats, selectedWeek, availableWeeks, onWeekChange }) => {
   const totalWins = weekStats.moneyline.wins + weekStats.ats.wins + weekStats.overUnder.wins;
   const totalLosses = weekStats.moneyline.losses + weekStats.ats.losses + weekStats.overUnder.losses;
@@ -105,49 +86,40 @@ const CurrentWeekDashboard: React.FC<{
   return (
     <div className="bg-[#1a1a1a] rounded-lg border border-[rgba(255,255,255,0.05)] overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-[rgba(255,255,255,0.05)] bg-gradient-to-r from-[#1a1a1a] to-[#1f1f1f]">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-1">
-              Week {weekStats.week} Performance
-            </h2>
-            <p className="text-sm text-gray-400">
-              {weekStats.totalPicks} games analyzed
-            </p>
-          </div>
+      <div className="px-6 py-4 border-b border-[rgba(255,255,255,0.05)] flex items-center justify-between">
+        <div>
+          <h3 className="text-xl font-bold text-white mb-1">Week {weekStats.week} Performance</h3>
+          <p className="text-sm text-gray-500">{weekStats.totalPicks} games analyzed</p>
+        </div>
 
-          <div className="flex items-center gap-4">
-            {availableWeeks.length > 1 && (
-              <select
-                value={selectedWeek || ''}
-                onChange={(e) => onWeekChange(parseInt(e.target.value))}
-                className="bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white text-sm hover:border-lime-500 transition-colors"
-              >
-                {availableWeeks.map(week => (
-                  <option key={week} value={week}>
-                    Week {week}
-                  </option>
-                ))}
-              </select>
-            )}
+        {/* Week Selector */}
+        <div className="flex items-center gap-4">
+          {availableWeeks.length > 1 && (
+            <SegmentedWeekSelector
+              selectedWeek={selectedWeek}
+              availableWeeks={availableWeeks}
+              onChange={onWeekChange}
+              showAllOption={false}
+              maxVisibleWeeks={4}
+            />
+          )}
 
-            {hasHotStreak && (
-              <div className="bg-lime-500/10 border border-lime-500/30 rounded-lg px-4 py-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">🔥</span>
-                  <div>
-                    <div className="text-lime-400 font-bold text-sm">Hot Streak</div>
-                    <div className="text-xs text-lime-300/70">3+ wins</div>
-                  </div>
+          {hasHotStreak && (
+            <div className="bg-lime-500/10 border border-lime-500/30 rounded-lg px-4 py-2">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🔥</span>
+                <div>
+                  <div className="text-lime-400 font-bold text-sm">Hot Streak</div>
+                  <div className="text-xs text-lime-300/70">3+ wins</div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Overall Stats Bar */}
-      <div className="px-6 py-4 bg-[#0f0f0f] border-b border-[rgba(255,255,255,0.05)]">
+      <div className="px-6 py-4 bg-[#0a0a0a] border-b border-[rgba(255,255,255,0.05)]">
         <div className="grid grid-cols-4 gap-6">
           <div>
             <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Overall</div>
@@ -204,7 +176,6 @@ const CurrentWeekDashboard: React.FC<{
             record={`${weekStats.ats.wins}-${weekStats.ats.losses}`}
             winRate={weekStats.ats.winRate}
             units={weekStats.ats.units}
-            pushes={weekStats.ats.pushes}
           />
 
           <StatCard
@@ -212,7 +183,6 @@ const CurrentWeekDashboard: React.FC<{
             record={`${weekStats.overUnder.wins}-${weekStats.overUnder.losses}`}
             winRate={weekStats.overUnder.winRate}
             units={weekStats.overUnder.units}
-            pushes={weekStats.overUnder.pushes}
           />
         </div>
       </div>
@@ -220,24 +190,21 @@ const CurrentWeekDashboard: React.FC<{
   );
 };
 
-const AllTimeDashboard: React.FC<{ stats: AllTimeStats; isExpanded: boolean; onToggle: () => void }> = ({ 
-  stats, 
-  isExpanded, 
-  onToggle 
-}) => {  return (
-    <div className="bg-[#1a1a1a] rounded-lg border border-[rgba(255,255,255,0.05)] overflow-hidden">
-      {/* Collapsed Header */}
-      <button
-        onClick={onToggle}
-        className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#1f1f1f] transition-colors"
-      >
-        <div className="flex items-center gap-6">
+const AllTimeDashboard: React.FC<{ stats: AllTimeStats; isExpanded: boolean; onToggle: () => void }> = ({
+  stats,
+  isExpanded,
+  onToggle
+}) => {
+  return (
+    <div className="bg-[#1a1a1a] rounded-lg border border-[rgba(255,255,255,0.05)]">
+      <div className="px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-8">
           <div>
-            <h3 className="text-lg font-bold text-white text-left">All-Time Record</h3>
-            <p className="text-xs text-gray-500 text-left">{stats.totalPicks} total picks</p>
+            <h3 className="text-lg font-bold text-white">All-Time Record</h3>
+            <p className="text-xs text-gray-500">{stats.totalPicks} total picks</p>
           </div>
 
-          <div className="flex items-center gap-8 text-sm">
+          <div className="flex items-center gap-6 text-sm">
             <div>
               <span className="text-gray-500">ML: </span>
               <span className="text-white font-medium">
@@ -286,24 +253,27 @@ const AllTimeDashboard: React.FC<{ stats: AllTimeStats; isExpanded: boolean; onT
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">
+        <button
+          onClick={onToggle}
+          className="flex items-center gap-2 text-xs text-gray-500 hover:text-lime-400 transition-colors"
+        >
+          <span>
             {isExpanded ? 'Hide Details' : 'Show Details'}
           </span>
           <svg
-            className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
-        </div>
-      </button>
+        </button>
+      </div>
 
       {/* Expanded Details */}
       {isExpanded && (
-        <div className="px-6 pb-6 border-t border-[rgba(255,255,255,0.05)]">
+        <div className="px-6 pb-6 border-t border-[rgba(255,255,255,0.05)] bg-[#0f0f0f]">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
             <StatCard
               label="MONEYLINE"
@@ -317,7 +287,6 @@ const AllTimeDashboard: React.FC<{ stats: AllTimeStats; isExpanded: boolean; onT
               record={`${stats.ats.wins}-${stats.ats.losses}`}
               winRate={stats.ats.winRate}
               units={stats.ats.units}
-              pushes={stats.ats.pushes}
             />
 
             <StatCard
@@ -325,7 +294,6 @@ const AllTimeDashboard: React.FC<{ stats: AllTimeStats; isExpanded: boolean; onT
               record={`${stats.overUnder.wins}-${stats.overUnder.losses}`}
               winRate={stats.overUnder.winRate}
               units={stats.overUnder.units}
-              pushes={stats.overUnder.pushes}
             />
           </div>
         </div>

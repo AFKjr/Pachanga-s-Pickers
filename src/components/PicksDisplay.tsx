@@ -4,6 +4,7 @@ import { globalEvents } from '../lib/events';
 import type { Pick } from '../types';
 import { getPickWeek } from '../utils/nflWeeks';
 import HorizontalPickCard from './HorizontalPickCard';
+import SegmentedWeekSelector from './SegmentedWeekSelector';
 
 interface PicksDisplayProps {
   maxPicks?: number;
@@ -86,18 +87,13 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
         <h2 className="text-2xl font-bold text-white">Recent Picks</h2>
         
         {showWeekFilter && availableWeeks.length > 0 && (
-          <select
-            value={selectedWeek || ''}
-            onChange={(e) => setSelectedWeek(e.target.value ? parseInt(e.target.value) : null)}
-            className="bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white text-sm hover:border-lime-500 transition-colors"
-          >
-            <option value="">All Weeks</option>
-            {availableWeeks.map(week => (
-              <option key={week} value={week}>
-                Week {week}
-              </option>
-            ))}
-          </select>
+          <SegmentedWeekSelector
+            selectedWeek={selectedWeek}
+            availableWeeks={availableWeeks}
+            onChange={setSelectedWeek}
+            showAllOption={true}
+            maxVisibleWeeks={5}
+          />
         )}
       </div>
 
