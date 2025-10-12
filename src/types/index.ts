@@ -50,30 +50,26 @@ export interface MonteCarloResults {
 }
 
 export interface GameInfo {
-  league: string;
   home_team: string;
   away_team: string;
+  league: string;
   game_date: string;
-  
-  // Lines
   spread?: number;
   over_under?: number;
-  
-  // Actual odds from sportsbooks
-  home_ml_odds?: number;      // e.g., -175
-  away_ml_odds?: number;      // e.g., +145
-  spread_odds?: number;        // e.g., -110 (usually same for both sides)
-  over_odds?: number;          // e.g., -110
-  under_odds?: number;         // e.g., -110
-  
-  // Scores
   home_score?: number | null;
   away_score?: number | null;
+
+  // NEW: Odds at time of prediction (American format)
+  home_ml_odds?: number;
+  away_ml_odds?: number;
+  spread_odds?: number;
+  over_odds?: number;
+  under_odds?: number;
 }
 
 // Strict Union Types
 export type NFLWeek = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18;
-export type ConfidenceLevel = 0 | 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 | 100;
+export type ConfidenceLevel = number; // Float between 0.00 and 100.00, rounded to nearest hundredth
 
 // UI Component Props
 export interface PickCardProps {

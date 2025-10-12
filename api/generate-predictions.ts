@@ -1090,9 +1090,20 @@ export default async function handler(
         const bookmaker = game.bookmakers.find(bm => bm.key === 'draftkings') || game.bookmakers[0];
         const spreadsMarket = bookmaker.markets.find(market => market.key === 'spreads');
         const totalsMarket = bookmaker.markets.find(market => market.key === 'totals');
+        const h2hMarket = bookmaker.markets.find(market => market.key === 'h2h');
 
+        // Extract spread and total (existing)
         const homeSpread = spreadsMarket?.outcomes.find(outcome => outcome.name === game.home_team)?.point || 0;
         const total = totalsMarket?.outcomes[0]?.point || 45;
+
+        // NEW: Extract all odds
+        const homeMLOdds = h2hMarket?.outcomes.find(outcome => outcome.name === game.home_team)?.price;
+        const awayMLOdds = h2hMarket?.outcomes.find(outcome => outcome.name === game.away_team)?.price;
+        const spreadOdds = spreadsMarket?.outcomes.find(outcome => outcome.name === game.home_team)?.price || -110;
+        const overOdds = totalsMarket?.outcomes.find(outcome => outcome.name === 'Over')?.price || -110;
+        const underOdds = totalsMarket?.outcomes.find(outcome => outcome.name === 'Under')?.price || -110;
+
+        console.log(`📊 Odds - ML: ${game.home_team} ${homeMLOdds} / ${game.away_team} ${awayMLOdds}, Spread: ${spreadOdds}, O/U: ${overOdds}/${underOdds}`);
 
         let weatherExplanation = '';
         if (gameWeather && !gameWeather.isDome) {
@@ -1146,7 +1157,14 @@ export default async function handler(
             spread: homeSpread,
             over_under: total,
             home_score: null,
-            away_score: null
+            away_score: null,
+            
+            // NEW: Store odds at time of prediction
+            home_ml_odds: homeMLOdds,
+            away_ml_odds: awayMLOdds,
+            spread_odds: spreadOdds,
+            over_odds: overOdds,
+            under_odds: underOdds
           },
           prediction: `${simResult.homeWinProbability > simResult.awayWinProbability ? game.home_team : game.away_team} to win`,
           spread_prediction: spreadPick,
