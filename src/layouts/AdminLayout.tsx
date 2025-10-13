@@ -20,20 +20,22 @@ const AdminLayout: React.FC = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-900">
+    <div className="flex min-h-screen bg-[#0a0a0a]">
       {/* Sidebar */}
-      <aside className="w-64 bg-gray-800 border-r border-gray-700 min-h-screen">
+      <aside className="w-64 bg-[#0f0f0f] border-r border-lime-500/10 min-h-screen">
         <div className="p-6">
-          <h2 className="text-xl font-bold text-white mb-6">Admin Panel</h2>
+          <h2 className="text-xl font-bold text-white mb-6">
+            <span className="text-lime-400">Admin</span> Panel
+          </h2>
           <nav className="space-y-2">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
                   isActive(item.path)
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                    ? 'bg-lime-500 text-black shadow-lg shadow-lime-500/20 font-semibold'
+                    : 'text-gray-300 hover:bg-lime-500/10 hover:text-lime-400 hover:border-lime-500/20'
                 }`}
               >
                 <span className="text-xl">{item.icon}</span>
@@ -44,10 +46,10 @@ const AdminLayout: React.FC = () => {
         </div>
 
         {/* Sidebar Footer */}
-        <div className="absolute bottom-0 w-64 p-6 border-t border-gray-700">
+        <div className="absolute bottom-0 w-64 p-6 border-t border-lime-500/10">
           <Link
             to="/"
-            className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+            className="flex items-center space-x-2 text-gray-400 hover:text-lime-400 transition-colors"
           >
             <span>🏠</span>
             <span>Back to Site</span>
@@ -56,7 +58,7 @@ const AdminLayout: React.FC = () => {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="flex-1 p-8 overflow-y-auto bg-[#0a0a0a]">
         <Outlet />
       </main>
     </div>

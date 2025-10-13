@@ -5,7 +5,9 @@ const GeneratePicksPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-2">Generate Picks</h1>
+        <h1 className="text-3xl font-bold text-white mb-2">
+          Generate <span className="text-lime-400">Picks</span>
+        </h1>
         <p className="text-gray-400">
           Generate NFL predictions using Monte Carlo simulations
         </p>
