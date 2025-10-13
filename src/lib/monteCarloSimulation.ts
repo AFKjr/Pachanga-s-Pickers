@@ -5,8 +5,8 @@
  * Runs 10,000+ iterations to predict game outcomes
  */
 
-import { TeamStats, GamePredictionInput } from '../externalApis';
-import { SIMULATION_ITERATIONS, QUARTERS_PER_GAME, POSSESSIONS_PER_QUARTER, DEFENSIVE_STRENGTH_WEIGHTS, BETTING_CONSTANTS } from '../../utils/constants';
+import { TeamStats, GamePredictionInput } from './externalApis';
+import { SIMULATION_ITERATIONS, QUARTERS_PER_GAME, POSSESSIONS_PER_QUARTER, DEFENSIVE_STRENGTH_WEIGHTS, BETTING_CONSTANTS } from '../utils/constants';
 
 export interface SimulationResult {
   homeWinProbability: number;
