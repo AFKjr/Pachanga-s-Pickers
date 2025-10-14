@@ -1,5 +1,5 @@
 // api/lib/simulation/strength-calculator.ts
-import type { TeamStats } from '../types';
+import type { TeamStats } from '../types.ts';
 
 export function calculateOffensiveStrength(stats: TeamStats): number {
   const passingEfficiency = (

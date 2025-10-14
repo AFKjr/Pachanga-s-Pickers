@@ -44,8 +44,11 @@ export default function APIPredictionsGenerator() {
 
       console.log(`Calling /api/generate-predictions in ${mode} mode...`, requestBody);
 
-      // Call API
-      const response = await fetch('/api/generate-predictions', {
+      // Call Supabase Edge Function
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const functionUrl = `${supabaseUrl}/functions/v1/generate-predictions`;
+      
+      const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,

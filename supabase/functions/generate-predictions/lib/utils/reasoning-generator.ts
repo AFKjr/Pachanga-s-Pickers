@@ -1,5 +1,5 @@
 // api/lib/utils/reasoning-generator.ts
-import type { SimulationResult } from '../types';
+import type { SimulationResult } from '../types.ts';
 
 export function generateReasoning(
   homeTeam: string,

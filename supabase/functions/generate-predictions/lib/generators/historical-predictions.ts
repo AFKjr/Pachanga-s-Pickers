@@ -1,13 +1,13 @@
 // api/lib/generators/historical-predictions.ts
-import { SIMULATION_ITERATIONS } from '../constants';
-import type { GameWeather } from '../types';
-import { fetchHistoricalGames } from '../database/fetch-historical';
-import { fetchTeamStatsWithFallback } from '../database/fetch-stats';
-import { fetchGameWeather } from '../weather/weather-fetcher';
-import { formatWeatherForDisplay } from '../weather/weather-calculator';
-import { runMonteCarloSimulation } from '../simulation/monte-carlo';
-import { getConfidenceLevel, mapConfidenceToNumber } from '../utils/nfl-utils';
-import { generateReasoning } from '../utils/reasoning-generator';
+import { SIMULATION_ITERATIONS } from '../constants.ts';
+import type { GameWeather } from '../types.ts';
+import { fetchHistoricalGames } from '../database/fetch-historical.ts';
+import { fetchTeamStatsWithFallback } from '../database/fetch-stats.ts';
+import { fetchGameWeather } from '../weather/weather-fetcher.ts';
+import { formatWeatherForDisplay } from '../weather/weather-calculator.ts';
+import { runMonteCarloSimulation } from '../simulation/monte-carlo.ts';
+import { getConfidenceLevel, mapConfidenceToNumber } from '../utils/nfl-utils.ts';
+import { generateReasoning } from '../utils/reasoning-generator.ts';
 
 export interface HistoricalPredictionsResult {
   predictions: any[];

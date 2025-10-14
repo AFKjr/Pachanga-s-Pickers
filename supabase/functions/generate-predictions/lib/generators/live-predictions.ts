@@ -1,13 +1,13 @@
 // api/lib/generators/live-predictions.ts
-import { SIMULATION_ITERATIONS } from '../constants';
-import type { OddsData, GameWeather } from '../types';
-import { fetchTeamStatsWithFallback } from '../database/fetch-stats';
-import { fetchGameWeather } from '../weather/weather-fetcher';
-import { formatWeatherForDisplay } from '../weather/weather-calculator';
-import { runMonteCarloSimulation } from '../simulation/monte-carlo';
-import { calculateNFLWeek, getConfidenceLevel, mapConfidenceToNumber } from '../utils/nfl-utils';
-import { generateReasoning } from '../utils/reasoning-generator';
-import { extractOddsFromGame } from '../odds/fetch-odds';
+import { SIMULATION_ITERATIONS } from '../constants.ts';
+import type { OddsData, GameWeather } from '../types.ts';
+import { fetchTeamStatsWithFallback } from '../database/fetch-stats.ts';
+import { fetchGameWeather } from '../weather/weather-fetcher.ts';
+import { formatWeatherForDisplay } from '../weather/weather-calculator.ts';
+import { runMonteCarloSimulation } from '../simulation/monte-carlo.ts';
+import { calculateNFLWeek, getConfidenceLevel, mapConfidenceToNumber } from '../utils/nfl-utils.ts';
+import { generateReasoning } from '../utils/reasoning-generator.ts';
+import { extractOddsFromGame } from '../odds/fetch-odds.ts';
 
 export interface LivePredictionsResult {
   predictions: any[];

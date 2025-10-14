@@ -32,7 +32,7 @@ A modern sports betting analytics platform featuring Monte Carlo simulation-base
 
 ### Backend
 - **Supabase**: PostgreSQL database + Authentication + Real-time
-- **Vercel Serverless Functions**: Monte Carlo prediction generation
+- **Supabase Edge Functions**: Monte Carlo prediction generation (Deno runtime)
 - **The Odds API**: Real-time betting lines and odds
 
 ### External APIs
@@ -67,9 +67,10 @@ VITE_SUPABASE_URL=your-supabase-project-url
 VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
-For Vercel deployment, also set:
+For Supabase deployment, also set:
 ```env
 ODDS_API_KEY=your-odds-api-key
+OPENWEATHER_API_KEY=your-openweather-api-key
 ```
 
 4. **Database Setup**
@@ -181,8 +182,11 @@ src/
 │   └── inputValidation.ts # XSS protection
 └── App.tsx             # Root component
 
-api/
-└── generate-predictions.ts # Vercel serverless function
+supabase/
+└── functions/
+    └── generate-predictions/
+        ├── index.ts   # Supabase Edge Function (Deno runtime)
+        └── lib/       # Prediction generation logic
 ```
 
 ## 🎲 How Monte Carlo Predictions Work
@@ -225,14 +229,15 @@ api/
 
 ## 🚢 Deployment
 
-### Vercel (Recommended)
+### Supabase (Recommended)
 
-1. **Connect GitHub repository** to Vercel
-2. **Set environment variables** in Vercel dashboard:
+1. **Connect GitHub repository** to Supabase
+2. **Set environment variables** in Supabase dashboard:
    - `ODDS_API_KEY`
+   - `OPENWEATHER_API_KEY`
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
-3. **Deploy**: Automatic on push to main branch
+3. **Deploy Edge Functions**: Functions auto-deploy on push to main branch
 
 ### Build Configuration
 - Framework: Vite

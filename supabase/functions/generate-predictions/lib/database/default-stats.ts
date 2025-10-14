@@ -1,5 +1,5 @@
 // api/lib/database/default-stats.ts
-import type { TeamStats } from '../types';
+import type { TeamStats } from '../types.ts';
 
 export function getDefaultTeamStats(teamName: string): TeamStats {
   return {

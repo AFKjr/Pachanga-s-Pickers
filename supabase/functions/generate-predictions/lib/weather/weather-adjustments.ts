@@ -1,6 +1,6 @@
 // api/lib/weather/weather-adjustments.ts
-import type { GameWeather } from '../types';
-import { WEATHER_CONSTANTS } from '../constants';
+import type { GameWeather } from '../types.ts';
+import { WEATHER_CONSTANTS } from '../constants.ts';
 
 export interface WeatherAdjustmentResult {
   adjustedOffensiveStrength: number;

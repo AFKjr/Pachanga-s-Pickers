@@ -1,8 +1,8 @@
 // api/lib/odds/fetch-odds.ts
-import type { OddsData } from '../types';
+import type { OddsData } from '../types.ts';
 
 export async function fetchNFLOdds(): Promise<OddsData[]> {
-  const ODDS_API_KEY = process.env.ODDS_API_KEY;
+  const ODDS_API_KEY = Deno.env.get('ODDS_API_KEY');
   
   if (!ODDS_API_KEY) {
     throw new Error('ODDS_API_KEY environment variable is not set');

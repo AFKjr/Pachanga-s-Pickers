@@ -10,9 +10,9 @@
 
 **Core Components**:
 - **Frontend**: Single-page React app with React Router (routes: `/`, `/admin`, `/admin/generate`, `/admin/manage`, `/admin/results`, `/admin/team-stats`)
-- **Backend**: Supabase (PostgreSQL + Auth + Real-time subscriptions) + Vercel Serverless Functions
+- **Backend**: Supabase (PostgreSQL + Auth + Real-time subscriptions) + Supabase Edge Functions
 - **AI Layer**: Monte Carlo simulation-based sports prediction system (10,000 iterations per game)
-- **Data Flow**: Admin triggers Monte Carlo sim → Vercel function generates predictions → Supabase storage → React components
+- **Data Flow**: Admin triggers Monte Carlo sim → Supabase Edge Function generates predictions → Supabase storage → React components
 
 **Key Data Models** (`src/types/index.ts`):
 - `Pick`: Monte Carlo-generated predictions with confidence scores (0-100), includes moneyline/spread/O/U predictions
@@ -41,7 +41,7 @@
 - **Admin Verification**: Helper function `verifyAdminUser()` for admin-only operations
 
 ### AI Analysis Workflow
-- **Monte Carlo Simulation**: 10,000 iterations per game in Vercel serverless function
+- **Monte Carlo Simulation**: 10,000 iterations per game in Supabase Edge Function (Deno runtime)
 - **Prediction Storage**: Save to `picks` table with structured `game_info` JSONB
 - **Confidence Scoring**: 0-100 scale with reasoning text
 - **Data Sources**: Manual data entry through admin interface, team stats from ESPN API
@@ -75,7 +75,7 @@ npm run preview  # Preview production build
 ### AI Prediction Generation
 1. Access `/admin/generate` route (requires `is_admin: true`)
 2. Use `APIPredictionsGenerator` component to trigger Monte Carlo sim
-3. Vercel function runs 10,000 iterations and saves predictions to `picks` table
+3. Supabase Edge Function runs 10,000 iterations and saves predictions to `picks` table
 4. Predictions include: game analysis, confidence %, reasoning, Monte Carlo results
 
 

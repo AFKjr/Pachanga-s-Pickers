@@ -1,7 +1,7 @@
 // api/lib/database/fetch-stats.ts
-import type { TeamStats } from '../types';
-import { TEAM_NAME_MAPPINGS } from '../team-mappings';
-import { getDefaultTeamStats } from './default-stats';
+import type { TeamStats } from '../types.ts';
+import { TEAM_NAME_MAPPINGS } from '../team-mappings.ts';
+import { getDefaultTeamStats } from './default-stats.ts';
 
 function resolveTeamName(teamName: string): string | null {
   if (!teamName) return null;

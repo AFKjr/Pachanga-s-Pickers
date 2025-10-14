@@ -1,9 +1,9 @@
 // api/lib/simulation/monte-carlo.ts
-import type { TeamStats, GameWeather, SimulationResult } from '../types';
-import { SIMULATION_ITERATIONS } from '../constants';
-import { applyWeatherAdjustments } from '../weather/weather-adjustments';
-import { calculateOffensiveStrength, calculateDefensiveStrength } from './strength-calculator';
-import { simulatePossession } from './possession-simulator';
+import type { TeamStats, GameWeather, SimulationResult } from '../types.ts';
+import { SIMULATION_ITERATIONS } from '../constants.ts';
+import { applyWeatherAdjustments } from '../weather/weather-adjustments.ts';
+import { calculateOffensiveStrength, calculateDefensiveStrength } from './strength-calculator.ts';
+import { simulatePossession } from './possession-simulator.ts';
 
 function simulateSingleGame(
   homeStats: TeamStats,

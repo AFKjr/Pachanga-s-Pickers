@@ -1,6 +1,6 @@
 // api/lib/weather/weather-calculator.ts
-import { WEATHER_CONSTANTS } from '../constants';
-import type { GameWeather } from '../types';
+import { WEATHER_CONSTANTS } from '../constants.ts';
+import type { GameWeather } from '../types.ts';
 
 export function calculateWeatherImpact(
   temperature: number,
