@@ -5,7 +5,7 @@ import { fetchTeamStatsWithFallback } from '../database/fetch-stats.ts';
 import { fetchGameWeather } from '../weather/weather-fetcher.ts';
 import { formatWeatherForDisplay } from '../weather/weather-calculator.ts';
 import { runMonteCarloSimulation } from '../simulation/monte-carlo.ts';
-import { calculateNFLWeek, getConfidenceLevel, mapConfidenceToNumber } from '../utils/nfl-utils.ts';
+import { calculateNFLWeek, getConfidenceLevel, mapConfidenceToNumber, getNFLWeekFromDate, getCurrentNFLWeek } from '../utils/nfl-utils.ts';
 import { generateReasoning } from '../utils/reasoning-generator.ts';
 import { extractOddsFromGame } from '../odds/fetch-odds.ts';
 
@@ -33,18 +33,39 @@ export async function generateLivePredictions(
 
   console.log(`📊 Generating live predictions for ${oddsData.length} games...`);
 
+  // ========== ADD WEEK FILTERING ==========
+  const currentWeek = getCurrentNFLWeek();
+  console.log(`🎯 Current NFL Week: ${currentWeek}`);
+  console.log(`🎯 Filtering for Week ${currentWeek} games only...`);
+
+  const currentWeekGames = oddsData.filter(game => {
+    const gameDate = new Date(game.commence_time);
+    const gameWeek = getNFLWeekFromDate(gameDate);
+
+    // Log for debugging
+    if (gameWeek !== currentWeek) {
+      console.log(`⏭️ Skipping ${game.away_team} @ ${game.home_team} (Week ${gameWeek})`);
+    }
+
+    return gameWeek === currentWeek;
+  });
+
+  console.log(`✅ Filtered from ${oddsData.length} to ${currentWeekGames.length} games for Week ${currentWeek}`);
+  // ========== END WEEK FILTERING ==========
+
   const predictions = [];
   const errors = [];
 
-  for (let gameIndex = 0; gameIndex < oddsData.length; gameIndex++) {
-    const game = oddsData[gameIndex];
+  // ========== UPDATE LOOP TO USE FILTERED GAMES ==========
+  for (let gameIndex = 0; gameIndex < currentWeekGames.length; gameIndex++) {
+    const game = currentWeekGames[gameIndex];
 
     try {
-      console.log(`\n🏈 [${gameIndex + 1}/${oddsData.length}] Processing: ${game.away_team} @ ${game.home_team}`);
+      console.log(`\n🏈 [${gameIndex + 1}/${currentWeekGames.length}] Processing: ${game.away_team} @ ${game.home_team}`);
 
       // Call progress callback if provided
       if (onProgress) {
-        onProgress(gameIndex + 1, oddsData.length);
+        onProgress(gameIndex + 1, currentWeekGames.length);
       }
 
       // Fetch team stats (latest available)
@@ -178,11 +199,12 @@ export async function generateLivePredictions(
     errors,
     metadata: {
       generated_at: new Date().toISOString(),
-      games_attempted: oddsData.length,
+      games_attempted: currentWeekGames.length,
       games_processed: predictions.length,
       games_failed: errors.length,
       simulation_iterations: SIMULATION_ITERATIONS,
-      execution_time_seconds: elapsedSeconds
+      execution_time_seconds: elapsedSeconds,
+      week_filtered: currentWeek
     }
   };
 }

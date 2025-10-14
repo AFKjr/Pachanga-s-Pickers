@@ -1,24 +1,92 @@
-// api/lib/utils/nfl-utils.ts
+// supabase/functions/generate-predictions/lib/utils/nfl-utils.ts
 
-export function calculateNFLWeek(gameDate: Date): number {
-  const seasonStart = new Date('2025-09-04');
-  const daysDiff = Math.floor(
-    (gameDate.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  return Math.max(1, Math.min(18, Math.floor(daysDiff / 7) + 1));
+// NFL 2025 Season Week Mapping
+const NFL_2025_SCHEDULE: Record<number, { start: string; end: string }> = {
+  1: { start: '2025-09-04', end: '2025-09-08' },
+  2: { start: '2025-09-11', end: '2025-09-15' },
+  3: { start: '2025-09-18', end: '2025-09-22' },
+  4: { start: '2025-09-25', end: '2025-09-29' },
+  5: { start: '2025-10-02', end: '2025-10-06' },
+  6: { start: '2025-10-09', end: '2025-10-13' },
+  7: { start: '2025-10-16', end: '2025-10-20' },
+  8: { start: '2025-10-23', end: '2025-10-27' },
+  9: { start: '2025-10-30', end: '2025-11-03' },
+  10: { start: '2025-11-06', end: '2025-11-10' },
+  11: { start: '2025-11-13', end: '2025-11-17' },
+  12: { start: '2025-11-20', end: '2025-11-24' },
+  13: { start: '2025-11-27', end: '2025-12-01' },
+  14: { start: '2025-12-04', end: '2025-12-08' },
+  15: { start: '2025-12-11', end: '2025-12-15' },
+  16: { start: '2025-12-18', end: '2025-12-22' },
+  17: { start: '2025-12-25', end: '2025-12-29' },
+  18: { start: '2026-01-03', end: '2026-01-05' }
+};
+
+/**
+ * Get NFL week from a date
+ */
+export function getNFLWeekFromDate(gameDate: Date | string): number | null {
+  const date = typeof gameDate === 'string' ? new Date(gameDate) : gameDate;
+
+  for (const [weekStr, range] of Object.entries(NFL_2025_SCHEDULE)) {
+    const week = parseInt(weekStr);
+    const startDate = new Date(range.start);
+    const endDate = new Date(range.end);
+
+    // Include end date in range
+    endDate.setHours(23, 59, 59, 999);
+
+    if (date >= startDate && date <= endDate) {
+      return week;
+    }
+  }
+
+  console.warn(`Date ${gameDate} doesn't fall in any 2025 NFL week`);
+  return null;
 }
 
-export function getConfidenceLevel(probability: number): 'High' | 'Medium' | 'Low' {
-  if (probability >= 65) return 'High';
+/**
+ * Get current NFL week based on today's date
+ */
+export function getCurrentNFLWeek(): number {
+  const today = new Date();
+  const week = getNFLWeekFromDate(today);
+
+  if (week) {
+    return week;
+  }
+
+  // If we're outside the season, default to Week 1
+  console.warn('Current date is outside NFL season, defaulting to Week 1');
+  return 1;
+}
+
+/**
+ * Map confidence level string to number
+ */
+export function mapConfidenceToNumber(level: string): number {
+  const levelLower = level.toLowerCase();
+  if (levelLower.includes('high')) return 80;
+  if (levelLower.includes('medium')) return 60;
+  if (levelLower.includes('low')) return 40;
+  return 70; // default
+}
+
+/**
+ * Get confidence level from probability
+ */
+export function getConfidenceLevel(probability: number): string {
+  if (probability >= 70) return 'High';
   if (probability >= 55) return 'Medium';
   return 'Low';
 }
 
-export function mapConfidenceToNumber(confidence: 'High' | 'Medium' | 'Low'): number {
-  switch (confidence) {
-    case 'High': return 80;
-    case 'Medium': return 60;
-    case 'Low': return 40;
-    default: return 50;
-  }
+/**
+ * Calculate NFL week from date (alternative method)
+ */
+export function calculateNFLWeek(gameDate: Date): number {
+  const seasonStart = new Date('2025-09-04'); // Week 1 Thursday
+  const daysDiff = Math.floor((gameDate.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24));
+  const week = Math.max(1, Math.min(18, Math.floor(daysDiff / 7) + 1));
+  return week;
 }
