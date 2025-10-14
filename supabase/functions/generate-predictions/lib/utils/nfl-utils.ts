@@ -1,25 +1,25 @@
 // supabase/functions/generate-predictions/lib/utils/nfl-utils.ts
 
-// NFL 2025 Season Week Mapping
+// NFL 2025 Season Week Mapping (Tuesday to Monday)
 const NFL_2025_SCHEDULE: Record<number, { start: string; end: string }> = {
-  1: { start: '2025-09-04', end: '2025-09-08' },
-  2: { start: '2025-09-11', end: '2025-09-15' },
-  3: { start: '2025-09-18', end: '2025-09-22' },
-  4: { start: '2025-09-25', end: '2025-09-29' },
-  5: { start: '2025-10-02', end: '2025-10-06' },
-  6: { start: '2025-10-09', end: '2025-10-13' },
-  7: { start: '2025-10-16', end: '2025-10-20' },
-  8: { start: '2025-10-23', end: '2025-10-27' },
-  9: { start: '2025-10-30', end: '2025-11-03' },
-  10: { start: '2025-11-06', end: '2025-11-10' },
-  11: { start: '2025-11-13', end: '2025-11-17' },
-  12: { start: '2025-11-20', end: '2025-11-24' },
-  13: { start: '2025-11-27', end: '2025-12-01' },
-  14: { start: '2025-12-04', end: '2025-12-08' },
-  15: { start: '2025-12-11', end: '2025-12-15' },
-  16: { start: '2025-12-18', end: '2025-12-22' },
-  17: { start: '2025-12-25', end: '2025-12-29' },
-  18: { start: '2026-01-03', end: '2026-01-05' }
+  1: { start: '2025-09-02', end: '2025-09-08' },
+  2: { start: '2025-09-09', end: '2025-09-15' },
+  3: { start: '2025-09-16', end: '2025-09-22' },
+  4: { start: '2025-09-23', end: '2025-09-29' },
+  5: { start: '2025-09-30', end: '2025-10-06' },
+  6: { start: '2025-10-07', end: '2025-10-13' },
+  7: { start: '2025-10-14', end: '2025-10-20' },
+  8: { start: '2025-10-21', end: '2025-10-27' },
+  9: { start: '2025-10-28', end: '2025-11-03' },
+  10: { start: '2025-11-04', end: '2025-11-10' },
+  11: { start: '2025-11-11', end: '2025-11-17' },
+  12: { start: '2025-11-18', end: '2025-11-24' },
+  13: { start: '2025-11-25', end: '2025-12-01' },
+  14: { start: '2025-12-02', end: '2025-12-08' },
+  15: { start: '2025-12-09', end: '2025-12-15' },
+  16: { start: '2025-12-16', end: '2025-12-22' },
+  17: { start: '2025-12-23', end: '2025-12-29' },
+  18: { start: '2025-12-30', end: '2026-01-05' }
 };
 
 /**
@@ -85,7 +85,7 @@ export function getConfidenceLevel(probability: number): string {
  * Calculate NFL week from date (alternative method)
  */
 export function calculateNFLWeek(gameDate: Date): number {
-  const seasonStart = new Date('2025-09-04'); // Week 1 Thursday
+  const seasonStart = new Date('2025-09-02'); // Week 1 Tuesday
   const daysDiff = Math.floor((gameDate.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24));
   const week = Math.max(1, Math.min(18, Math.floor(daysDiff / 7) + 1));
   return week;
