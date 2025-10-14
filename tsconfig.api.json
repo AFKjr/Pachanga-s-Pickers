@@ -1,21 +1,15 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "ES2020",
     "module": "commonjs",
-    "lib": ["ES2020"],
-    "moduleResolution": "node",
-    "noEmit": false,
-    "outDir": ".vercel/output",
+    "target": "es2019",
+    "lib": ["es2019"],
+    "outDir": "./dist",
     "rootDir": ".",
-    "skipLibCheck": true,
+    "moduleResolution": "node",
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "strict": false,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve"
+    "skipLibCheck": true
   },
-  "include": ["api/**/*"],
-  "exclude": ["node_modules", "src"]
+  "include": ["api/**/*", "server/**/*"],
+  "exclude": ["node_modules"]
 }

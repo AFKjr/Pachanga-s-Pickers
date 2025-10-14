@@ -30,17 +30,10 @@
       ]
     }
   ],
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
   "functions": {
     "api/generate-predictions.ts": {
       "memory": 1024,
-      "maxDuration": 10,
-      "includeFiles": "api/lib/**"
+      "maxDuration": 10
     }
   }
 }

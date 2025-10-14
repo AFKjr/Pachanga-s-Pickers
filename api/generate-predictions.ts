@@ -2,9 +2,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // Import generators
-import { generateHistoricalPredictions } from './lib/generators/historical-predictions';
-import { generateLivePredictions } from './lib/generators/live-predictions';
-import { fetchNFLOdds } from './lib/odds/fetch-odds';
+import { generateHistoricalPredictions } from '../server/lib/generators/historical-predictions';
+import { generateLivePredictions } from '../server/lib/generators/live-predictions';
+import { fetchNFLOdds } from '../server/lib/odds/fetch-odds';
 
 // ============================================================================
 // MAIN HANDLER
