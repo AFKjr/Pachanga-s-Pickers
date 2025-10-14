@@ -128,10 +128,6 @@ export const API_CONSTANTS = {
     THIRD_DOWN_CONVERSION_RATE: 40,
     RED_ZONE_EFFICIENCY: 55,
   },
-  DEFAULT_ODDS: {
-    TOTAL: 45,
-    MONEYLINE: -110,
-  },
 } as const;
 
 // === TEAM NAME PARSING CONSTANTS ===

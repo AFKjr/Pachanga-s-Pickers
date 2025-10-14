@@ -40,47 +40,51 @@ export function calculatePickEdges(
   spread_edge: number;
   ou_edge: number;
 } {
-  const DEFAULT_ODDS = -110;
-  
   // ===== MONEYLINE EDGE =====
   let moneylineEdge = 0;
   if (monteCarloResults.moneyline_probability) {
     const predictedHome = pick.prediction.toLowerCase().includes(gameInfo.home_team.toLowerCase());
     const predictedAway = pick.prediction.toLowerCase().includes(gameInfo.away_team.toLowerCase());
-    
-    // NEW: Use stored odds if available, otherwise fall back to defaults
+
+    // Require stored odds - no fallbacks to hard-coded values
     if (predictedHome && (gameInfo.home_ml_odds || gameInfo.home_ml_odds === 0)) {
       moneylineEdge = calculateEdge(monteCarloResults.home_win_probability, gameInfo.home_ml_odds);
     } else if (predictedAway && (gameInfo.away_ml_odds || gameInfo.away_ml_odds === 0)) {
       moneylineEdge = calculateEdge(monteCarloResults.away_win_probability, gameInfo.away_ml_odds);
     } else if (monteCarloResults.moneyline_probability) {
-      moneylineEdge = calculateEdge(monteCarloResults.moneyline_probability, DEFAULT_ODDS);
+      // Skip edge calculation if no odds available
+      moneylineEdge = 0;
     }
   }
-  
+
   // ===== SPREAD EDGE =====
   let spreadEdge = 0;
   if (monteCarloResults.spread_probability && pick.spread_prediction) {
-    // NEW: Use stored spread odds if available
-    const spreadOdds = gameInfo.spread_odds || DEFAULT_ODDS;
-    spreadEdge = calculateEdge(monteCarloResults.spread_probability, spreadOdds);
+    // Require stored spread odds - no fallbacks
+    if (gameInfo.spread_odds || gameInfo.spread_odds === 0) {
+      spreadEdge = calculateEdge(monteCarloResults.spread_probability, gameInfo.spread_odds);
+    }
+    // Skip if no odds available
   }
-  
+
   // ===== OVER/UNDER EDGE =====
   let ouEdge = 0;
   if (monteCarloResults.total_probability && pick.ou_prediction) {
     const pickedOver = pick.ou_prediction.toLowerCase().includes('over');
-    
-    // NEW: Use stored O/U odds if available
-    let ouOdds = DEFAULT_ODDS;
+
+    // Require stored O/U odds - no fallbacks
+    let ouOdds: number | null = null;
     if (pickedOver && (gameInfo.over_odds || gameInfo.over_odds === 0)) {
       ouOdds = gameInfo.over_odds;
     } else if (!pickedOver && (gameInfo.under_odds || gameInfo.under_odds === 0)) {
       ouOdds = gameInfo.under_odds;
     }
-    
-    const prob = pickedOver ? monteCarloResults.over_probability : monteCarloResults.under_probability;
-    ouEdge = calculateEdge(prob, ouOdds);
+
+    if (ouOdds !== null) {
+      const prob = pickedOver ? monteCarloResults.over_probability : monteCarloResults.under_probability;
+      ouEdge = calculateEdge(prob, ouOdds);
+    }
+    // Skip if no odds available
   }
   
   return {
@@ -101,8 +105,6 @@ export function calculateBothSidesEdge(
   spread: { favorite: number; underdog: number };
   total: { over: number; under: number };
 } {
-  const DEFAULT_ODDS = -110;
-  
   return {
     moneyline: {
       home: gameInfo.home_ml_odds 
@@ -113,24 +115,20 @@ export function calculateBothSidesEdge(
         : 0
     },
     spread: {
-      favorite: calculateEdge(
-        monteCarloResults.spread_cover_probability,
-        gameInfo.spread_odds || DEFAULT_ODDS
-      ),
-      underdog: calculateEdge(
-        100 - monteCarloResults.spread_cover_probability,
-        gameInfo.spread_odds || DEFAULT_ODDS
-      )
+      favorite: gameInfo.spread_odds
+        ? calculateEdge(monteCarloResults.spread_cover_probability, gameInfo.spread_odds)
+        : 0,
+      underdog: gameInfo.spread_odds
+        ? calculateEdge(100 - monteCarloResults.spread_cover_probability, gameInfo.spread_odds)
+        : 0
     },
     total: {
-      over: calculateEdge(
-        monteCarloResults.over_probability,
-        gameInfo.over_odds || DEFAULT_ODDS
-      ),
-      under: calculateEdge(
-        monteCarloResults.under_probability,
-        gameInfo.under_odds || DEFAULT_ODDS
-      )
+      over: gameInfo.over_odds
+        ? calculateEdge(monteCarloResults.over_probability, gameInfo.over_odds)
+        : 0,
+      under: gameInfo.under_odds
+        ? calculateEdge(monteCarloResults.under_probability, gameInfo.under_odds)
+        : 0
     }
   };
 }

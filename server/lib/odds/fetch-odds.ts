@@ -34,9 +34,9 @@ export interface ExtractedOdds {
   total: number;
   homeMLOdds?: number;
   awayMLOdds?: number;
-  spreadOdds: number;
-  overOdds: number;
-  underOdds: number;
+  spreadOdds?: number;
+  overOdds?: number;
+  underOdds?: number;
 }
 
 export function extractOddsFromGame(game: OddsData): ExtractedOdds {
@@ -54,9 +54,9 @@ export function extractOddsFromGame(game: OddsData): ExtractedOdds {
   const total = totalsMarket?.outcomes[0]?.point || 45;
   const homeMLOdds = h2hMarket?.outcomes.find(outcome => outcome.name === game.home_team)?.price;
   const awayMLOdds = h2hMarket?.outcomes.find(outcome => outcome.name === game.away_team)?.price;
-  const spreadOdds = spreadsMarket?.outcomes.find(outcome => outcome.name === game.home_team)?.price || -110;
-  const overOdds = totalsMarket?.outcomes.find(outcome => outcome.name === 'Over')?.price || -110;
-  const underOdds = totalsMarket?.outcomes.find(outcome => outcome.name === 'Under')?.price || -110;
+  const spreadOdds = spreadsMarket?.outcomes.find(outcome => outcome.name === game.home_team)?.price;
+  const overOdds = totalsMarket?.outcomes.find(outcome => outcome.name === 'Over')?.price;
+  const underOdds = totalsMarket?.outcomes.find(outcome => outcome.name === 'Under')?.price;
 
   return {
     homeSpread,

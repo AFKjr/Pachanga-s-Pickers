@@ -62,9 +62,9 @@ export async function fetchHistoricalGames(
             over_under: gameInfo.over_under || 45,
             home_ml_odds: gameInfo.home_ml_odds,
             away_ml_odds: gameInfo.away_ml_odds,
-            spread_odds: gameInfo.spread_odds || -110,
-            over_odds: gameInfo.over_odds || -110,
-            under_odds: gameInfo.under_odds || -110
+            spread_odds: gameInfo.spread_odds,
+            over_odds: gameInfo.over_odds,
+            under_odds: gameInfo.under_odds
           });
         }
       }

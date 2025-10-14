@@ -4,7 +4,7 @@ import { useSecureConfirmation } from './SecureConfirmationModal';
 import { usePickManager } from '../hooks/usePickManager';
 import { useOptimisticUpdates } from '../hooks/useOptimisticUpdates';
 import { useErrorHandler } from '../hooks/useErrorHandler';
-import { executeAtomicOperations, createOperationSummary } from '../lib/atomicOperations';
+import { picksApi } from '../lib/api';
 import { formatGameDate } from '../utils/dateValidation';
 import { calculateAllResultsFromScores } from '../utils/atsCalculator';
 import { updatePickWithScores } from '../services/pickManagement';
@@ -192,13 +192,39 @@ const AdminPickResults: React.FC = () => {
       level: 'medium'
     }, async () => {
       const result = await commitOperations(async (operations) => {
-        const atomicResult = await executeAtomicOperations(operations, {
-          continueOnError: true,
-          validateBeforeCommit: true
-        });
+        // Execute operations atomically
+        const successfulOperations = [];
+        const failedOperations = [];
+        let firstError = null;
+
+        for (const operation of operations) {
+          try {
+            if (operation.type === 'update' && operation.payload) {
+              const { error } = await picksApi.update(operation.id, operation.payload);
+              if (error) {
+                throw error;
+              }
+              successfulOperations.push(operation);
+            } else if (operation.type === 'delete') {
+              // For delete operations, we might need a delete API - but this component only does updates
+              throw new Error('Delete operations not implemented in this context');
+            }
+          } catch (error) {
+            failedOperations.push(operation);
+            if (!firstError) firstError = error;
+            console.error(`Operation failed for ${operation.id}:`, error);
+          }
+        }
+
+        const atomicResult = {
+          success: failedOperations.length === 0,
+          successfulOperations,
+          failedOperations,
+          error: firstError
+        };
 
         if (!atomicResult.success) {
-          const summary = createOperationSummary(atomicResult);
+          const summary = `Successful: ${successfulOperations.length}, Failed: ${failedOperations.length}`;
           if (atomicResult.successfulOperations.length > 0) {
             alert(`Partially successful: ${summary}`);
           } else {

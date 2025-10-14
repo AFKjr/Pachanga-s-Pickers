@@ -9,6 +9,9 @@ export * from './moneylineCalculator';
 export * from './atsCalculator';
 export * from './overUnderCalculator';
 
+// Import odds utilities
+import { americanToDecimal } from '../edgeCalculator';
+
 // Import for comprehensive calculations
 import { Pick } from '../../types/index';
 import { GameScore, CalculatedResults, ComprehensiveATSRecord, BettingEfficiency } from './types';
@@ -119,7 +122,19 @@ export const calculateComprehensiveATSRecord = (
     if (mlResult.result === 'win') {
       moneylineWins++;
       confidenceStats[confidenceLevel].wins++;
-      estimatedUnits += 0.91; // Assuming -110 odds
+      // Use actual odds if available, otherwise skip unit calculation
+      const predictedHome = pick.prediction.toLowerCase().includes(pick.game_info.home_team.toLowerCase());
+      const predictedAway = pick.prediction.toLowerCase().includes(pick.game_info.away_team.toLowerCase());
+      let mlOdds: number | null = null;
+      if (predictedHome && pick.game_info.home_ml_odds) {
+        mlOdds = pick.game_info.home_ml_odds;
+      } else if (predictedAway && pick.game_info.away_ml_odds) {
+        mlOdds = pick.game_info.away_ml_odds;
+      }
+      if (mlOdds) {
+        const decimalOdds = americanToDecimal(mlOdds);
+        estimatedUnits += decimalOdds - 1; // Win pays decimal - 1 (minus stake)
+      }
     } else if (mlResult.result === 'loss') {
       moneylineLosses++;
       estimatedUnits -= 1.0;
@@ -138,7 +153,11 @@ export const calculateComprehensiveATSRecord = (
       
       if (atsResultValue === 'win') {
         atsWins++;
-        estimatedUnits += 0.91;
+        // Use actual spread odds if available
+        if (pick.game_info.spread_odds) {
+          const decimalOdds = americanToDecimal(pick.game_info.spread_odds);
+          estimatedUnits += decimalOdds - 1; // Win pays decimal - 1 (minus stake)
+        }
         // Calculate cover margin for detail tracking
         const atsResult = calculateATSResult(pick, actualScore);
         if (atsResult.details?.coverMargin) {
@@ -167,7 +186,18 @@ export const calculateComprehensiveATSRecord = (
       
       if (ouResultValue === 'win') {
         ouWins++;
-        estimatedUnits += 0.91;
+        // Use actual O/U odds if available
+        const pickedOver = pick.ou_prediction?.toLowerCase().includes('over');
+        let ouOdds: number | null = null;
+        if (pickedOver && pick.game_info.over_odds) {
+          ouOdds = pick.game_info.over_odds;
+        } else if (!pickedOver && pick.game_info.under_odds) {
+          ouOdds = pick.game_info.under_odds;
+        }
+        if (ouOdds) {
+          const decimalOdds = americanToDecimal(ouOdds);
+          estimatedUnits += decimalOdds - 1; // Win pays decimal - 1 (minus stake)
+        }
       } else if (ouResultValue === 'loss') {
         ouLosses++;
         estimatedUnits -= 1.0;

@@ -1,6 +1,47 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { resolveTeamName } from '../utils/teamNameResolver';
+
+// Team name mappings for normalization
+const TEAM_NAME_MAPPINGS: Record<string, string> = {
+  'arizona cardinals': 'Arizona Cardinals',
+  'atlanta falcons': 'Atlanta Falcons',
+  'baltimore ravens': 'Baltimore Ravens',
+  'buffalo bills': 'Buffalo Bills',
+  'carolina panthers': 'Carolina Panthers',
+  'chicago bears': 'Chicago Bears',
+  'cincinnati bengals': 'Cincinnati Bengals',
+  'cleveland browns': 'Cleveland Browns',
+  'dallas cowboys': 'Dallas Cowboys',
+  'denver broncos': 'Denver Broncos',
+  'detroit lions': 'Detroit Lions',
+  'green bay packers': 'Green Bay Packers',
+  'houston texans': 'Houston Texans',
+  'indianapolis colts': 'Indianapolis Colts',
+  'jacksonville jaguars': 'Jacksonville Jaguars',
+  'kansas city chiefs': 'Kansas City Chiefs',
+  'las vegas raiders': 'Las Vegas Raiders',
+  'los angeles chargers': 'Los Angeles Chargers',
+  'los angeles rams': 'Los Angeles Rams',
+  'miami dolphins': 'Miami Dolphins',
+  'minnesota vikings': 'Minnesota Vikings',
+  'new england patriots': 'New England Patriots',
+  'new orleans saints': 'New Orleans Saints',
+  'new york giants': 'New York Giants',
+  'new york jets': 'New York Jets',
+  'philadelphia eagles': 'Philadelphia Eagles',
+  'pittsburgh steelers': 'Pittsburgh Steelers',
+  'san francisco 49ers': 'San Francisco 49ers',
+  'seattle seahawks': 'Seattle Seahawks',
+  'tampa bay buccaneers': 'Tampa Bay Buccaneers',
+  'tennessee titans': 'Tennessee Titans',
+  'washington commanders': 'Washington Commanders'
+};
+
+function resolveTeamName(teamName: string): string | null {
+  if (!teamName) return null;
+  const cleaned = teamName.trim().toLowerCase();
+  return TEAM_NAME_MAPPINGS[cleaned] || null;
+}
 
 interface ExtendedTeamStats {
   team: string;
