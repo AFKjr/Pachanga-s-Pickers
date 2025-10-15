@@ -4,7 +4,7 @@ import type { OddsData, GameWeather } from '../types.ts';
 import { fetchTeamStatsWithFallback } from '../database/fetch-stats.ts';
 import { fetchGameWeather } from '../weather/weather-fetcher.ts';
 import { formatWeatherForDisplay } from '../weather/weather-calculator.ts';
-import { runMonteCarloSimulation } from '../simulation/monte-carlo.ts';
+import { runMonteCarloSimulation, determineFavorite } from '../simulation/monte-carlo.ts';
 import { calculateNFLWeek, getConfidenceLevel, mapConfidenceToNumber, getNFLWeekFromDate } from '../utils/nfl-utils.ts';
 import { generateReasoning } from '../utils/reasoning-generator.ts';
 import { extractOddsFromGame } from '../odds/fetch-odds.ts';
@@ -113,6 +113,10 @@ export async function generateLivePredictions(
       const odds = extractOddsFromGame(game);
       console.log(`💰 Odds - ML: ${game.home_team} ${odds.homeMLOdds} / ${game.away_team} ${odds.awayMLOdds}, Spread: ${odds.spreadOdds}, O/U: ${odds.overOdds}/${odds.underOdds}`);
 
+      // Determine which team is the favorite
+      const favoriteInfo = determineFavorite(odds.homeMLOdds, odds.awayMLOdds);
+      console.log(`🏆 Favorite: ${favoriteInfo.favoriteIsHome ? game.home_team : game.away_team} (${favoriteInfo.favoriteIsHome ? 'home' : 'away'})`);
+
       // Run simulation
       console.log(`⚙️ Running ${SIMULATION_ITERATIONS.toLocaleString()} Monte Carlo simulations...`);
       const simResult = runMonteCarloSimulation(
@@ -120,7 +124,8 @@ export async function generateLivePredictions(
         awayStats,
         odds.homeSpread,
         odds.total,
-        gameWeather
+        gameWeather,
+        favoriteInfo.favoriteIsHome  // NEW: Pass favorite information
       );
 
       // Calculate picks and probabilities
@@ -160,7 +165,11 @@ export async function generateLivePredictions(
           away_ml_odds: odds.awayMLOdds,
           spread_odds: odds.spreadOdds,
           over_odds: odds.overOdds,
-          under_odds: odds.underOdds
+          under_odds: odds.underOdds,
+          // NEW: Favorite/Underdog information
+          favorite_team: favoriteInfo.favoriteIsHome ? game.home_team : game.away_team,
+          underdog_team: favoriteInfo.favoriteIsHome ? game.away_team : game.home_team,
+          favorite_is_home: favoriteInfo.favoriteIsHome
         },
         prediction: `${moneylinePick} to win`,
         spread_prediction: spreadPick,
@@ -183,7 +192,9 @@ export async function generateLivePredictions(
           total_probability: totalProb,
           home_win_probability: simResult.homeWinProbability,
           away_win_probability: simResult.awayWinProbability,
-          spread_cover_probability: simResult.spreadCoverProbability,
+          spread_cover_probability: simResult.spreadCoverProbability,  // DEPRECATED - kept for backward compatibility
+          favorite_cover_probability: simResult.favoriteCoverProbability,  // NEW
+          underdog_cover_probability: simResult.underdogCoverProbability,  // NEW
           over_probability: simResult.overProbability,
           under_probability: simResult.underProbability,
           predicted_home_score: simResult.predictedHomeScore,

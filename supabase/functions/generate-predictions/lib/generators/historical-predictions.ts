@@ -5,7 +5,7 @@ import { fetchHistoricalGames } from '../database/fetch-historical.ts';
 import { fetchTeamStatsWithFallback } from '../database/fetch-stats.ts';
 import { fetchGameWeather } from '../weather/weather-fetcher.ts';
 import { formatWeatherForDisplay } from '../weather/weather-calculator.ts';
-import { runMonteCarloSimulation } from '../simulation/monte-carlo.ts';
+import { runMonteCarloSimulation, determineFavorite } from '../simulation/monte-carlo.ts';
 import { getConfidenceLevel, mapConfidenceToNumber } from '../utils/nfl-utils.ts';
 import { generateReasoning } from '../utils/reasoning-generator.ts';
 
@@ -102,6 +102,10 @@ export async function generateHistoricalPredictions(
         }
       }
 
+      // Determine which team is the favorite (use stored odds if available)
+      const favoriteInfo = determineFavorite(game.home_ml_odds || -110, game.away_ml_odds || +110);
+      console.log(`🏆 Favorite: ${favoriteInfo.favoriteIsHome ? game.home_team : game.away_team} (${favoriteInfo.favoriteIsHome ? 'home' : 'away'})`);
+
       // Run simulation
       console.log(`⚙️ Running ${SIMULATION_ITERATIONS.toLocaleString()} Monte Carlo simulations...`);
       const simResult = runMonteCarloSimulation(
@@ -109,7 +113,8 @@ export async function generateHistoricalPredictions(
         awayStats,
         game.spread,
         game.over_under,
-        gameWeather
+        gameWeather,
+        favoriteInfo.favoriteIsHome  // NEW: Pass favorite information
       );
 
       // Calculate picks and probabilities
