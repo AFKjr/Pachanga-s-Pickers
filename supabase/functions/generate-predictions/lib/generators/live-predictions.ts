@@ -27,6 +27,7 @@ export async function generateLivePredictions(
   supabaseUrl: string,
   supabaseKey: string,
   weatherApiKey: string | undefined,
+  rapidApiKey: string | undefined,
   onProgress?: (current: number, total: number) => void
 ): Promise<LivePredictionsResult> {
   const startTime = Date.now();
@@ -69,8 +70,8 @@ export async function generateLivePredictions(
       }
 
       // Fetch team stats (latest available)
-      const homeStats = await fetchTeamStatsWithFallback(game.home_team, supabaseUrl, supabaseKey);
-      const awayStats = await fetchTeamStatsWithFallback(game.away_team, supabaseUrl, supabaseKey);
+      const homeStats = await fetchTeamStatsWithFallback(game.home_team, supabaseUrl, supabaseKey, rapidApiKey);
+      const awayStats = await fetchTeamStatsWithFallback(game.away_team, supabaseUrl, supabaseKey, rapidApiKey);
 
       console.log(`📈 ${game.home_team} stats: 3D%=${homeStats.thirdDownConversionRate}, RZ%=${homeStats.redZoneEfficiency}`);
       console.log(`📈 ${game.away_team} stats: 3D%=${awayStats.thirdDownConversionRate}, RZ%=${awayStats.redZoneEfficiency}`);

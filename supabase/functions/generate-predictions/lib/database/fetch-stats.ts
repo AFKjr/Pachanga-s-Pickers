@@ -115,12 +115,41 @@ export async function fetchTeamStats(
   }
 }
 
+import { fetchTeamStatsWithCache } from './fetch-stats-rapidapi.ts';
+
 export async function fetchTeamStatsWithFallback(
   teamName: string,
   supabaseUrl: string,
   supabaseKey: string,
+  rapidApiKey?: string,
   week?: number
 ): Promise<TeamStats> {
-  const stats = await fetchTeamStats(teamName, supabaseUrl, supabaseKey, week);
-  return stats || getDefaultTeamStats(teamName);
+  // First try RapidAPI as primary source (if key provided)
+  if (rapidApiKey) {
+    console.log(`🔄 Trying RapidAPI first for ${teamName}...`);
+    const rapidStats = await fetchTeamStatsWithCache(
+      teamName,
+      rapidApiKey,
+      supabaseUrl,
+      supabaseKey,
+      2025, // Current season
+      24 // Cache for 24 hours
+    );
+    if (rapidStats) {
+      console.log(`✅ Using RapidAPI stats for ${teamName}`);
+      return rapidStats;
+    }
+    console.log(`⚠️ RapidAPI failed for ${teamName}, trying database...`);
+  }
+
+  // Fallback to Supabase database stats
+  const dbStats = await fetchTeamStats(teamName, supabaseUrl, supabaseKey, week);
+  if (dbStats) {
+    console.log(`✅ Using database stats for ${teamName} (RapidAPI unavailable)`);
+    return dbStats;
+  }
+
+  // Final fallback to default stats
+  console.log(`⚠️ Using default stats for ${teamName} (no data available)`);
+  return getDefaultTeamStats(teamName);
 }

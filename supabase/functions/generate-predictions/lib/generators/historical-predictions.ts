@@ -28,7 +28,8 @@ export async function generateHistoricalPredictions(
   targetWeek: number,
   supabaseUrl: string,
   supabaseKey: string,
-  weatherApiKey: string | undefined
+  weatherApiKey: string | undefined,
+  rapidApiKey: string | undefined
 ): Promise<HistoricalPredictionsResult> {
   const startTime = Date.now();
 
@@ -70,6 +71,7 @@ export async function generateHistoricalPredictions(
         game.home_team,
         supabaseUrl,
         supabaseKey,
+        rapidApiKey,
         targetWeek
       );
 
@@ -77,6 +79,7 @@ export async function generateHistoricalPredictions(
         game.away_team,
         supabaseUrl,
         supabaseKey,
+        rapidApiKey,
         targetWeek
       );
 

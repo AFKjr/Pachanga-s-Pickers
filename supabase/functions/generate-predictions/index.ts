@@ -64,6 +64,7 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get('VITE_SUPABASE_URL') || Deno.env.get('SUPABASE_URL');
     const SUPABASE_KEY = Deno.env.get('VITE_SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_ANON_KEY');
     const WEATHER_API_KEY = Deno.env.get('OPENWEATHER_API_KEY');
+    const RAPIDAPI_KEY = Deno.env.get('RAPIDAPI_KEY');
 
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return new Response(
@@ -88,7 +89,8 @@ serve(async (req) => {
         targetWeek,
         SUPABASE_URL,
         SUPABASE_KEY,
-        WEATHER_API_KEY
+        WEATHER_API_KEY,
+        RAPIDAPI_KEY
       );
 
       logMemory('Historical predictions complete');
@@ -161,7 +163,8 @@ serve(async (req) => {
       oddsData,
       SUPABASE_URL,
       SUPABASE_KEY,
-      WEATHER_API_KEY
+      WEATHER_API_KEY,
+      RAPIDAPI_KEY
     );
 
     logMemory('Live predictions complete');
