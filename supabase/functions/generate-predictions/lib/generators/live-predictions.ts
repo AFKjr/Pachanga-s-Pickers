@@ -212,7 +212,16 @@ export async function generateLivePredictions(
 
     } catch (gameError) {
       const errorMessage = gameError instanceof Error ? gameError.message : String(gameError);
-      console.error(`❌ Error processing ${game.away_team} @ ${game.home_team}:`, errorMessage);
+      const errorStack = gameError instanceof Error ? gameError.stack : 'No stack trace';
+      console.error(`❌ Error processing ${game.away_team} @ ${game.home_team}:`);
+      console.error(`   Error: ${errorMessage}`);
+      console.error(`   Stack: ${errorStack}`);
+      console.error(`   Game data:`, JSON.stringify({
+        home: game.home_team,
+        away: game.away_team,
+        commence_time: game.commence_time,
+        bookmakers: game.bookmakers?.length || 0
+      }));
       errors.push({
         game: `${game.away_team} @ ${game.home_team}`,
         error: errorMessage

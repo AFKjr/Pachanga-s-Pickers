@@ -121,12 +121,15 @@ export function runMonteCarloSimulation(
   const avgHomeScore = homeScores.reduce((acc, score) => acc + score, 0) / homeScores.length;
   const avgAwayScore = awayScores.reduce((acc, score) => acc + score, 0) / awayScores.length;
 
+  const favoriteCoverProb = (favoriteCovers / SIMULATION_ITERATIONS) * 100;
+
   return {
     homeWinProbability: (homeWins / SIMULATION_ITERATIONS) * 100,
     awayWinProbability: (awayWins / SIMULATION_ITERATIONS) * 100,
     predictedHomeScore: Math.round(avgHomeScore),
     predictedAwayScore: Math.round(avgAwayScore),
-    favoriteCoverProbability: (favoriteCovers / SIMULATION_ITERATIONS) * 100,  // NEW: Favorite covering spread
+    spreadCoverProbability: favoriteCoverProb,  // DEPRECATED: Kept for backward compatibility (same as favoriteCoverProbability)
+    favoriteCoverProbability: favoriteCoverProb,  // NEW: Favorite covering spread
     underdogCoverProbability: ((SIMULATION_ITERATIONS - favoriteCovers) / SIMULATION_ITERATIONS) * 100,  // NEW: Underdog covering
     overProbability: (overs / SIMULATION_ITERATIONS) * 100,
     underProbability: ((SIMULATION_ITERATIONS - overs) / SIMULATION_ITERATIONS) * 100,
