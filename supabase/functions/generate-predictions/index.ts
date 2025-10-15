@@ -79,6 +79,20 @@ serve(async (req) => {
       );
     }
 
+    // Validate Sports Radar API key (required for stats)
+    if (!RAPIDAPI_KEY) {
+      return new Response(
+        JSON.stringify({
+          error: 'Sports Radar API key missing',
+          hint: 'Set SPORTSRADAR_API_KEY environment variable'
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
     // ========================================================================
     // ROUTE 1: Historical Mode (stored odds + week-specific stats)
     // ========================================================================

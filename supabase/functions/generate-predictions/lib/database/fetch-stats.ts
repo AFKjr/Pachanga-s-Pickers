@@ -135,7 +135,7 @@ export async function fetchTeamStatsWithFallback(
     rapidApiKey,
     supabaseUrl,
     supabaseKey,
-    2025, // Current season
+    2024, // Current season
     24 // Cache for 24 hours
   );
 

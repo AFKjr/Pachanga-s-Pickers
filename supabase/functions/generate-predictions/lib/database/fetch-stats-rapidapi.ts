@@ -1,7 +1,7 @@
 import type { TeamStats } from '../types.ts';
 
 const NFL_TEAM_ID_MAP: Record<string, string> = {
-  'Arizona Cardinals': 'de760528-1dc0-416a-a978-b4d74b7ce111',
+  'Arizona Cardinals': 'de760528-1dc0-416a-a978-b510d20692ff',
   'Atlanta Falcons': 'e6aa13a4-0055-48a9-bc41-be28dc106929',
   'Baltimore Ravens': 'ebd87119-b331-4469-9ea6-d51fe3ce2f1c',
   'Buffalo Bills': '768c92aa-75ff-4a43-bcc0-f2798c2e1724',
@@ -331,7 +331,7 @@ export async function fetchTeamStatsFromRapidAPI(
   sportsRadarApiKey: string,
   supabaseUrl: string,
   supabaseKey: string,
-  season: number = 2025,
+  season: number = 2024,
   cacheHours: number = 24
 ): Promise<TeamStats | null> {
   const cached = await checkCache(teamName, supabaseUrl, supabaseKey, season, cacheHours);
