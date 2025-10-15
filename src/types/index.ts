@@ -42,7 +42,9 @@ export interface MonteCarloResults {
   total_probability: number;
   home_win_probability: number;
   away_win_probability: number;
-  spread_cover_probability: number;
+  spread_cover_probability: number;  // DEPRECATED: Use favorite_cover_probability
+  favorite_cover_probability: number;  // NEW: Probability favorite covers spread
+  underdog_cover_probability: number;  // NEW: Probability underdog covers spread
   over_probability: number;
   under_probability: number;
   predicted_home_score: number;
@@ -59,12 +61,17 @@ export interface GameInfo {
   home_score?: number | null;
   away_score?: number | null;
 
-  // NEW: Odds at time of prediction (American format)
+  // Odds at time of prediction (American format)
   home_ml_odds?: number;
   away_ml_odds?: number;
   spread_odds?: number;
   over_odds?: number;
   under_odds?: number;
+
+  // NEW: Favorite/Underdog information (for bookmaker-style spread tracking)
+  favorite_team?: string;      // e.g., "Kansas City Chiefs"
+  underdog_team?: string;       // e.g., "Las Vegas Raiders"
+  favorite_is_home?: boolean;   // true if home team is favored
 }
 
 // Strict Union Types

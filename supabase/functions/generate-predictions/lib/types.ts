@@ -89,7 +89,9 @@ export interface SimulationResult {
   awayWinProbability: number;
   predictedHomeScore: number;
   predictedAwayScore: number;
-  spreadCoverProbability: number;
+  spreadCoverProbability: number;  // DEPRECATED: Use favoriteCoverProbability instead
+  favoriteCoverProbability: number;  // NEW: Probability favorite covers the spread
+  underdogCoverProbability: number;  // NEW: Probability underdog covers the spread
   overProbability: number;
   underProbability: number;
   iterations: number;

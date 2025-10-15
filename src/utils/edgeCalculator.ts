@@ -44,6 +44,31 @@ export function extractSpreadValue(spreadPrediction: string): number {
   return 0;
 }
 
+/**
+ * Determine if the spread prediction is picking the favorite team
+ * Examples: 
+ *   - "Chiefs -7.5", favoriteTeam="Kansas City Chiefs" → true
+ *   - "Raiders +7.5", favoriteTeam="Kansas City Chiefs" → false
+ */
+export function isPickingFavorite(spreadPrediction: string, favoriteTeam: string): boolean {
+  if (!favoriteTeam) {
+    // Fallback: if no favorite team specified, assume negative spread = favorite
+    const spreadValue = extractSpreadValue(spreadPrediction);
+    return spreadValue < 0;
+  }
+  
+  // Check if the spread prediction includes the favorite team name
+  const predictionLower = spreadPrediction.toLowerCase();
+  const favoriteWords = favoriteTeam.toLowerCase().split(' ');
+  
+  // Check if any significant word from favorite team name appears in prediction
+  return favoriteWords.some(word => {
+    // Skip common short words like "the"
+    if (word.length <= 2) return false;
+    return predictionLower.includes(word);
+  });
+}
+
 export function calculatePickEdges(
   pick: Pick,
   monteCarloResults: MonteCarloResults,
@@ -70,28 +95,31 @@ export function calculatePickEdges(
     }
   }
 
-  // ===== SPREAD EDGE =====
+  // ===== SPREAD EDGE (BOOKMAKER STYLE) =====
   let spreadEdge = 0;
-  if (monteCarloResults.spread_probability && pick.spread_prediction) {
-    // Require stored spread odds - no fallbacks
-    if (gameInfo.spread_odds || gameInfo.spread_odds === 0) {
-      // Determine which side was picked (favorite or underdog)
-      const spreadLine = extractSpreadValue(pick.spread_prediction); // e.g., -7.5 or +7.5
-      const pickedFavorite = spreadLine < 0;
-      
-      // Use correct probability based on which side was picked
-      let probability: number;
-      if (pickedFavorite) {
-        // Picked favorite - use spread_cover_probability (or spread_probability if that's what we have)
-        probability = monteCarloResults.spread_cover_probability || monteCarloResults.spread_probability;
-      } else {
-        // Picked underdog - use inverse probability
-        probability = 100 - (monteCarloResults.spread_cover_probability || monteCarloResults.spread_probability);
-      }
-      
-      spreadEdge = calculateEdge(probability, gameInfo.spread_odds);
+  if (pick.spread_prediction && (gameInfo.spread_odds || gameInfo.spread_odds === 0)) {
+    // Determine which side was picked using favorite team information
+    const pickedFavorite = isPickingFavorite(
+      pick.spread_prediction,
+      gameInfo.favorite_team || ''
+    );
+    
+    // Use correct probability based on which side was picked
+    let probability: number;
+    if (pickedFavorite) {
+      // Picked favorite - use favorite_cover_probability (or fallback to spread_cover_probability)
+      probability = monteCarloResults.favorite_cover_probability || 
+                    monteCarloResults.spread_cover_probability ||
+                    monteCarloResults.spread_probability;
+    } else {
+      // Picked underdog - use underdog_cover_probability (or calculate from favorite)
+      probability = monteCarloResults.underdog_cover_probability ||
+                    (100 - (monteCarloResults.favorite_cover_probability || 
+                            monteCarloResults.spread_cover_probability ||
+                            monteCarloResults.spread_probability));
     }
-    // Skip if no odds available
+    
+    spreadEdge = calculateEdge(probability, gameInfo.spread_odds);
   }
 
   // ===== OVER/UNDER EDGE =====
