@@ -34,39 +34,52 @@ export async function generateLivePredictions(
 
   console.log(`📊 Generating live predictions for ${oddsData.length} games...`);
 
-  // ========== ADD WEEK FILTERING ==========
-  const currentWeek = getCurrentNFLWeek();
-  console.log(`🎯 Current NFL Week: ${currentWeek}`);
-  console.log(`🎯 Filtering for Week ${currentWeek} games only...`);
-
-  const currentWeekGames = oddsData.filter(game => {
+  // Log all available games from odds API
+  console.log(`📋 All games from odds API:`);
+  oddsData.forEach((game, index) => {
     const gameDate = new Date(game.commence_time);
     const gameWeek = getNFLWeekFromDate(gameDate);
+    console.log(`  ${index + 1}. ${game.away_team} @ ${game.home_team} - ${gameDate.toISOString()} (Week ${gameWeek})`);
+  });
 
-    // Log for debugging
-    if (gameWeek !== currentWeek) {
-      console.log(`⏭️ Skipping ${game.away_team} @ ${game.home_team} (Week ${gameWeek})`);
-    }
+  // ========== MODIFY WEEK FILTERING TO BE LESS RESTRICTIVE ==========
+  const currentWeek = getCurrentNFLWeek();
+  console.log(`🎯 Current NFL Week: ${currentWeek}`);
 
+  // Filter for current week games, but also include games from adjacent weeks if current week has few games
+  let gamesToProcess = oddsData.filter(game => {
+    const gameDate = new Date(game.commence_time);
+    const gameWeek = getNFLWeekFromDate(gameDate);
     return gameWeek === currentWeek;
   });
 
-  console.log(`✅ Filtered from ${oddsData.length} to ${currentWeekGames.length} games for Week ${currentWeek}`);
-  // ========== END WEEK FILTERING ==========
+  // If current week has fewer than 5 games, include games from next week too
+  if (gamesToProcess.length < 5) {
+    console.log(`⚠️ Only ${gamesToProcess.length} games in current week, including next week games...`);
+    const nextWeekGames = oddsData.filter(game => {
+      const gameDate = new Date(game.commence_time);
+      const gameWeek = getNFLWeekFromDate(gameDate);
+      return gameWeek === currentWeek + 1;
+    });
+    gamesToProcess = [...gamesToProcess, ...nextWeekGames];
+  }
+
+  console.log(`✅ Will process ${gamesToProcess.length} games total`);
+  // ========== END MODIFIED FILTERING ==========
 
   const predictions = [];
   const errors = [];
 
-  // ========== UPDATE LOOP TO USE FILTERED GAMES ==========
-  for (let gameIndex = 0; gameIndex < currentWeekGames.length; gameIndex++) {
-    const game = currentWeekGames[gameIndex];
+  // ========== UPDATE LOOP TO USE PROCESSED GAMES ==========
+  for (let gameIndex = 0; gameIndex < gamesToProcess.length; gameIndex++) {
+    const game = gamesToProcess[gameIndex];
 
     try {
-      console.log(`\n🏈 [${gameIndex + 1}/${currentWeekGames.length}] Processing: ${game.away_team} @ ${game.home_team}`);
+      console.log(`\n🏈 [${gameIndex + 1}/${gamesToProcess.length}] Processing: ${game.away_team} @ ${game.home_team}`);
 
       // Call progress callback if provided
       if (onProgress) {
-        onProgress(gameIndex + 1, currentWeekGames.length);
+        onProgress(gameIndex + 1, gamesToProcess.length);
       }
 
       // Fetch team stats (latest available)
@@ -200,7 +213,7 @@ export async function generateLivePredictions(
     errors,
     metadata: {
       generated_at: new Date().toISOString(),
-      games_attempted: currentWeekGames.length,
+      games_attempted: gamesToProcess.length,
       games_processed: predictions.length,
       games_failed: errors.length,
       simulation_iterations: SIMULATION_ITERATIONS,
