@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-// import { useAuth } from '../contexts/AuthContext'; // Not needed - ESPN API disabled
 import { supabase } from '../lib/supabase';
 
 interface TeamStatsData {
@@ -16,10 +15,8 @@ interface TeamStatsData {
 }
 
 const AdminTeamStats: React.FC = () => {
-  // const { user } = useAuth(); // Not needed - ESPN API disabled
   const [stats, setStats] = useState<TeamStatsData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing] = useState(false); // Always false - ESPN API disabled
   const [error, setError] = useState('');
   const [editingTeam, setEditingTeam] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<TeamStatsData>>({});
@@ -44,49 +41,6 @@ const AdminTeamStats: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const refreshAllStats = async () => {
-    // COMMENTED OUT - ESPN API functionality disabled
-    // Use CSV import instead for updating team stats
-    alert('ESPN API refresh is disabled. Please use the CSV Import feature above to update team stats.');
-    return;
-
-    /* ORIGINAL ESPN API CODE - COMMENTED OUT
-    if (!user) return;
-
-    try {
-      setRefreshing(true);
-      setError('');
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('No active session');
-      }
-
-      const response = await fetch('/api/refresh-team-stats', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to refresh stats');
-      }
-
-      alert(result.message);
-      await loadTeamStats();
-    } catch (err: any) {
-      setError(err.message);
-      console.error('Error refreshing stats:', err);
-    } finally {
-      setRefreshing(false);
-    }
-    */
   };
 
   const startEditing = (team: TeamStatsData) => {
@@ -151,40 +105,11 @@ const AdminTeamStats: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gray-800 rounded-lg p-6">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h2 className="text-2xl font-bold text-white">NFL Team Statistics</h2>
-            <p className="text-gray-400 text-sm mt-1">
-              Manage team stats used in Monte Carlo simulations
-            </p>
-          </div>
-          <button
-            onClick={refreshAllStats}
-            disabled={refreshing}
-            className="btn-primary disabled:opacity-50 opacity-50 cursor-not-allowed"
-            title="ESPN API disabled - Use CSV Import instead"
-          >
-            🔄 Refresh All from ESPN (Disabled)
-          </button>
+      {error && (
+        <div className="bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded mb-4">
+          {error}
         </div>
-
-        {error && (
-          <div className="bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        {/* ESPN API refresh disabled - use CSV import instead */}
-      </div>
-
-      {/* Scroll hint */}
-      <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-3 mb-4">
-        <p className="text-sm text-blue-300">
-          💡 <strong>Tip:</strong> Scroll horizontally to see all 40+ team stats fields (passing, rushing, defense, turnovers, etc.)
-        </p>
-      </div>
+      )}
 
       {/* Stats Table */}
       <div className="bg-gray-800 rounded-lg overflow-hidden shadow-lg">
@@ -348,33 +273,6 @@ const AdminTeamStats: React.FC = () => {
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      {/* Legend */}
-      <div className="bg-gray-800 rounded-lg p-4">
-        <h4 className="font-semibold text-white mb-3">Data Source Legend:</h4>
-        <div className="flex flex-wrap gap-4 text-sm">
-          <div className="flex items-center space-x-2">
-            {getSourceBadge('csv')}
-            <span className="text-gray-300">Imported from CSV file</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            {getSourceBadge('manual')}
-            <span className="text-gray-300">Manually entered by admin</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            {getSourceBadge('espn')}
-            <span className="text-gray-300">ESPN API (Legacy - Disabled)</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            {getSourceBadge('historical')}
-            <span className="text-gray-300">Historical season data</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            {getSourceBadge('default')}
-            <span className="text-gray-300">League averages (unreliable)</span>
-          </div>
         </div>
       </div>
     </div>
