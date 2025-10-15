@@ -1,11 +1,11 @@
-// api/lib/generators/live-predictions.ts
+// supabase/functions/generate-predictions/lib/generators/live-predictions.ts
 import { SIMULATION_ITERATIONS } from '../constants.ts';
 import type { OddsData, GameWeather } from '../types.ts';
 import { fetchTeamStatsWithFallback } from '../database/fetch-stats.ts';
 import { fetchGameWeather } from '../weather/weather-fetcher.ts';
 import { formatWeatherForDisplay } from '../weather/weather-calculator.ts';
 import { runMonteCarloSimulation } from '../simulation/monte-carlo.ts';
-import { calculateNFLWeek, getConfidenceLevel, mapConfidenceToNumber, getNFLWeekFromDate, getCurrentNFLWeek } from '../utils/nfl-utils.ts';
+import { calculateNFLWeek, getConfidenceLevel, mapConfidenceToNumber, getNFLWeekFromDate } from '../utils/nfl-utils.ts';
 import { generateReasoning } from '../utils/reasoning-generator.ts';
 import { extractOddsFromGame } from '../odds/fetch-odds.ts';
 
@@ -42,35 +42,39 @@ export async function generateLivePredictions(
     console.log(`  ${index + 1}. ${game.away_team} @ ${game.home_team} - ${gameDate.toISOString()} (Week ${gameWeek})`);
   });
 
-  // ========== MODIFY WEEK FILTERING TO BE LESS RESTRICTIVE ==========
-  const currentWeek = getCurrentNFLWeek();
-  console.log(`🎯 Current NFL Week: ${currentWeek}`);
+  // ========== SIMPLIFIED FILTERING: PROCESS ALL AVAILABLE GAMES ==========
+  // The Odds API only returns games with active betting lines (upcoming games)
+  // No need to filter by week - just process everything available
+  const gamesToProcess = oddsData;
 
-  // Filter for current week games, but also include games from adjacent weeks if current week has few games
-  let gamesToProcess = oddsData.filter(game => {
+  console.log(`✅ Processing ${gamesToProcess.length} games with available odds:`);
+  gamesToProcess.forEach((game, index) => {
     const gameDate = new Date(game.commence_time);
     const gameWeek = getNFLWeekFromDate(gameDate);
-    return gameWeek === currentWeek;
+    console.log(`  ${index + 1}. Week ${gameWeek}: ${game.away_team} @ ${game.home_team} (${gameDate.toLocaleDateString()})`);
   });
 
-  // If current week has fewer than 5 games, include games from next week too
-  if (gamesToProcess.length < 5) {
-    console.log(`⚠️ Only ${gamesToProcess.length} games in current week, including next week games...`);
-    const nextWeekGames = oddsData.filter(game => {
-      const gameDate = new Date(game.commence_time);
-      const gameWeek = getNFLWeekFromDate(gameDate);
-      return gameWeek === currentWeek + 1;
-    });
-    gamesToProcess = [...gamesToProcess, ...nextWeekGames];
+  // Handle case where no games are available
+  if (gamesToProcess.length === 0) {
+    console.warn(`⚠️ No games available from The Odds API`);
+    return {
+      predictions: [],
+      errors: [],
+      metadata: {
+        generated_at: new Date().toISOString(),
+        games_attempted: 0,
+        games_processed: 0,
+        games_failed: 0,
+        simulation_iterations: SIMULATION_ITERATIONS,
+        execution_time_seconds: ((Date.now() - startTime) / 1000).toFixed(2)
+      }
+    };
   }
-
-  console.log(`✅ Will process ${gamesToProcess.length} games total`);
-  // ========== END MODIFIED FILTERING ==========
+  // ========== END SIMPLIFIED FILTERING ==========
 
   const predictions = [];
   const errors = [];
 
-  // ========== UPDATE LOOP TO USE PROCESSED GAMES ==========
   for (let gameIndex = 0; gameIndex < gamesToProcess.length; gameIndex++) {
     const game = gamesToProcess[gameIndex];
 
@@ -122,8 +126,8 @@ export async function generateLivePredictions(
       // Calculate picks and probabilities
       const moneylineProb = Math.max(simResult.homeWinProbability, simResult.awayWinProbability);
       const moneylineConfidence = getConfidenceLevel(moneylineProb);
-      const moneylinePick = simResult.homeWinProbability > simResult.awayWinProbability 
-        ? game.home_team 
+      const moneylinePick = simResult.homeWinProbability > simResult.awayWinProbability
+        ? game.home_team
         : game.away_team;
 
       const spreadPick = simResult.spreadCoverProbability > 50
@@ -217,8 +221,7 @@ export async function generateLivePredictions(
       games_processed: predictions.length,
       games_failed: errors.length,
       simulation_iterations: SIMULATION_ITERATIONS,
-      execution_time_seconds: elapsedSeconds,
-      week_filtered: currentWeek
+      execution_time_seconds: elapsedSeconds
     }
   };
 }
