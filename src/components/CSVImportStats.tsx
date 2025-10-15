@@ -1,47 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-
-// Team name mappings for normalization
-const TEAM_NAME_MAPPINGS: Record<string, string> = {
-  'arizona cardinals': 'Arizona Cardinals',
-  'atlanta falcons': 'Atlanta Falcons',
-  'baltimore ravens': 'Baltimore Ravens',
-  'buffalo bills': 'Buffalo Bills',
-  'carolina panthers': 'Carolina Panthers',
-  'chicago bears': 'Chicago Bears',
-  'cincinnati bengals': 'Cincinnati Bengals',
-  'cleveland browns': 'Cleveland Browns',
-  'dallas cowboys': 'Dallas Cowboys',
-  'denver broncos': 'Denver Broncos',
-  'detroit lions': 'Detroit Lions',
-  'green bay packers': 'Green Bay Packers',
-  'houston texans': 'Houston Texans',
-  'indianapolis colts': 'Indianapolis Colts',
-  'jacksonville jaguars': 'Jacksonville Jaguars',
-  'kansas city chiefs': 'Kansas City Chiefs',
-  'las vegas raiders': 'Las Vegas Raiders',
-  'los angeles chargers': 'Los Angeles Chargers',
-  'los angeles rams': 'Los Angeles Rams',
-  'miami dolphins': 'Miami Dolphins',
-  'minnesota vikings': 'Minnesota Vikings',
-  'new england patriots': 'New England Patriots',
-  'new orleans saints': 'New Orleans Saints',
-  'new york giants': 'New York Giants',
-  'new york jets': 'New York Jets',
-  'philadelphia eagles': 'Philadelphia Eagles',
-  'pittsburgh steelers': 'Pittsburgh Steelers',
-  'san francisco 49ers': 'San Francisco 49ers',
-  'seattle seahawks': 'Seattle Seahawks',
-  'tampa bay buccaneers': 'Tampa Bay Buccaneers',
-  'tennessee titans': 'Tennessee Titans',
-  'washington commanders': 'Washington Commanders'
-};
-
-function resolveTeamName(teamName: string): string | null {
-  if (!teamName) return null;
-  const cleaned = teamName.trim().toLowerCase();
-  return TEAM_NAME_MAPPINGS[cleaned] || null;
-}
+import { NFLStatsParser } from '../utils/csvParser';
 
 interface ExtendedTeamStats {
   team: string;
@@ -111,18 +70,6 @@ const CSVImportStats: React.FC = () => {
   const [weekNumber, setWeekNumber] = useState<number>(1);
   const [seasonYear, setSeasonYear] = useState<number>(2025);
 
-  const parseTimeToSeconds = (timeString: string): number => {
-    if (!timeString || typeof timeString !== 'string') return 162;
-    
-    const parts = timeString.split(':');
-    if (parts.length === 2) {
-      const minutes = parseInt(parts[0]) || 0;
-      const seconds = parseInt(parts[1]) || 0;
-      return minutes * 60 + seconds;
-    }
-    return 162; // Default 2:42 in seconds
-  };
-
   const handleOffensiveFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -153,243 +100,6 @@ const CSVImportStats: React.FC = () => {
     }
   };
 
-  const extractWeekFromCSV = (lines: string[], filename: string): { week: number; season: number } => {
-    // Try to extract week from metadata lines (lines starting with #)
-    for (const line of lines.slice(0, 10)) {
-      if (line.startsWith('#')) {
-        const weekMatch = line.match(/Week:\s*(\d+)/i);
-        const seasonMatch = line.match(/Season:\s*(\d{4})/i);
-        
-        if (weekMatch) {
-          const week = parseInt(weekMatch[1]);
-          const season = seasonMatch ? parseInt(seasonMatch[1]) : 2025;
-          console.log(`📅 Extracted from metadata: Week ${week}, Season ${season}`);
-          return { week, season };
-        }
-      }
-    }
-    
-    // Fallback: Try to extract from filename (e.g., "week 6 offense.csv")
-    const filenameWeekMatch = filename.match(/week\s*(\d+)/i);
-    if (filenameWeekMatch) {
-      const week = parseInt(filenameWeekMatch[1]);
-      console.log(`📅 Extracted from filename: Week ${week}`);
-      return { week, season: 2025 };
-    }
-    
-    console.warn('⚠️ Could not extract week from CSV, defaulting to Week 1');
-    return { week: 1, season: 2025 };
-  };
-
-  const findHeaderLine = (lines: string[]): number => {
-    // Look for the line that contains the actual column headers (Rk, Tm, G, and either PF or PA)
-    for (let i = 0; i < Math.min(15, lines.length); i++) {
-      const line = lines[i];
-      
-      // Skip metadata lines
-      if (line.startsWith('#')) {
-        continue;
-      }
-      
-      const lineLower = line.toLowerCase();
-      // Check if this line has Rk, Tm, G and looks like actual headers (not category labels)
-      if (lineLower.includes('rk,tm') && lineLower.includes(',g,') && 
-          (lineLower.includes(',pf,') || lineLower.includes(',pa,'))) {
-        console.log(`Found header line at index ${i}:`, lines[i]);
-        return i;
-      }
-    }
-    return 0; // Default to first line if not found
-  };
-
-  const cleanCSVLine = (line: string): string => {
-    // Remove surrounding quotes from entire line if present
-    let cleaned = line.trim();
-    if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
-      cleaned = cleaned.slice(1, -1);
-    }
-    return cleaned;
-  };
-
-  const parseOffensiveCSV = async (file: File): Promise<Map<string, any>> => {
-    const text = await file.text();
-    const lines = text.split('\n').filter((line: string) => line.trim());
-    
-    const headerLineIndex = findHeaderLine(lines);
-    const headerLine = cleanCSVLine(lines[headerLineIndex]);
-    const headers = headerLine.split(',').map((h: string) => h.replace(/"/g, '').trim());
-    
-    console.log('Offensive CSV Headers:', headers);
-    console.log('Header line index:', headerLineIndex);
-    
-    const statsMap = new Map<string, any>();
-
-    for (let i = headerLineIndex + 1; i < lines.length; i++) {
-      let line = lines[i].trim();
-      
-      // Skip empty lines, dividers, category headers, and summary rows
-      if (!line || 
-          line.startsWith('"---') || 
-          line.toLowerCase().includes('avg team') || 
-          line.toLowerCase().includes('league total') ||
-          line.toLowerCase().includes('avg tm/g') ||
-          line.toLowerCase().includes('tot yds') ||
-          line.toLowerCase().includes('passing') ||
-          line.toLowerCase().includes('rushing')) {
-        continue;
-      }
-
-      line = cleanCSVLine(line);
-      const values = line.split(',').map((v: string) => v.replace(/"/g, '').trim());
-      
-      const rankValue = values[0];
-      const teamName = values[1];
-      
-      // Skip if rank is not a number (indicates header or category row)
-      if (!rankValue || isNaN(parseInt(rankValue))) {
-        continue;
-      }
-      
-      // Skip invalid team names
-      if (!teamName || teamName === '' || /^\d+$/.test(teamName) || 
-          teamName.length <= 2 || teamName.toLowerCase() === 'tm') {
-        continue;
-      }
-
-      const games = parseFloat(values[2]) || 1;
-      
-      if (teamName === 'Detroit Lions') {
-        console.log('🔍 DEBUG - Detroit Lions offensive parsing:');
-        console.log('  Raw values:', values);
-        console.log('  Games:', games);
-      }
-      
-      statsMap.set(teamName, {
-        team: teamName,
-        gamesPlayed: games,
-        pointsFor: parseFloat(values[3]) || 0,
-        totalYards: parseFloat(values[4]) || 0,
-        totalPlays: parseFloat(values[5]) || 0,
-        yardsPerPlay: parseFloat(values[6]) || 0,
-        turnoversLost: parseFloat(values[7]) || 0,
-        fumblesLost: parseFloat(values[8]) || 0,
-        firstDowns: parseFloat(values[9]) || 0,
-        passCompletions: parseFloat(values[10]) || 0,
-        passAttempts: parseFloat(values[11]) || 0,
-        passingYards: parseFloat(values[12]) || 0,
-        passingTds: parseFloat(values[13]) || 0,
-        interceptionsThrown: parseFloat(values[14]) || 0,
-        yardsPerPassAttempt: parseFloat(values[15]) || 0,
-        passingFirstDowns: parseFloat(values[16]) || 0,
-        rushingAttempts: parseFloat(values[17]) || 0,
-        rushingYards: parseFloat(values[18]) || 0,
-        rushingTds: parseFloat(values[19]) || 0,
-        yardsPerRush: parseFloat(values[20]) || 0,
-        rushingFirstDowns: parseFloat(values[21]) || 0,
-        penalties: parseFloat(values[22]) || 0,
-        penaltyYards: parseFloat(values[23]) || 0,
-        penaltyFirstDowns: parseFloat(values[24]) || 0,
-        redZonePct: parseFloat(values[25]) || 50.0,
-        turnoverPct: parseFloat(values[26]) || 0,
-        
-        // DRIVE STATS (adjust column indices based on your actual CSV structure)
-        thirdDownAttempts: parseFloat(values[27]) || 0,
-        thirdDownConversions: parseFloat(values[28]) || 0,
-        thirdDownPct: parseFloat(values[29]?.replace('%', '')) || 40.0,
-        fourthDownAttempts: parseFloat(values[30]) || 0,
-        fourthDownConversions: parseFloat(values[31]) || 0,
-        redZoneAttempts: parseFloat(values[33]) || 0,
-        redZoneTouchdowns: parseFloat(values[34]) || 0,
-        
-        // AVERAGE DRIVE STATS (these might be at different column positions)
-        totalDrives: parseFloat(values[36]) || 0,  // #Dr column
-        totalDrivePlays: parseFloat(values[37]) || 0,  // Total plays in all drives
-        scoringPct: parseFloat(values[38]?.replace('%', '')) || 0,  // Sc%
-        avgPlaysPerDrive: parseFloat(values[41]) || 5.5,  // Average plays per drive
-        avgYardsPerDrive: parseFloat(values[42]) || 30.0,  // Average yards per drive
-        avgTimePerDrive: values[44] || '2:42',  // Time string like "2:47"
-        avgPointsPerDrive: parseFloat(values[45]) || 2.0  // Points per drive
-      });
-    }
-
-    return statsMap;
-  };
-
-  const parseDefensiveCSV = async (file: File): Promise<Map<string, any>> => {
-    const text = await file.text();
-    const lines = text.split('\n').filter((line: string) => line.trim());
-    
-    const headerLineIndex = findHeaderLine(lines);
-    const headerLine = cleanCSVLine(lines[headerLineIndex]);
-    const headers = headerLine.split(',').map((h: string) => h.replace(/"/g, '').trim());
-    
-    console.log('Defensive CSV Headers:', headers);
-    console.log('Header line index:', headerLineIndex);
-    
-    const statsMap = new Map<string, any>();
-
-    for (let i = headerLineIndex + 1; i < lines.length; i++) {
-      let line = lines[i].trim();
-      
-      // Skip empty lines, dividers, category headers, and summary rows
-      if (!line || 
-          line.startsWith('"---') || 
-          line.toLowerCase().includes('avg team') || 
-          line.toLowerCase().includes('league total') ||
-          line.toLowerCase().includes('avg tm/g') ||
-          line.toLowerCase().includes('tot yds') ||
-          line.toLowerCase().includes('passing') ||
-          line.toLowerCase().includes('rushing')) {
-        continue;
-      }
-
-      line = cleanCSVLine(line);
-      const values = line.split(',').map((v: string) => v.replace(/"/g, '').trim());
-      
-      const rankValue = values[0];
-      const teamName = values[1];
-      
-      // Skip if rank is not a number
-      if (!rankValue || isNaN(parseInt(rankValue))) {
-        continue;
-      }
-      
-      // Skip invalid team names
-      if (!teamName || teamName === '' || /^\d+$/.test(teamName) || 
-          teamName.length <= 2 || teamName.toLowerCase() === 'tm') {
-        continue;
-      }
-
-      const games = parseFloat(values[2]) || 1;
-      
-      statsMap.set(teamName, {
-        team: teamName,
-        gamesPlayed: games,
-        pointsAgainst: parseFloat(values[3]) || 0,
-        totalYardsAllowed: parseFloat(values[4]) || 0,
-        totalPlaysAllowed: parseFloat(values[5]) || 0,
-        yardsPerPlayAllowed: parseFloat(values[6]) || 0,
-        turnoversForced: parseFloat(values[7]) || 0,
-        fumblesForced: parseFloat(values[8]) || 0,
-        firstDownsAllowed: parseFloat(values[9]) || 0,
-        passCompletionsAllowed: parseFloat(values[10]) || 0,
-        passAttemptsAllowed: parseFloat(values[11]) || 0,
-        passingYardsAllowed: parseFloat(values[12]) || 0,
-        passingTdsAllowed: parseFloat(values[13]) || 0,
-        interceptions: parseFloat(values[14]) || 0,
-        passingFirstDownsAllowed: parseFloat(values[16]) || 0,
-        rushingAttemptsAllowed: parseFloat(values[17]) || 0,
-        rushingYardsAllowed: parseFloat(values[18]) || 0,
-        rushingTdsAllowed: parseFloat(values[19]) || 0,
-        rushingFirstDownsAllowed: parseFloat(values[21]) || 0,
-        penaltiesAgainst: parseFloat(values[22]) || 0,
-        penaltyYardsAgainst: parseFloat(values[23]) || 0
-      });
-    }
-
-    return statsMap;
-  };
-
   const mergeStats = async () => {
     if (!offensiveFile && !defensiveFile) {
       setErrors(['Please upload at least one CSV file']);
@@ -401,99 +111,80 @@ const CSVImportStats: React.FC = () => {
     setParsedData([]);
 
     try {
-      // Extract week information from the first available CSV file
+      // Use NFLStatsParser utility to parse CSV files
+      const offensiveContent = offensiveFile ? await offensiveFile.text() : '';
+      const defensiveContent = defensiveFile ? await defensiveFile.text() : '';
+
+      // Extract week information
       const fileToCheck = offensiveFile || defensiveFile;
       if (fileToCheck) {
-        const text = await fileToCheck.text();
-        const lines = text.split('\n').filter((line: string) => line.trim());
-        const { week, season } = extractWeekFromCSV(lines, fileToCheck.name);
+        const lines = (offensiveContent || defensiveContent).split('\n').filter((line: string) => line.trim());
+        const { week, season } = NFLStatsParser.extractWeekFromCSV(lines, fileToCheck.name);
         setWeekNumber(week);
         setSeasonYear(season);
         console.log(`📊 Processing stats for Week ${week}, Season ${season}`);
       }
 
-      const offensiveStats = offensiveFile ? await parseOffensiveCSV(offensiveFile) : new Map();
-      const defensiveStats = defensiveFile ? await parseDefensiveCSV(defensiveFile) : new Map();
+      // Parse stats using utility
+      const statsMap = await NFLStatsParser.parseCompleteStats(offensiveContent, defensiveContent);
       
+      // Convert Map to array format for the component
       const merged: ExtendedTeamStats[] = [];
-      const allTeams = new Set([...offensiveStats.keys(), ...defensiveStats.keys()]);
-
-      const leagueAvgYards = 328.3;
-      const leagueAvgPoints = 23.4;
-
-      allTeams.forEach(team => {
-        const offense = offensiveStats.get(team);
-        const defense = defensiveStats.get(team);
-
-        if (!offense && !defense) return;
-
-        const games = (offense?.gamesPlayed || defense?.gamesPlayed || 1);
-        const offYardsPerGame = offense ? offense.totalYards / games : leagueAvgYards;
-        const defYardsPerGame = defense ? defense.totalYardsAllowed / games : leagueAvgYards;
-        const offPointsPerGame = offense ? offense.pointsFor / games : leagueAvgPoints;
-        const defPointsPerGame = defense ? defense.pointsAgainst / games : leagueAvgPoints;
-
-        const turnoversGained = defense ? defense.turnoversForced : 0;
-        const turnoversLost = offense ? offense.turnoversLost : 0;
-        const turnoverDiff = turnoversGained - turnoversLost;
-
+      
+      statsMap.forEach((stats, teamName) => {
         merged.push({
-          team,
-          gamesPlayed: games,
-          offensiveYardsPerGame: offYardsPerGame,
-          pointsPerGame: offPointsPerGame,
-          totalPlays: offense ? offense.totalPlays / games : 0,
-          yardsPerPlay: offense ? offense.yardsPerPlay : 0,
-          firstDowns: offense ? offense.firstDowns / games : 0,
-          passCompletions: offense ? offense.passCompletions / games : 0,
-          passAttempts: offense ? offense.passAttempts / games : 0,
-          passCompletionPct: offense && offense.passAttempts > 0 
-            ? (offense.passCompletions / offense.passAttempts * 100) 
-            : 0,
-          passingYards: offense ? offense.passingYards / games : 0,
-          passingTds: offense ? offense.passingTds / games : 0,
-          interceptionsThrown: offense ? offense.interceptionsThrown / games : 0,
-          yardsPerPassAttempt: offense ? offense.yardsPerPassAttempt : 0,
-          rushingAttempts: offense ? offense.rushingAttempts / games : 0,
-          rushingYards: offense ? offense.rushingYards / games : 0,
-          rushingTds: offense ? offense.rushingTds / games : 0,
-          yardsPerRush: offense ? offense.yardsPerRush : 0,
-          penalties: offense ? offense.penalties / games : 0,
-          penaltyYards: offense ? offense.penaltyYards / games : 0,
-          turnoversLost: offense ? offense.turnoversLost / games : 0,
-          fumblesLost: offense ? offense.fumblesLost / games : 0,
-          defensiveYardsAllowed: defYardsPerGame,
-          pointsAllowedPerGame: defPointsPerGame,
-          defTotalPlays: defense ? defense.totalPlaysAllowed / games : 0,
-          defYardsPerPlayAllowed: defense ? defense.yardsPerPlayAllowed : 0,
-          defFirstDownsAllowed: defense ? defense.firstDownsAllowed / games : 0,
-          defPassCompletionsAllowed: defense ? defense.passCompletionsAllowed / games : 0,
-          defPassAttempts: defense ? defense.passAttemptsAllowed / games : 0,
-          defPassingYardsAllowed: defense ? defense.passingYardsAllowed / games : 0,
-          defPassingTdsAllowed: defense ? defense.passingTdsAllowed / games : 0,
-          defInterceptions: defense ? defense.interceptions / games : 0,
-          defRushingAttemptsAllowed: defense ? defense.rushingAttemptsAllowed / games : 0,
-          defRushingYardsAllowed: defense ? defense.rushingYardsAllowed / games : 0,
-          defRushingTdsAllowed: defense ? defense.rushingTdsAllowed / games : 0,
-          turnoversForced: defense ? defense.turnoversForced / games : 0,
-          fumblesForced: defense ? defense.fumblesForced / games : 0,
-          turnoverDifferential: turnoverDiff / games,
-          
-          // DRIVE-LEVEL STATS
-          drivesPerGame: offense ? offense.totalDrives / games : (offense?.totalPlays / games / 5.5 || 11.0),
-          playsPerDrive: offense ? offense.avgPlaysPerDrive : 5.5,
-          pointsPerDrive: offense ? offense.avgPointsPerDrive : 2.0,
-          scoringPercentage: offense ? offense.scoringPct : 40.0,
-          yardsPerDrive: offense ? offense.avgYardsPerDrive : 30.0,
-          timePerDriveSeconds: offense ? parseTimeToSeconds(offense.avgTimePerDrive) : 162,
-          
-          // THIRD DOWN & RED ZONE (updated with more accurate data)
-          thirdDownAttempts: offense ? offense.thirdDownAttempts / games : 0,
-          thirdDownConversions: offense ? offense.thirdDownConversions / games : 0,
-          thirdDownPct: offense?.thirdDownPct || 40.0,
-          redZoneAttempts: offense ? offense.redZoneAttempts / games : 0,
-          redZoneTouchdowns: offense ? offense.redZoneTouchdowns / games : 0,
-          redZonePct: offense?.redZonePct || 50.0
+          team: teamName,
+          gamesPlayed: stats.gamesPlayed || 1,
+          offensiveYardsPerGame: stats.offensiveYardsPerGame || 0,
+          pointsPerGame: stats.pointsPerGame || 0,
+          totalPlays: stats.totalPlays || 0,
+          yardsPerPlay: stats.yardsPerPlay || 0,
+          firstDowns: stats.firstDowns || 0,
+          passCompletions: stats.passCompletions || 0,
+          passAttempts: stats.passAttempts || 0,
+          passCompletionPct: stats.passCompletionPct || 0,
+          passingYards: stats.passingYards || 0,
+          passingTds: stats.passingTds || 0,
+          interceptionsThrown: stats.interceptionsThrown || 0,
+          yardsPerPassAttempt: stats.yardsPerPassAttempt || 0,
+          rushingAttempts: stats.rushingAttempts || 0,
+          rushingYards: stats.rushingYards || 0,
+          rushingTds: stats.rushingTds || 0,
+          yardsPerRush: stats.yardsPerRush || 0,
+          penalties: stats.penalties || 0,
+          penaltyYards: stats.penaltyYards || 0,
+          turnoversLost: stats.turnoversLost || 0,
+          fumblesLost: stats.fumblesLost || 0,
+          defensiveYardsAllowed: stats.defensiveYardsAllowed || 0,
+          pointsAllowedPerGame: stats.pointsAllowedPerGame || 0,
+          defTotalPlays: stats.defTotalPlays || 0,
+          defYardsPerPlayAllowed: stats.defYardsPerPlayAllowed || 0,
+          defFirstDownsAllowed: stats.defFirstDownsAllowed || 0,
+          defPassCompletionsAllowed: stats.defPassCompletionsAllowed || 0,
+          defPassAttempts: stats.defPassAttempts || 0,
+          defPassingYardsAllowed: stats.defPassingYardsAllowed || 0,
+          defPassingTdsAllowed: stats.defPassingTdsAllowed || 0,
+          defInterceptions: stats.defInterceptions || 0,
+          defRushingAttemptsAllowed: stats.defRushingAttemptsAllowed || 0,
+          defRushingYardsAllowed: stats.defRushingYardsAllowed || 0,
+          defRushingTdsAllowed: stats.defRushingTdsAllowed || 0,
+          turnoversForced: stats.turnoversForced || 0,
+          fumblesForced: stats.fumblesForced || 0,
+          turnoverDifferential: stats.turnoverDifferential || 0,
+          thirdDownPct: stats.thirdDownPct || 40.0,
+          redZonePct: stats.redZonePct || 50.0,
+          drivesPerGame: stats.drivesPerGame || 11.0,
+          playsPerDrive: stats.playsPerDrive || 5.5,
+          pointsPerDrive: stats.pointsPerDrive || 2.0,
+          scoringPercentage: stats.scoringPercentage || 40.0,
+          yardsPerDrive: stats.yardsPerDrive || 30.0,
+          timePerDriveSeconds: stats.timePerDriveSeconds || 162,
+          thirdDownAttempts: stats.thirdDownAttempts,
+          thirdDownConversions: stats.thirdDownConversions,
+          fourthDownAttempts: stats.fourthDownAttempts,
+          fourthDownConversions: stats.fourthDownConversions,
+          redZoneAttempts: stats.redZoneAttempts,
+          redZoneTouchdowns: stats.redZoneTouchdowns
         });
       });
 
@@ -535,7 +226,7 @@ const CSVImportStats: React.FC = () => {
 
       for (const row of parsedData) {
         try {
-          const canonicalName = resolveTeamName(row.team);
+          const canonicalName = NFLStatsParser.resolveTeamName(row.team);
           if (!canonicalName) {
             console.warn(`⚠️ Skipping unknown team: "${row.team}"`);
             importErrors.push(`Unknown team: "${row.team}" - not in NFL team list`);
@@ -625,7 +316,7 @@ const CSVImportStats: React.FC = () => {
           imported++;
         } catch (err) {
           failed++;
-          const displayName = resolveTeamName(row.team) || row.team;
+          const displayName = NFLStatsParser.resolveTeamName(row.team) || row.team;
           importErrors.push(`${displayName}: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
       }
