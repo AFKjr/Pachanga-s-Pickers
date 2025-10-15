@@ -31,6 +31,19 @@ export function calculateEdge(
   return modelProbability - impliedProbability;
 }
 
+/**
+ * Extract spread value from prediction string
+ * Examples: "Chiefs -7.5" → -7.5, "Browns +3" → 3
+ */
+export function extractSpreadValue(spreadPrediction: string): number {
+  // Match patterns like "-7.5", "+3.5", "-7", "+3"
+  const match = spreadPrediction.match(/([+-]?\d+\.?\d*)/);
+  if (match) {
+    return parseFloat(match[1]);
+  }
+  return 0;
+}
+
 export function calculatePickEdges(
   pick: Pick,
   monteCarloResults: MonteCarloResults,
@@ -62,7 +75,21 @@ export function calculatePickEdges(
   if (monteCarloResults.spread_probability && pick.spread_prediction) {
     // Require stored spread odds - no fallbacks
     if (gameInfo.spread_odds || gameInfo.spread_odds === 0) {
-      spreadEdge = calculateEdge(monteCarloResults.spread_probability, gameInfo.spread_odds);
+      // Determine which side was picked (favorite or underdog)
+      const spreadLine = extractSpreadValue(pick.spread_prediction); // e.g., -7.5 or +7.5
+      const pickedFavorite = spreadLine < 0;
+      
+      // Use correct probability based on which side was picked
+      let probability: number;
+      if (pickedFavorite) {
+        // Picked favorite - use spread_cover_probability (or spread_probability if that's what we have)
+        probability = monteCarloResults.spread_cover_probability || monteCarloResults.spread_probability;
+      } else {
+        // Picked underdog - use inverse probability
+        probability = 100 - (monteCarloResults.spread_cover_probability || monteCarloResults.spread_probability);
+      }
+      
+      spreadEdge = calculateEdge(probability, gameInfo.spread_odds);
     }
     // Skip if no odds available
   }
