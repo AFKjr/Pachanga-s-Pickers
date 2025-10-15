@@ -115,7 +115,8 @@ export async function fetchTeamStats(
   }
 }
 
-import { fetchTeamStatsWithCache } from './fetch-stats-rapidapi.ts';
+// Sports Radar API functionality DISABLED - using database-only approach
+// import { fetchTeamStatsWithCache } from './fetch-stats-rapidapi.ts';
 
 export async function fetchTeamStatsWithFallback(
   teamName: string,
@@ -124,25 +125,18 @@ export async function fetchTeamStatsWithFallback(
   rapidApiKey?: string,
   week?: number
 ): Promise<TeamStats> {
-  // Only use Sports Radar API - no fallbacks to database or defaults
-  if (!rapidApiKey) {
-    throw new Error(`Sports Radar API key not provided. Cannot fetch stats for ${teamName}`);
+  console.log(`📊 Fetching stats for ${teamName} from database (Sports Radar API disabled)...`);
+  
+  // Try to fetch from database first
+  const dbStats = await fetchTeamStats(teamName, supabaseUrl, supabaseKey, week);
+  
+  if (dbStats) {
+    console.log(`✅ Using database stats for ${teamName}`);
+    return dbStats;
   }
 
-  console.log(`🔄 Fetching Sports Radar stats for ${teamName}...`);
-  const rapidStats = await fetchTeamStatsWithCache(
-    teamName,
-    rapidApiKey,
-    supabaseUrl,
-    supabaseKey,
-    2024, // Current season
-    24 // Cache for 24 hours
-  );
-
-  if (!rapidStats) {
-    throw new Error(`Failed to fetch Sports Radar stats for ${teamName}. API may be unavailable or team not found.`);
-  }
-
-  console.log(`✅ Using Sports Radar stats for ${teamName}`);
-  return rapidStats;
+  // Fallback to default stats if not found in database
+  console.warn(`⚠️ No stats found for ${teamName}, using defaults`);
+  const defaultStats = getDefaultTeamStats(teamName);
+  return defaultStats;
 }

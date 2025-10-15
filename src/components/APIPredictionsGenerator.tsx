@@ -232,9 +232,9 @@ export default function APIPredictionsGenerator() {
           </>
         ) : useStoredOdds ? (
           <>
-            <p className="font-semibold">�️ True Historical Mode:</p>
+            <p className="font-semibold">🕰️ True Historical Mode:</p>
             <ul className="list-disc list-inside mt-1 space-y-1">
-              <li>Uses current team stats from Sports Radar API</li>
+              <li>Uses team stats from database (CSV imports)</li>
               <li>Uses odds stored when Week {selectedWeek || '?'} was originally played</li>
               <li>Generates predictions as they would have been at that time</li>
               <li>Requires: Week {selectedWeek || '?'} must have been generated previously</li>
@@ -244,7 +244,7 @@ export default function APIPredictionsGenerator() {
           <>
             <p className="font-semibold">📅 Hybrid Historical Mode:</p>
             <ul className="list-disc list-inside mt-1 space-y-1">
-              <li>Uses current team stats from Sports Radar API</li>
+              <li>Uses team stats from database (CSV imports)</li>
               <li>Uses current odds from The Odds API</li>
               <li>Useful for "what-if" analysis or backtesting</li>
             </ul>
@@ -256,8 +256,8 @@ export default function APIPredictionsGenerator() {
       <div className="bg-blue-900 border border-blue-700 text-blue-200 px-4 py-2 rounded text-sm mb-4">
         <p className="font-semibold">📊 Prerequisites:</p>
         <ul className="list-disc list-inside mt-1 space-y-1">
-          <li>Stats are fetched automatically from Sports Radar API (no manual import needed)</li>
-          <li>Ensure SPORTSRADAR_API_KEY is set in environment variables</li>
+          <li>Team stats must be imported via CSV upload (Sports Radar API disabled)</li>
+          <li>Upload offensive/defensive CSVs on the Team Stats page</li>
           <li>Optional: Set OPENWEATHER_API_KEY for weather adjustments</li>
         </ul>
       </div>

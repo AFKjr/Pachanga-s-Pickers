@@ -64,7 +64,7 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get('VITE_SUPABASE_URL') || Deno.env.get('SUPABASE_URL');
     const SUPABASE_KEY = Deno.env.get('VITE_SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_ANON_KEY');
     const WEATHER_API_KEY = Deno.env.get('OPENWEATHER_API_KEY');
-    const RAPIDAPI_KEY = Deno.env.get('SPORTSRADAR_API_KEY');
+    const RAPIDAPI_KEY = undefined; // Sports Radar API DISABLED - using database stats only
 
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return new Response(
@@ -79,19 +79,8 @@ serve(async (req) => {
       );
     }
 
-    // Validate Sports Radar API key (required for stats)
-    if (!RAPIDAPI_KEY) {
-      return new Response(
-        JSON.stringify({
-          error: 'Sports Radar API key missing',
-          hint: 'Set SPORTSRADAR_API_KEY environment variable'
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
+    // Sports Radar API validation DISABLED - using database-only approach
+    console.log('ℹ️ Sports Radar API disabled - using team_stats_cache database for stats');
 
     // ========================================================================
     // ROUTE 1: Historical Mode (stored odds + week-specific stats)

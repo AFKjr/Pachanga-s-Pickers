@@ -21,7 +21,7 @@
 
 **Additional Database Tables**:
 - `profiles`: User profiles with admin status
-- `team_stats_cache`: Cached team statistics from ESPN API
+- `team_stats_cache`: Team statistics from CSV imports (Sports Radar API disabled)
 - `team_name_mapping`: Team name normalization for API consistency
 
 ## Critical Patterns & Conventions
@@ -44,7 +44,7 @@
 - **Monte Carlo Simulation**: 10,000 iterations per game in Supabase Edge Function (Deno runtime)
 - **Prediction Storage**: Save to `picks` table with structured `game_info` JSONB
 - **Confidence Scoring**: 0-100 scale with reasoning text
-- **Data Sources**: Manual data entry through admin interface, team stats from ESPN API
+- **Data Sources**: CSV imports only (Sports Radar API disabled) - admins upload offensive/defensive stats manually
 - **Weather Integration**: Weather impact analysis included in simulations
 
 ### Database Schema Patterns
@@ -53,7 +53,7 @@
 - **Enums**: `game_result` ('win', 'loss', 'push', 'pending')
 - **Relationships**: Foreign keys with CASCADE deletes
 - **JSONB Flexibility**: `game_info`, `monte_carlo_results`, `weather` store complex data
-- **Team Stats**: Cached in `team_stats_cache` with ESPN API integration
+- **Team Stats**: Stored in `team_stats_cache` via CSV imports (Sports Radar API disabled)
 
 ## Essential Developer Workflows
 

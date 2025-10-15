@@ -16,11 +16,11 @@ const TeamStatsPage: React.FC = () => {
       <CSVImportStats />
 
       {/* Info Banner */}
-      <div className="bg-blue-900 border border-blue-700 text-blue-200 px-4 py-3 rounded">
-        <p className="font-semibold">ℹ️ Hybrid Stats System</p>
+      <div className="bg-orange-900 border border-orange-700 text-orange-200 px-4 py-3 rounded">
+        <p className="font-semibold">⚠️ CSV-Only Stats System</p>
         <p className="text-sm mt-1">
-          Team statistics are fetched from Sports Radar API during prediction generation. 
-          You can also manually import CSV files above for additional data or overrides.
+          Sports Radar API has been disabled. Team statistics MUST be imported via CSV files above.
+          Upload both offensive and defensive CSVs for each week to generate predictions.
         </p>
       </div>
 
