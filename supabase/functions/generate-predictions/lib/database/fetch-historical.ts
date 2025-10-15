@@ -1,4 +1,4 @@
-// api/lib/database/fetch-historical.ts
+// supabase/functions/generate-predictions/lib/database/fetch-historical.ts
 
 export interface HistoricalGame {
   home_team: string;

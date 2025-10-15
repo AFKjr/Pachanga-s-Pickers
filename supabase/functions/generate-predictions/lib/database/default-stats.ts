@@ -1,4 +1,4 @@
-// api/lib/database/default-stats.ts
+// supabase/functions/generate-predictions/lib/database/default-stats.ts
 import type { TeamStats } from '../types.ts';
 
 export function getDefaultTeamStats(teamName: string): TeamStats {

@@ -1,4 +1,4 @@
-// api/lib/odds/fetch-odds.ts
+// supabase/functions/generate-predictions/lib/odds/fetch-odds.ts
 import type { OddsData } from '../types.ts';
 
 export async function fetchNFLOdds(): Promise<OddsData[]> {

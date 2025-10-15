@@ -1,4 +1,4 @@
-// api/lib/constants.ts
+// supabase/functions/generate-predictions/lib/constants.ts
 export const SIMULATION_ITERATIONS = 10000;
 
 export const WEATHER_CONSTANTS = {

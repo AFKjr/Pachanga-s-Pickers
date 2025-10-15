@@ -1,4 +1,4 @@
-// api/lib/simulation/strength-calculator.ts
+// supabase/functions/generate-predictions/lib/simulation/strength-calculator.ts
 import type { TeamStats } from '../types.ts';
 
 export function calculateOffensiveStrength(stats: TeamStats): number {

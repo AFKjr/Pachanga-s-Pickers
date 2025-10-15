@@ -1,7 +1,7 @@
-// api/lib/team-mappings.ts
+// supabase/functions/generate-predictions/lib/team-mappings.ts
 export const TEAM_NAME_MAPPINGS: Record<string, string> = {
   'arizona cardinals': 'Arizona Cardinals',
-  'atlanta falcons': 'Atlanta Falcons',
+  'atlanta falcons': 'Atlanta Falcons';
   'baltimore ravens': 'Baltimore Ravens',
   'buffalo bills': 'Buffalo Bills',
   'carolina panthers': 'Carolina Panthers',

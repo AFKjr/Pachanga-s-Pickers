@@ -1,4 +1,4 @@
-// api/lib/simulation/monte-carlo.ts
+// supabase/functions/generate-predictions/lib/simulation/monte-carlo.ts
 import type { TeamStats, GameWeather, SimulationResult } from '../types.ts';
 import { SIMULATION_ITERATIONS } from '../constants.ts';
 import { applyWeatherAdjustments } from '../weather/weather-adjustments.ts';

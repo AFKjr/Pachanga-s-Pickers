@@ -1,4 +1,4 @@
-// api/lib/weather/weather-fetcher.ts
+// supabase/functions/generate-predictions/lib/weather/weather-fetcher.ts
 import type { GameWeather } from '../types.ts';
 import { WEATHER_CONSTANTS } from '../constants.ts';
 import { NFL_STADIUMS } from '../team-mappings.ts';

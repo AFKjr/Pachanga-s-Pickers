@@ -1,4 +1,4 @@
-// api/lib/weather/weather-calculator.ts
+// supabase/functions/generate-predictions/lib/weather/weather-calculator.ts
 import { WEATHER_CONSTANTS } from '../constants.ts';
 import type { GameWeather } from '../types.ts';
 

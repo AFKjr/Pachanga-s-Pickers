@@ -1,4 +1,4 @@
-// api/lib/generators/historical-predictions.ts
+// supabase/functions/generate-predictions/lib/generators/historical-predictions.ts
 import { SIMULATION_ITERATIONS } from '../constants.ts';
 import type { GameWeather } from '../types.ts';
 import { fetchHistoricalGames } from '../database/fetch-historical.ts';

@@ -1,4 +1,4 @@
-// api/lib/database/fetch-stats.ts
+// supabase/functions/generate-predictions/lib/database/fetch-stats.ts
 import type { TeamStats } from '../types.ts';
 import { TEAM_NAME_MAPPINGS } from '../team-mappings.ts';
 import { getDefaultTeamStats } from './default-stats.ts';

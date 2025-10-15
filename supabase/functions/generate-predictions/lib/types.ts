@@ -1,4 +1,4 @@
-// api/lib/types.ts
+// supabase/functions/generate-predictions/lib/types.ts
 export interface TeamStats {
   team: string;
   gamesPlayed: number;

@@ -1,4 +1,4 @@
-// api/lib/utils/reasoning-generator.ts
+// supabase/functions/generate-predictions/lib/utils/reasoning-generator.ts
 import type { SimulationResult } from '../types.ts';
 
 export function generateReasoning(

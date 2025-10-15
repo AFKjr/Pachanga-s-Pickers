@@ -1,4 +1,4 @@
-// api/lib/simulation/possession-simulator.ts
+// supabase/functions/generate-predictions/lib/simulation/possession-simulator.ts
 import type { TeamStats } from '../types.ts';
 import type { WeatherAdjustmentResult } from '../weather/weather-adjustments.ts';
 import { calculateOffensiveStrength, calculateDefensiveStrength } from './strength-calculator.ts';
