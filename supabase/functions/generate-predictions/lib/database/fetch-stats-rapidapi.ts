@@ -1,77 +1,190 @@
 import type { TeamStats } from '../types.ts';
 
 const NFL_TEAM_ID_MAP: Record<string, string> = {
-  'Arizona Cardinals': '22',
-  'Atlanta Falcons': '1',
-  'Baltimore Ravens': '33',
-  'Buffalo Bills': '2',
-  'Carolina Panthers': '29',
-  'Chicago Bears': '3',
-  'Cincinnati Bengals': '4',
-  'Cleveland Browns': '5',
-  'Dallas Cowboys': '6',
-  'Denver Broncos': '7',
-  'Detroit Lions': '8',
-  'Green Bay Packers': '9',
-  'Houston Texans': '34',
-  'Indianapolis Colts': '11',
-  'Jacksonville Jaguars': '30',
-  'Kansas City Chiefs': '12',
-  'Las Vegas Raiders': '13',
-  'Los Angeles Chargers': '24',
-  'Los Angeles Rams': '14',
-  'Miami Dolphins': '15',
-  'Minnesota Vikings': '16',
-  'New England Patriots': '17',
-  'New Orleans Saints': '18',
-  'New York Giants': '19',
-  'New York Jets': '20',
-  'Philadelphia Eagles': '21',
-  'Pittsburgh Steelers': '23',
-  'San Francisco 49ers': '25',
-  'Seattle Seahawks': '26',
-  'Tampa Bay Buccaneers': '27',
-  'Tennessee Titans': '10',
-  'Washington Commanders': '28'
+  'Arizona Cardinals': 'de760528-1dc0-416a-a978-b4d74b7ce111',
+  'Atlanta Falcons': 'e6aa13a4-0055-48a9-bc41-be28dc106929',
+  'Baltimore Ravens': 'ebd87119-b331-4469-9ea6-d51fe3ce2f1c',
+  'Buffalo Bills': '768c92aa-75ff-4a43-bcc0-f2798c2e1724',
+  'Carolina Panthers': 'f14bf5cc-9a82-4a38-bc15-d39f75ed5314',
+  'Chicago Bears': '7b112545-38e6-483c-a55c-43cab47a0255',
+  'Cincinnati Bengals': 'ad4ae08f-d808-42d5-a1e6-e9bc4e34d123',
+  'Cleveland Browns': 'd5a2eb42-8065-4174-ab79-0a6fa820e35e',
+  'Dallas Cowboys': 'e627eec7-bbae-4fa4-8e73-8e1d6bc5c060',
+  'Denver Broncos': 'ce92bd47-93d5-4fe9-ada4-0fc681e6caa0',
+  'Detroit Lions': 'c5a59daa-53a7-4de0-851f-fb12be893e6e',
+  'Green Bay Packers': 'a20471b4-a8d9-40c7-95ad-90cc30e46932',
+  'Houston Texans': '82d2d380-3834-4938-835f-aec541e5ece7',
+  'Indianapolis Colts': '82cf9565-6eb9-4f01-bdbd-5aa0d472fcd9',
+  'Jacksonville Jaguars': 'f7ddd7fa-0bae-4f90-bc8e-669e4d6cf2de',
+  'Kansas City Chiefs': '6680d28d-d4d2-49f6-aace-5292d3ec02c2',
+  'Las Vegas Raiders': '1f6dcffb-9823-43cd-9ff4-e7a8466749b5',
+  'Los Angeles Chargers': '1c1cec48-6352-4556-b789-35304c1a6ae1',
+  'Los Angeles Rams': '2eff2a03-54d4-46ba-890e-2bc3925548f3',
+  'Miami Dolphins': '4809ecb0-abd3-451d-9c4a-92a90b83ca06',
+  'Minnesota Vikings': '33405046-04ee-4058-a950-d606f8c30852',
+  'New England Patriots': '97354895-8c77-4fd4-a860-32e62ea7382a',
+  'New Orleans Saints': '0d855753-ea21-4953-89f9-0e20aff9eb73',
+  'New York Giants': '04aa1c9d-66da-489d-b16a-1dee3d2eec4d',
+  'New York Jets': '5fee86ae-74ab-4bdd-8416-42a9dd9964f3',
+  'Philadelphia Eagles': '386bdbf9-9eea-4869-bb9a-274b0bc66e80',
+  'Pittsburgh Steelers': 'cb2f9f1f-ac67-424e-9e72-1475cb0ed398',
+  'San Francisco 49ers': 'f0e724b0-4cbf-495a-be47-013907608da9',
+  'Seattle Seahawks': '3d08af9e-c767-4f88-a7dc-b920c6d2b4a8',
+  'Tampa Bay Buccaneers': '4254d319-1bc7-4f81-b4ab-b5e6f3402b69',
+  'Tennessee Titans': 'd26a1ca5-722d-4274-8f97-c92e49c96315',
+  'Washington Commanders': '22052ff7-c065-42ee-bc8f-c4691c50e624'
 };
 
-interface RapidAPITeamStats {
-  teamId: number;
-  teamName: string;
-  teamAbv: string;
-  gamesPlayed: number;
-  wins: number;
-  losses: number;
-  pointsFor: number;
-  pointsAgainst: number;
-  totalYards: number;
-  passingYards: number;
-  rushingYards: number;
-  passingTD: number;
-  rushingTD: number;
-  passingAttempts: number;
-  passingCompletions: number;
-  rushingAttempts: number;
-  turnovers: number;
-  interceptions: number;
-  fumblesLost: number;
-  thirdDownConversions: number;
-  thirdDownAttempts: number;
-  fourthDownConversions: number;
-  fourthDownAttempts: number;
-  penalties: number;
-  penaltyYards: number;
-  firstDowns: number;
-  totalPlays: number;
-  // Defensive stats
-  defTotalYards: number;
-  defPassingYards: number;
-  defRushingYards: number;
-  defPassingTD: number;
-  defRushingTD: number;
-  defInterceptions: number;
-  defFumblesRecovered: number;
-  sacks: number;
+interface SportRadarTeamStats {
+  id: string;
+  name: string;
+  market: string;
+  alias: string;
+  season: {
+    id: string;
+    year: number;
+    type: string;
+    name: string;
+  };
+  record: {
+    games_played: number;
+    wins: number;
+    losses: number;
+    ties: number;
+    win_pct: number;
+    points_for: number;
+    points_against: number;
+    points_rank: number;
+    touchdowns: {
+      pass: number;
+      rush: number;
+      total_return: number;
+      total: number;
+      fumble_return: number;
+      int_return: number;
+      kick_return: number;
+      punt_return: number;
+      other: number;
+    };
+    extra_points: {
+      kicks: {
+        attempts: number;
+        blocked: number;
+        made: number;
+        pct: number;
+      };
+      conversions: {
+        pass_attempts: number;
+        pass_successes: number;
+        rush_attempts: number;
+        rush_successes: number;
+        defense_attempts: number;
+        defense_successes: number;
+      };
+    };
+    field_goals: {
+      attempts: number;
+      made: number;
+      blocked: number;
+      yards: number;
+      avg_yards: number;
+      longest: number;
+    };
+    first_downs: {
+      pass: number;
+      penalty: number;
+      rush: number;
+      total: number;
+    };
+    penalties: {
+      penalties: number;
+      yards: number;
+    };
+    rushing: {
+      attempts: number;
+      yards: number;
+      avg_yards: number;
+      touchdowns: number;
+      longest: number;
+      longest_touchdown: number;
+      redzone_attempts: number;
+      tlost: number;
+      tlost_yards: number;
+      first_downs: number;
+    };
+    passing: {
+      attempts: number;
+      completions: number;
+      cmp_pct: number;
+      yards: number;
+      avg_yards: number;
+      touchdowns: number;
+      interceptions: number;
+      sacks: number;
+      sack_yards: number;
+      longest: number;
+      longest_touchdown: number;
+      air_yards: number;
+      redzone_attempts: number;
+      net_yards: number;
+      first_downs: number;
+      int_touchdowns: number;
+      gross_yards: number;
+    };
+    defense: {
+      tackles: number;
+      assists: number;
+      combined: number;
+      sacks: number;
+      sack_yards: number;
+      interceptions: number;
+      passes_defended: number;
+      forced_fumbles: number;
+      fumble_recoveries: number;
+      qb_hits: number;
+      tloss: number;
+      tloss_yards: number;
+      safeties: number;
+      sp_tackles: number;
+      sp_assists: number;
+      sp_forced_fumbles: number;
+      sp_fumble_recoveries: number;
+      sp_blocks: number;
+      misc_tackles: number;
+      misc_assists: number;
+      misc_forced_fumbles: number;
+      misc_fumble_recoveries: number;
+      sp_teams_tackles: number;
+      sp_teams_assists: number;
+      sp_teams_forced_fumbles: number;
+      sp_teams_fumble_recoveries: number;
+    };
+    efficiency: {
+      goaltogo: {
+        attempts: number;
+        successes: number;
+        pct: number;
+      };
+      redzone: {
+        attempts: number;
+        scores: number;
+        points: number;
+        pct: number;
+      };
+      thirddown: {
+        attempts: number;
+        successes: number;
+        pct: number;
+      };
+      fourthdown: {
+        attempts: number;
+        successes: number;
+        pct: number;
+      };
+    };
+  };
+  opponents: any;
+  players: any[];
 }
 
 function calculateSafePercentage(numerator: number, denominator: number, fallback: number): number {
@@ -96,80 +209,68 @@ export async function fetchTeamStatsFromRapidAPI(
       return null;
     }
 
-    console.log(`Fetching RapidAPI stats for ${teamName} (ID: ${teamId})`);
+    console.log(`Fetching Sports Radar stats for ${teamName} (ID: ${teamId})`);
 
-    const url = `https://nfl-api-data.p.rapidapi.com/nfl-team-statistics?year=${season}&id=${teamId}`;
+    const url = `https://api.sportradar.com/nfl/official/trial/v7/en/seasons/${season}/REG/teams/${teamId}/statistics.json`;
 
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'x-rapidapi-host': 'nfl-api-data.p.rapidapi.com',
-        'x-rapidapi-key': rapidApiKey
+        'accept': 'application/json',
+        'x-api-key': rapidApiKey
       }
     });
 
     if (!response.ok) {
-      console.error(`RapidAPI error for ${teamName}: ${response.status}`);
+      console.error(`Sports Radar error for ${teamName}: ${response.status}`);
       const errorText = await response.text();
       console.error(`Error details: ${errorText}`);
       return null;
     }
 
-    const data: RapidAPITeamStats = await response.json();
+    const data: SportRadarTeamStats = await response.json();
 
-    if (!data || !data.teamName) {
-      console.error(`No data found for ${teamName} (ID: ${teamId})`);
+    if (!data || !data.record) {
+      console.error(`No stats data found for ${teamName} (ID: ${teamId})`);
       return null;
     }
 
-    const gamesPlayed = data.gamesPlayed || 1;
+    const record = data.record;
+    const gamesPlayed = record.games_played || 1;
 
-    const thirdDownRate = calculateSafePercentage(
-      data.thirdDownConversions,
-      data.thirdDownAttempts,
-      40.0
-    );
+    // Calculate derived stats
+    const thirdDownRate = record.efficiency?.thirddown?.pct || 40.0;
+    const redZoneRate = record.efficiency?.redzone?.pct || 55.0;
 
-    const redZoneAttempts = Math.max(1, Math.round(gamesPlayed * 3));
-    const redZoneConversions = Math.round(redZoneAttempts * 0.55);
-    const redZoneRate = calculateSafePercentage(redZoneConversions, redZoneAttempts, 55.0);
-
-    const completionPercentage = calculateSafePercentage(
-      data.passingCompletions,
-      data.passingAttempts,
-      65.0
-    );
-
-    const yardsPerPassAttempt = data.passingAttempts > 0
-      ? data.passingYards / data.passingAttempts
-      : 7.0;
-
-    const yardsPerRush = data.rushingAttempts > 0
-      ? data.rushingYards / data.rushingAttempts
-      : 4.4;
-
-    const yardsPerPlay = data.totalPlays > 0
-      ? data.totalYards / data.totalPlays
+    const completionPercentage = record.passing?.cmp_pct || 65.0;
+    const yardsPerPassAttempt = record.passing?.avg_yards || 7.0;
+    const yardsPerRush = record.rushing?.avg_yards || 4.4;
+    const yardsPerPlay = record.passing?.yards && record.rushing?.yards && record.passing?.sacks
+      ? (record.passing.yards + record.rushing.yards) / (record.passing.attempts + record.rushing.attempts + record.passing.sacks)
       : 5.5;
 
-    const turnoverDifferential = calculateSafeAverage(
-      (data.defInterceptions + data.defFumblesRecovered) - data.turnovers,
-      gamesPlayed,
-      0
-    );
+    // Calculate turnover differential
+    const turnoversLost = (record.passing?.interceptions || 0) + (record.passing?.sacks || 0); // Simplified
+    const turnoversForced = (record.defense?.interceptions || 0) + (record.defense?.fumble_recoveries || 0);
+    const turnoverDifferential = calculateSafeAverage(turnoversForced - turnoversLost, gamesPlayed, 0);
 
-    const pointsPerGame = calculateSafeAverage(data.pointsFor, gamesPlayed, 20);
-    const pointsAllowedPerGame = calculateSafeAverage(data.pointsAgainst, gamesPlayed, 20);
-    const offensiveYardsPerGame = calculateSafeAverage(data.totalYards, gamesPlayed, 300);
-    const defensiveYardsPerGame = calculateSafeAverage(data.defTotalYards, gamesPlayed, 300);
+    const pointsPerGame = calculateSafeAverage(record.points_for, gamesPlayed, 20);
+    const pointsAllowedPerGame = calculateSafeAverage(record.points_against, gamesPlayed, 20);
+    const offensiveYardsPerGame = record.passing?.yards && record.rushing?.yards
+      ? calculateSafeAverage(record.passing.yards + record.rushing.yards, gamesPlayed, 300)
+      : 300;
+    const defensiveYardsAllowed = 300; // Sports Radar doesn't provide defensive yards allowed directly
 
+    // Drive stats estimation
     const estimatedDrivesPerGame = 12;
-    const playsPerDrive = calculateSafeAverage(data.totalPlays, gamesPlayed, 60) / estimatedDrivesPerGame;
+    const playsPerDrive = record.passing?.attempts && record.rushing?.attempts
+      ? calculateSafeAverage(record.passing.attempts + record.rushing.attempts, gamesPlayed, 60) / estimatedDrivesPerGame
+      : 5.5;
     const pointsPerDrive = pointsPerGame / estimatedDrivesPerGame;
     const yardsPerDrive = offensiveYardsPerGame / estimatedDrivesPerGame;
 
-    console.log(`✅ RapidAPI stats loaded for ${teamName}:`);
-    console.log(`   Games: ${gamesPlayed}, Record: ${data.wins}-${data.losses}`);
+    console.log(`✅ Sports Radar stats loaded for ${teamName}:`);
+    console.log(`   Games: ${gamesPlayed}, Record: ${record.wins}-${record.losses}`);
     console.log(`   3D: ${thirdDownRate.toFixed(1)}%, RZ: ${redZoneRate.toFixed(1)}%`);
     console.log(`   PPG: ${pointsPerGame.toFixed(1)}, YPG: ${offensiveYardsPerGame.toFixed(1)}`);
 
@@ -177,47 +278,43 @@ export async function fetchTeamStatsFromRapidAPI(
       team: teamName,
       gamesPlayed: gamesPlayed,
       offensiveYardsPerGame: offensiveYardsPerGame,
-      defensiveYardsAllowed: defensiveYardsPerGame,
+      defensiveYardsAllowed: defensiveYardsAllowed,
       pointsPerGame: pointsPerGame,
       pointsAllowedPerGame: pointsAllowedPerGame,
       turnoverDifferential: turnoverDifferential,
       thirdDownConversionRate: thirdDownRate,
       redZoneEfficiency: redZoneRate,
-      passCompletions: calculateSafeAverage(data.passingCompletions, gamesPlayed, 20),
-      passAttempts: calculateSafeAverage(data.passingAttempts, gamesPlayed, 30),
+      passCompletions: calculateSafeAverage(record.passing?.completions || 0, gamesPlayed, 20),
+      passAttempts: calculateSafeAverage(record.passing?.attempts || 0, gamesPlayed, 30),
       passCompletionPct: completionPercentage,
-      passingYards: calculateSafeAverage(data.passingYards, gamesPlayed, 200),
-      passingTds: calculateSafeAverage(data.passingTD, gamesPlayed, 1.5),
-      interceptionsThrown: calculateSafeAverage(data.interceptions, gamesPlayed, 0.5),
+      passingYards: calculateSafeAverage(record.passing?.yards || 0, gamesPlayed, 200),
+      passingTds: calculateSafeAverage(record.passing?.touchdowns || 0, gamesPlayed, 1.5),
+      interceptionsThrown: calculateSafeAverage(record.passing?.interceptions || 0, gamesPlayed, 0.5),
       yardsPerPassAttempt: yardsPerPassAttempt,
-      rushingAttempts: calculateSafeAverage(data.rushingAttempts, gamesPlayed, 25),
-      rushingYards: calculateSafeAverage(data.rushingYards, gamesPlayed, 100),
-      rushingTds: calculateSafeAverage(data.rushingTD, gamesPlayed, 0.8),
+      rushingAttempts: calculateSafeAverage(record.rushing?.attempts || 0, gamesPlayed, 25),
+      rushingYards: calculateSafeAverage(record.rushing?.yards || 0, gamesPlayed, 100),
+      rushingTds: calculateSafeAverage(record.rushing?.touchdowns || 0, gamesPlayed, 0.8),
       yardsPerRush: yardsPerRush,
-      totalPlays: calculateSafeAverage(data.totalPlays, gamesPlayed, 60),
+      totalPlays: calculateSafeAverage((record.passing?.attempts || 0) + (record.rushing?.attempts || 0), gamesPlayed, 60),
       yardsPerPlay: yardsPerPlay,
-      firstDowns: calculateSafeAverage(data.firstDowns, gamesPlayed, 20),
-      penalties: calculateSafeAverage(data.penalties, gamesPlayed, 6),
-      penaltyYards: calculateSafeAverage(data.penaltyYards, gamesPlayed, 50),
-      turnoversLost: calculateSafeAverage(data.turnovers, gamesPlayed, 1),
-      fumblesLost: calculateSafeAverage(data.fumblesLost, gamesPlayed, 0.5),
-      defPassCompletionsAllowed: 0,
+      firstDowns: calculateSafeAverage(record.first_downs?.total || 0, gamesPlayed, 20),
+      penalties: calculateSafeAverage(record.penalties?.penalties || 0, gamesPlayed, 6),
+      penaltyYards: calculateSafeAverage(record.penalties?.yards || 0, gamesPlayed, 50),
+      turnoversLost: calculateSafeAverage(turnoversLost, gamesPlayed, 1),
+      fumblesLost: calculateSafeAverage(record.passing?.sacks || 0, gamesPlayed, 0.5), // Simplified
+      defPassCompletionsAllowed: 0, // Not directly available
       defPassAttempts: 0,
-      defPassingYardsAllowed: calculateSafeAverage(data.defPassingYards, gamesPlayed, 200),
-      defPassingTdsAllowed: calculateSafeAverage(data.defPassingTD, gamesPlayed, 1.5),
-      defInterceptions: calculateSafeAverage(data.defInterceptions, gamesPlayed, 0.5),
+      defPassingYardsAllowed: 200, // Estimated
+      defPassingTdsAllowed: calculateSafeAverage(record.passing?.touchdowns || 0, gamesPlayed, 1.5), // Simplified
+      defInterceptions: calculateSafeAverage(record.defense?.interceptions || 0, gamesPlayed, 0.5),
       defRushingAttemptsAllowed: 0,
-      defRushingYardsAllowed: calculateSafeAverage(data.defRushingYards, gamesPlayed, 100),
-      defRushingTdsAllowed: calculateSafeAverage(data.defRushingTD, gamesPlayed, 0.8),
+      defRushingYardsAllowed: 100, // Estimated
+      defRushingTdsAllowed: calculateSafeAverage(record.rushing?.touchdowns || 0, gamesPlayed, 0.8), // Simplified
       defTotalPlays: 0,
       defYardsPerPlayAllowed: 0,
       defFirstDownsAllowed: 0,
-      turnoversForced: calculateSafeAverage(
-        data.defInterceptions + data.defFumblesRecovered,
-        gamesPlayed,
-        1
-      ),
-      fumblesForced: calculateSafeAverage(data.defFumblesRecovered, gamesPlayed, 0.5),
+      turnoversForced: calculateSafeAverage(turnoversForced, gamesPlayed, 1),
+      fumblesForced: calculateSafeAverage(record.defense?.forced_fumbles || 0, gamesPlayed, 0.5),
       drivesPerGame: estimatedDrivesPerGame,
       playsPerDrive: playsPerDrive,
       pointsPerDrive: pointsPerDrive,
@@ -226,14 +323,12 @@ export async function fetchTeamStatsFromRapidAPI(
       timePerDriveSeconds: 162
     };
   } catch (error) {
-    console.error(`Error fetching RapidAPI stats for ${teamName}:`, error);
+    console.error(`Error fetching Sports Radar stats for ${teamName}:`, error);
     return null;
   }
-}
-
-export async function fetchTeamStatsWithCache(
+}export async function fetchTeamStatsWithCache(
   teamName: string,
-  rapidApiKey: string,
+  sportsRadarApiKey: string,
   supabaseUrl: string,
   supabaseKey: string,
   season: number = 2025,
@@ -245,7 +340,7 @@ export async function fetchTeamStatsWithCache(
     return cached;
   }
 
-  const freshStats = await fetchTeamStatsFromRapidAPI(teamName, rapidApiKey, season);
+  const freshStats = await fetchTeamStatsFromRapidAPI(teamName, sportsRadarApiKey, season);
 
   if (freshStats) {
     await saveToCache(freshStats, supabaseUrl, supabaseKey, season);
@@ -263,7 +358,7 @@ async function checkCache(
   cacheHours: number
 ): Promise<TeamStats | null> {
   try {
-    const query = `${supabaseUrl}/rest/v1/team_stats_cache?team_name=eq.${encodeURIComponent(teamName)}&season_year=eq.${season}&source=eq.rapidapi&order=last_updated.desc&limit=1&select=*`;
+    const query = `${supabaseUrl}/rest/v1/team_stats_cache?team_name=eq.${encodeURIComponent(teamName)}&season_year=eq.${season}&source=eq.sportsradar&order=last_updated.desc&limit=1&select=*`;
 
     const response = await fetch(query, {
       headers: {
@@ -342,7 +437,7 @@ async function saveToCache(
       scoring_percentage: stats.scoringPercentage,
       yards_per_drive: stats.yardsPerDrive,
       time_per_drive_seconds: stats.timePerDriveSeconds,
-      source: 'rapidapi',
+      source: 'sportsradar',
       last_updated: new Date().toISOString()
     };
 

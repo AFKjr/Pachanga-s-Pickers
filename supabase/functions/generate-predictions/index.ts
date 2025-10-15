@@ -64,7 +64,7 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get('VITE_SUPABASE_URL') || Deno.env.get('SUPABASE_URL');
     const SUPABASE_KEY = Deno.env.get('VITE_SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_ANON_KEY');
     const WEATHER_API_KEY = Deno.env.get('OPENWEATHER_API_KEY');
-    const RAPIDAPI_KEY = Deno.env.get('RAPIDAPI_KEY');
+    const RAPIDAPI_KEY = Deno.env.get('SPORTSRADAR_API_KEY');
 
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return new Response(
