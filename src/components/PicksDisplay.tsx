@@ -5,6 +5,7 @@ import type { Pick } from '../types';
 import { getPickWeek } from '../utils/nflWeeks';
 import HorizontalPickCard from './HorizontalPickCard';
 import SegmentedWeekSelector from './SegmentedWeekSelector';
+import { calculatePickEdges } from '../utils/edgeCalculator';
 
 interface PicksDisplayProps {
   maxPicks?: number;
@@ -47,9 +48,24 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
       }
 
       const allPicks = data || [];
-      setPicks(allPicks);
+      
+      // Calculate edges for each pick
+      const picksWithEdges = allPicks.map(pick => {
+        if (pick.monte_carlo_results && pick.game_info) {
+          const edges = calculatePickEdges(pick, pick.monte_carlo_results, pick.game_info);
+          return {
+            ...pick,
+            moneyline_edge: edges.moneyline_edge,
+            spread_edge: edges.spread_edge,
+            ou_edge: edges.ou_edge
+          };
+        }
+        return pick;
+      });
+      
+      setPicks(picksWithEdges);
 
-      const weeks = [...new Set(allPicks.map(pick => pick.week || getPickWeek(pick)).filter(Boolean))]
+      const weeks = [...new Set(picksWithEdges.map(pick => pick.week || getPickWeek(pick)).filter(Boolean))]
         .sort((a, b) => b - a);
       setAvailableWeeks(weeks);
       
