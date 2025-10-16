@@ -349,6 +349,15 @@ export function parseWeeklyTeamStats(
   offenseCSV: string,
   defenseCSV: string
 ): ParsedTeamStats {
+  // Parse CSV content into arrays of rows for logging
+  const offenseData = offenseCSV.split('\n').map(line => line.split(','));
+  const defenseData = defenseCSV.split('\n').map(line => line.split(','));
+
+  console.log('📋 Offense CSV Headers:', offenseData[0]);
+  console.log('📋 Defense CSV Headers:', defenseData[0]);
+  console.log('📊 Sample Offense Row:', offenseData[1]);
+  console.log('🛡️ Sample Defense Row:', defenseData[1]);
+
   console.log('📊 Parsing offense CSV...');
   const offenseStats = parseMultiSectionCSV(offenseCSV, 'offense');
 
