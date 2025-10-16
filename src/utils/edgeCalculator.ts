@@ -49,8 +49,17 @@ export function calculateEdge(
   modelProbability: number,  // 0-100 scale (e.g., 65 means 65%)
   americanOdds: number        // American odds format (e.g., -110, +200)
 ): number {
+  // Temporary debug logging
+  if (modelProbability === 0 || modelProbability === 100) {
+    console.log('Edge case probability detected:', {
+      probability: modelProbability,
+      odds: americanOdds,
+      stackTrace: new Error().stack
+    });
+  }
+
   // Input validation - return 0 for invalid inputs
-  if (modelProbability <= 0 || modelProbability >= 100) {
+  if (modelProbability < 0 || modelProbability > 100) {
     console.warn(`Invalid model probability: ${modelProbability}. Must be between 0-100.`);
     return 0;
   }
