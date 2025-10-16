@@ -42,6 +42,28 @@ interface ParsedTeamStats {
 }
 
 /**
+ * Helper: Convert percentage string to number
+ * "62.5%" → 62.5
+ * "62.5" → 62.5
+ * 62.5 → 62.5
+ */
+function parsePercentage(value: any): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  
+  // If already a number, return it
+  if (typeof value === 'number') return value;
+  
+  // If string, remove % and parse
+  if (typeof value === 'string') {
+    const cleaned = value.replace('%', '').trim();
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? undefined : parsed;
+  }
+  
+  return undefined;
+}
+
+/**
  * Check if a row should be skipped
  */
 function isInvalidRow(teamName: string, cells: string[]): boolean {
@@ -128,12 +150,17 @@ export function parseMultiSectionCSV(csvContent: string, type: 'offense' | 'defe
     // If we're in a section and this is a data row
     if (isProcessingSection && currentHeaders.length > 0) {
       const rowObj: TeamStatsRow = {};
-
+      
       cells.forEach((cell, cellIndex) => {
         if (cellIndex < currentHeaders.length) {
           const header = currentHeaders[cellIndex];
-          const value = cell.trim();
-
+          let value = cell.trim();
+          
+          // FIX: Strip % symbol before parsing numbers
+          if (value.endsWith('%')) {
+            value = value.replace('%', '').trim();
+          }
+          
           // Convert numeric strings to numbers
           if (value && !isNaN(Number(value))) {
             rowObj[header] = Number(value);
@@ -141,9 +168,7 @@ export function parseMultiSectionCSV(csvContent: string, type: 'offense' | 'defe
             rowObj[header] = value;
           }
         }
-      });
-
-      // Only add rows that have a valid team name
+      });      // Only add rows that have a valid team name
       const teamName = rowObj.Tm || rowObj.Team;
       if (teamName && teamName !== 'Tm' && teamName !== 'Team' && !isInvalidRow(teamName, cells)) {
         currentSection.push(rowObj);
@@ -237,14 +262,14 @@ function mapColumnNames(row: TeamStatsRow, type: 'offense' | 'defense' = 'offens
     if (row['Y/P'] !== undefined) mapped.def_yards_per_play_allowed = row['Y/P'];
   }
 
-  // Downs section (has 3DAtt, 3DConv)
+  // Downs section (CRITICAL - fixes 0% issue)
   if (row['3DAtt'] !== undefined) {
     mapped.third_down_attempts = row['3DAtt'];
     mapped.third_down_conversions = row['3DConv'];
-
-    // Calculate third down conversion rate if not already present
+    
+    // FIX: Strip % symbol from 3D%
     if (row['3D%'] !== undefined) {
-      mapped.third_down_conversion_rate = row['3D%'];
+      mapped.third_down_conversion_rate = parsePercentage(row['3D%']);
     } else if (row['3DAtt'] > 0) {
       mapped.third_down_conversion_rate = (row['3DConv'] / row['3DAtt']) * 100;
     }
@@ -259,10 +284,10 @@ function mapColumnNames(row: TeamStatsRow, type: 'offense' | 'defense' = 'offens
   if (row.RZAtt !== undefined) {
     mapped.red_zone_attempts = row.RZAtt;
     mapped.red_zone_touchdowns = row.RZTD;
-
-    // Calculate red zone efficiency if not already present
+    
+    // FIX: Strip % symbol from RZPct
     if (row['RZPct'] !== undefined) {
-      mapped.red_zone_efficiency = row['RZPct'];
+      mapped.red_zone_efficiency = parsePercentage(row['RZPct']);
     } else if (row.RZAtt > 0) {
       mapped.red_zone_efficiency = (row.RZTD / row.RZAtt) * 100;
     }
