@@ -85,6 +85,17 @@ function processCellValue(cell: string): string | number {
 /**
  * Parse a stats section with multi-level header detection
  * Handles multiple sections separated by empty rows
+ * 
+ * DETECTION LOGIC:
+ * - Checks if second row contains standard stat columns (Rk, Tm, G, PF, Yds, Cmp, Att)
+ * - Verifies first row has mostly empty cells OR category labels (Passing, Rushing, etc.)
+ * - If both conditions met, treats first row as category header and second row as actual headers
+ * - Otherwise, treats first row as headers directly
+ * 
+ * This handles Sports Reference CSV format with category headers like:
+ * Row 1: [empty, empty, empty, "Tot Yds & TO", "Tot Yds & TO", "Passing", "Passing"...]
+ * Row 2: [Rk, Tm, G, PF, Yds, Ply, Y/P, TO, FL, 1stD...]
+ * Row 3+: Data rows
  */
 function parseStatsSection(rows: string[][]): any[] {
   const allData: any[] = [];
@@ -125,31 +136,68 @@ function processSingleSection(rows: string[][]): any[] {
     return [];
   }
   
-  // Check if first row is a multi-level header (mostly empty or category labels)
   const firstRow = rows[0];
-  const emptyCount = firstRow.filter(cell => cell.trim() === '').length;
-  const isMultiLevelHeader = emptyCount > firstRow.length / 2;
+  const secondRow = rows[1];
   
-  // Use second row as headers if first row is multi-level
-  const headerRowIndex = isMultiLevelHeader ? 1 : 0;
+  // Detect if we have a category header row by checking the second row for standard stat column indicators
+  const secondRowHasStatColumns = (
+    secondRow.some(cell => cell === 'Rk') ||  // Has rank column
+    secondRow.some(cell => cell === 'Tm') ||  // Has team column
+    secondRow.some(cell => cell === 'G') ||   // Has games column
+    secondRow.some(cell => cell === 'PF') ||  // Has points for
+    secondRow.some(cell => cell === 'Yds') || // Has yards
+    secondRow.some(cell => cell === 'Cmp') || // Has completions
+    secondRow.some(cell => cell === 'Att')    // Has attempts
+  );
+  
+  // Additional check: first row should have mostly empty cells or category labels if it's a category header
+  const firstRowEmptyCells = firstRow.filter(cell => cell.trim() === '').length;
+  const firstRowHasCategoryLabels = firstRow.some(cell => 
+    cell.includes('Passing') || 
+    cell.includes('Rushing') || 
+    cell.includes('Tot Yds') ||
+    cell.includes('Penalties')
+  );
+  
+  // If second row has stat columns AND first row is mostly empty or has category labels, 
+  // then first row is category header and second row is actual headers
+  const hasCategoryHeader = secondRowHasStatColumns && 
+    (firstRowEmptyCells > firstRow.length / 3 || firstRowHasCategoryLabels);
+  
+  // Use second row as headers if we detected a category header row
+  const headerRowIndex = hasCategoryHeader ? 1 : 0;
   const headers = rows[headerRowIndex];
   const dataStartIndex = headerRowIndex + 1;
   
-  console.log(`📋 Using headers from row ${headerRowIndex}:`, headers);
+  console.log(`📋 Section detection: Category header = ${hasCategoryHeader}, Using row ${headerRowIndex} as headers`);
+  console.log(`📋 Headers:`, headers);
   
   const parsedData = [];
   
   for (let rowIndex = dataStartIndex; rowIndex < rows.length; rowIndex++) {
     const row = rows[rowIndex];
+    
+    // Skip empty rows
+    if (!row || row.length === 0 || row.every(cell => cell.trim() === '')) {
+      continue;
+    }
+    
     const rowData: any = {};
     
     for (let columnIndex = 0; columnIndex < headers.length; columnIndex++) {
       const header = headers[columnIndex];
       const cell = row[columnIndex] || '';
-      rowData[header] = processCellValue(cell);
+      
+      // Only add non-empty headers
+      if (header && header.trim() !== '') {
+        rowData[header] = processCellValue(cell);
+      }
     }
     
-    parsedData.push(rowData);
+    // Only add rows that have meaningful data (at least a team name)
+    if (rowData.Tm || rowData.Team) {
+      parsedData.push(rowData);
+    }
   }
   
   return parsedData;
