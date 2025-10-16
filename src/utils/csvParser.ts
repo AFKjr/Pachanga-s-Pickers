@@ -3,121 +3,138 @@
 /**
  * Complete team stats interface for index-based parsing
  * Matches database schema for team_stats_cache table
+ * Based on cleaned CSV format with all available stats
  */
 export interface TeamStats {
+  // Core identifiers
   team_name: string;
   week: number;
   season_year: number;
   games_played: number;
-  points_per_game: number;
-  offensive_yards_per_game: number;
-  defensive_yards_allowed: number;
-  points_allowed_per_game: number;
-  total_plays: number;
-  yards_per_play: number;
-  first_downs: number;
-  turnovers_lost: number;
-  fumbles_lost: number;
-  pass_completions: number;
-  pass_attempts: number;
-  passing_yards: number;
-  passing_tds: number;
-  interceptions_thrown: number;
-  yards_per_pass_attempt: number;
-  rushing_attempts: number;
-  rushing_yards: number;
-  rushing_tds: number;
-  yards_per_rush: number;
-  penalties: number;
-  penalty_yards: number;
-  scoring_percentage: number;
-  pass_completion_pct: number;
-  turnovers_forced: number;
-  fumbles_forced: number;
-  def_total_plays: number;
-  def_yards_per_play_allowed: number;
-  def_first_downs_allowed: number;
-  def_pass_completions_allowed: number;
-  def_pass_attempts: number;
-  def_passing_yards_allowed: number;
-  def_passing_tds_allowed: number;
-  def_interceptions: number;
-  def_rushing_attempts_allowed: number;
-  def_rushing_yards_allowed: number;
-  def_rushing_tds_allowed: number;
-  turnover_differential: number;
+  
+  // OFFENSE STATS (from offense CSV)
+  points_per_game: number;                    // Points for
+  offensive_yards_per_game: number;           // Yards
+  total_plays: number;                        // Plays
+  yards_per_play: number;                     // Yards per play
+  turnovers_lost: number;                     // Turnovers
+  fumbles_lost: number;                       // Fumbles lost by player or team
+  first_downs: number;                        // 1st downs
+  pass_completions: number;                   // Passes completed
+  pass_attempts: number;                      // Passes attempted
+  passing_yards: number;                      // Passing yards
+  passing_tds: number;                        // Passing touchdowns
+  interceptions_thrown: number;               // Interceptions thrown
+  yards_per_pass_attempt: number;             // Net yards gain per pass attempt
+  pass_first_downs: number;                   // 1st downs by passing
+  rushing_attempts: number;                   // Rushing Attempts
+  rushing_yards: number;                      // Rushing yards
+  rushing_tds: number;                        // Rushing touchdowns
+  yards_per_rush: number;                     // Rushing yards per attempt
+  rush_first_downs: number;                   // 1st downs by rushing
+  penalties: number;                          // Penalties committed by team and accepted
+  penalty_yards: number;                      // Penalties in yards committed by team
+  penalty_first_downs: number;                // 1st down by penalty
+  scoring_percentage: number;                 // Percentage of drives ending in a score
+  turnover_percentage: number;                // Percentage of drives ending in a turnover
+  expected_points_offense: number;            // Expected points contributed by all offense
+  
+  // DEFENSE STATS (from defense CSV)
+  points_allowed_per_game: number;            // Points allowed by team
+  defensive_yards_allowed: number;            // Yards allowed
+  def_total_plays: number;                    // Offensive plays allowed
+  def_yards_per_play_allowed: number;         // Yards per offensive play
+  turnovers_forced: number;                   // Takeaways
+  fumbles_forced: number;                     // Fumbles caused by defense
+  def_first_downs_allowed: number;            // 1st downs allowed
+  def_pass_completions_allowed: number;       // Passes completed (by opponent)
+  def_pass_attempts: number;                  // Passing attempts (by opponent)
+  def_passing_yards_allowed: number;          // Yards gained by passing (by opponent)
+  def_passing_tds_allowed: number;            // Passing touchdowns allowed
+  def_interceptions: number;                  // Interceptions (by defense)
+  def_net_yards_per_pass: number;             // Net yards gained per pass attempt (by opponent)
+  def_pass_first_downs: number;               // 1st downs by passing (by opponent)
+  def_rushing_attempts_allowed: number;       // Rushing attempts allowed
+  def_rushing_yards_allowed: number;          // Rushing yards allowed
+  def_rushing_tds_allowed: number;            // Rushing Touchdowns allowed
+  def_yards_per_rush_allowed: number;         // Rushing yards per attempt allowed
+  def_rush_first_downs: number;               // 1st downs by rushing allowed
+  def_scoring_percentage: number;             // Percentage of drives ending in a offensive score
+  def_turnover_percentage: number;            // Percentages of drives ending in a offensive turnover
+  expected_points_defense: number;            // Expected points contributed by all defense
+  
+  // CALCULATED STATS
+  turnover_differential: number;              // turnovers_forced - turnovers_lost
+  pass_completion_pct: number;                // (pass_completions / pass_attempts) * 100
+  
+  // METADATA
   source: string;
   last_updated: string;
 }
 
 /**
  * Column indices for offense CSV (0-based)
- * Based on Sports Reference standard format
+ * Based on cleaned CSV format with descriptive headers
  */
 const OFFENSE_COLUMNS = {
-  RANK: 0,
-  TEAM: 1,
-  GAMES: 2,
-  POINTS_FOR: 3,
-  TOTAL_YARDS: 4,
-  PLAYS: 5,
-  YARDS_PER_PLAY: 6,
-  TURNOVERS: 7,
-  FUMBLES_LOST: 8,
-  FIRST_DOWNS: 9,
-  PASS_COMPLETIONS: 10,
-  PASS_ATTEMPTS: 11,
-  PASS_YARDS: 12,
-  PASS_TDS: 13,
-  INTERCEPTIONS: 14,
-  NET_YARDS_PER_PASS: 15,
-  PASS_FIRST_DOWNS: 16,
-  RUSH_ATTEMPTS: 17,
-  RUSH_YARDS: 18,
-  RUSH_TDS: 19,
-  YARDS_PER_RUSH: 20,
-  RUSH_FIRST_DOWNS: 21,
-  PENALTIES: 22,
-  PENALTY_YARDS: 23,
-  PENALTY_FIRST_DOWNS: 24,
-  SCORING_PCT: 25,
-  TURNOVER_PCT: 26,
-  EXP: 27
+  TEAM: 0,                          // Team
+  GAMES: 1,                         // Games
+  POINTS_FOR: 2,                    // Points for
+  TOTAL_YARDS: 3,                   // Yards
+  PLAYS: 4,                         // Plays
+  YARDS_PER_PLAY: 5,                // Yards per play
+  TURNOVERS: 6,                     // Turnovers
+  FUMBLES_LOST: 7,                  // Fumbles lost by player or team
+  FIRST_DOWNS: 8,                   // 1st downs
+  PASS_COMPLETIONS: 9,              // Passes completed
+  PASS_ATTEMPTS: 10,                // Passes attempted
+  PASS_YARDS: 11,                   // Passing yards
+  PASS_TDS: 12,                     // Passing touchdowns
+  INTERCEPTIONS: 13,                // Interceptions thrown
+  NET_YARDS_PER_PASS: 14,           // Net yards gain per pass attempt
+  PASS_FIRST_DOWNS: 15,             // 1st downs by passing
+  RUSH_ATTEMPTS: 16,                // Rushing Attempts
+  RUSH_YARDS: 17,                   // Rushing yards
+  RUSH_TDS: 18,                     // Rushing touchdowns
+  YARDS_PER_RUSH: 19,               // Rushing yards per attempt
+  RUSH_FIRST_DOWNS: 20,             // 1st downs by rushing
+  PENALTIES: 21,                    // Penalties committed by team and accepted
+  PENALTY_YARDS: 22,                // Penalties in yards committed by team
+  PENALTY_FIRST_DOWNS: 23,          // 1st down by penalty
+  SCORING_PCT: 24,                  // Percentage of drives ending in a score
+  TURNOVER_PCT: 25,                 // Percentage of drives ending in a turnover
+  EXP_POINTS: 26                    // Expected points contributed by all offense
 };
 
 /**
  * Column indices for defense CSV (0-based)
- * Based on Sports Reference standard format
+ * Based on cleaned CSV format with descriptive headers
  */
 const DEFENSE_COLUMNS = {
-  RANK: 0,
-  TEAM: 1,
-  GAMES: 2,
-  POINTS_AGAINST: 3,
-  TOTAL_YARDS: 4,
-  PLAYS: 5,
-  YARDS_PER_PLAY: 6,
-  TURNOVERS: 7,
-  FUMBLES_FORCED: 8,
-  FIRST_DOWNS: 9,
-  PASS_COMPLETIONS: 10,
-  PASS_ATTEMPTS: 11,
-  PASS_YARDS: 12,
-  PASS_TDS: 13,
-  INTERCEPTIONS: 14,
-  NET_YARDS_PER_PASS: 15,
-  PASS_FIRST_DOWNS: 16,
-  RUSH_ATTEMPTS: 17,
-  RUSH_YARDS: 18,
-  RUSH_TDS: 19,
-  YARDS_PER_RUSH: 20,
-  RUSH_FIRST_DOWNS: 21,
-  PENALTIES: 22,
-  PENALTY_YARDS: 23,
-  PENALTY_FIRST_DOWNS: 24,
-  SCORING_PCT: 25,
-  TURNOVER_PCT: 26,
-  EXP: 27
+  TEAM: 0,                          // Team
+  GAMES: 1,                         // Games
+  POINTS_AGAINST: 2,                // Points allowed by team
+  TOTAL_YARDS: 3,                   // Yards allowed
+  PLAYS: 4,                         // Offensive plays allowed
+  YARDS_PER_PLAY: 5,                // Yards per offensive play
+  TAKEAWAYS: 6,                     // Takeaways
+  FUMBLES_FORCED: 7,                // Fumbles caused by defense
+  FIRST_DOWNS: 8,                   // 1st downs allowed
+  PASS_COMPLETIONS: 9,              // Passes completed
+  PASS_ATTEMPTS: 10,                // Passing attempts
+  PASS_YARDS: 11,                   // Yards gained by passing
+  PASS_TDS: 12,                     // Passing touchdowns allowed
+  INTERCEPTIONS: 13,                // Interceptions
+  NET_YARDS_PER_PASS: 14,           // Net yards gained per pass attempt
+  PASS_FIRST_DOWNS: 15,             // 1st downs by passing
+  RUSH_ATTEMPTS: 16,                // Rushing attempts allowed
+  RUSH_YARDS: 17,                   // Rushing yards allowed
+  RUSH_TDS: 18,                     // Rushing Touchdowns
+  YARDS_PER_RUSH: 19,               // Rushing yards per attempt allowed
+  RUSH_FIRST_DOWNS: 20,             // 1st downs by rushing allowed
+  SCORING_PCT: 21,                  // Percentage of drives ending in a offensive score
+  TURNOVER_PCT: 22,                 // Percentages of drives ending in a offensive turnover
+  EXP_POINTS: 23                    // Expected points contributed by all defense
 };
 
 // Removed legacy helper functions - functionality moved to parseCSVByIndex
@@ -143,20 +160,18 @@ export function parseWeeklyTeamStats(
   console.log('🛡️ Parsing defense CSV with index-based parser...');
   const defenseRows = parseCSVByIndex(defenseCSV);
   
-  // Automatically detect and skip header rows
-  let offenseStartRow = 1;
-  let defenseStartRow = 1;
+  // Skip header row (row 0 contains descriptive column names)
+  // Check if row 0 contains 'Team' or 'Games' to confirm it's a header
+  const offenseHasHeader = offenseRows.length > 0 && 
+    (offenseRows[0].includes('Team') || offenseRows[0].includes('Games'));
+  const defenseHasHeader = defenseRows.length > 0 && 
+    (defenseRows[0].includes('Team') || defenseRows[0].includes('Games'));
   
-  // Check if row 1 is a header row (contains 'Rk', 'Tm', etc.)
-  if (offenseRows.length > 1 && (offenseRows[1].includes('Rk') || offenseRows[1].includes('Tm'))) {
-    offenseStartRow = 2; // Skip both category and column headers
-    console.log('� Detected category headers in offense CSV, skipping first 2 rows');
-  }
+  let offenseStartRow = offenseHasHeader ? 1 : 0;
+  let defenseStartRow = defenseHasHeader ? 1 : 0;
   
-  if (defenseRows.length > 1 && (defenseRows[1].includes('Rk') || defenseRows[1].includes('Tm'))) {
-    defenseStartRow = 2; // Skip both category and column headers
-    console.log('� Detected category headers in defense CSV, skipping first 2 rows');
-  }
+  console.log(`📋 Offense CSV: Header detected = ${offenseHasHeader}, starting at row ${offenseStartRow}`);
+  console.log(`📋 Defense CSV: Header detected = ${defenseHasHeader}, starting at row ${defenseStartRow}`);
   
   const offenseDataRows = offenseRows.slice(offenseStartRow);
   const defenseDataRows = defenseRows.slice(defenseStartRow);
@@ -381,22 +396,27 @@ function parseOffenseRow(row: any[], games: number): Partial<TeamStats> {
     offensive_yards_per_game: safeDiv(row[OFFENSE_COLUMNS.TOTAL_YARDS], games),
     total_plays: safeDiv(row[OFFENSE_COLUMNS.PLAYS], games),
     yards_per_play: row[OFFENSE_COLUMNS.YARDS_PER_PLAY],
-    first_downs: safeDiv(row[OFFENSE_COLUMNS.FIRST_DOWNS], games),
     turnovers_lost: safeDiv(row[OFFENSE_COLUMNS.TURNOVERS], games),
     fumbles_lost: safeDiv(row[OFFENSE_COLUMNS.FUMBLES_LOST], games),
+    first_downs: safeDiv(row[OFFENSE_COLUMNS.FIRST_DOWNS], games),
     pass_completions: safeDiv(row[OFFENSE_COLUMNS.PASS_COMPLETIONS], games),
     pass_attempts: safeDiv(row[OFFENSE_COLUMNS.PASS_ATTEMPTS], games),
     passing_yards: safeDiv(row[OFFENSE_COLUMNS.PASS_YARDS], games),
     passing_tds: safeDiv(row[OFFENSE_COLUMNS.PASS_TDS], games),
     interceptions_thrown: safeDiv(row[OFFENSE_COLUMNS.INTERCEPTIONS], games),
     yards_per_pass_attempt: row[OFFENSE_COLUMNS.NET_YARDS_PER_PASS],
+    pass_first_downs: safeDiv(row[OFFENSE_COLUMNS.PASS_FIRST_DOWNS], games),
     rushing_attempts: safeDiv(row[OFFENSE_COLUMNS.RUSH_ATTEMPTS], games),
     rushing_yards: safeDiv(row[OFFENSE_COLUMNS.RUSH_YARDS], games),
     rushing_tds: safeDiv(row[OFFENSE_COLUMNS.RUSH_TDS], games),
     yards_per_rush: row[OFFENSE_COLUMNS.YARDS_PER_RUSH],
+    rush_first_downs: safeDiv(row[OFFENSE_COLUMNS.RUSH_FIRST_DOWNS], games),
     penalties: safeDiv(row[OFFENSE_COLUMNS.PENALTIES], games),
     penalty_yards: safeDiv(row[OFFENSE_COLUMNS.PENALTY_YARDS], games),
+    penalty_first_downs: safeDiv(row[OFFENSE_COLUMNS.PENALTY_FIRST_DOWNS], games),
     scoring_percentage: row[OFFENSE_COLUMNS.SCORING_PCT],
+    turnover_percentage: row[OFFENSE_COLUMNS.TURNOVER_PCT],
+    expected_points_offense: row[OFFENSE_COLUMNS.EXP_POINTS],
     pass_completion_pct: row[OFFENSE_COLUMNS.PASS_ATTEMPTS] > 0 
       ? (row[OFFENSE_COLUMNS.PASS_COMPLETIONS] / row[OFFENSE_COLUMNS.PASS_ATTEMPTS]) * 100 
       : 0
@@ -420,17 +440,24 @@ function parseDefenseRow(row: any[], games: number): Partial<TeamStats> {
     defensive_yards_allowed: safeDiv(row[DEFENSE_COLUMNS.TOTAL_YARDS], games),
     def_total_plays: safeDiv(row[DEFENSE_COLUMNS.PLAYS], games),
     def_yards_per_play_allowed: row[DEFENSE_COLUMNS.YARDS_PER_PLAY],
-    def_first_downs_allowed: safeDiv(row[DEFENSE_COLUMNS.FIRST_DOWNS], games),
-    turnovers_forced: safeDiv(row[DEFENSE_COLUMNS.TURNOVERS], games),
+    turnovers_forced: safeDiv(row[DEFENSE_COLUMNS.TAKEAWAYS], games),
     fumbles_forced: safeDiv(row[DEFENSE_COLUMNS.FUMBLES_FORCED], games),
+    def_first_downs_allowed: safeDiv(row[DEFENSE_COLUMNS.FIRST_DOWNS], games),
     def_pass_completions_allowed: safeDiv(row[DEFENSE_COLUMNS.PASS_COMPLETIONS], games),
     def_pass_attempts: safeDiv(row[DEFENSE_COLUMNS.PASS_ATTEMPTS], games),
     def_passing_yards_allowed: safeDiv(row[DEFENSE_COLUMNS.PASS_YARDS], games),
     def_passing_tds_allowed: safeDiv(row[DEFENSE_COLUMNS.PASS_TDS], games),
     def_interceptions: safeDiv(row[DEFENSE_COLUMNS.INTERCEPTIONS], games),
+    def_net_yards_per_pass: row[DEFENSE_COLUMNS.NET_YARDS_PER_PASS],
+    def_pass_first_downs: safeDiv(row[DEFENSE_COLUMNS.PASS_FIRST_DOWNS], games),
     def_rushing_attempts_allowed: safeDiv(row[DEFENSE_COLUMNS.RUSH_ATTEMPTS], games),
     def_rushing_yards_allowed: safeDiv(row[DEFENSE_COLUMNS.RUSH_YARDS], games),
-    def_rushing_tds_allowed: safeDiv(row[DEFENSE_COLUMNS.RUSH_TDS], games)
+    def_rushing_tds_allowed: safeDiv(row[DEFENSE_COLUMNS.RUSH_TDS], games),
+    def_yards_per_rush_allowed: row[DEFENSE_COLUMNS.YARDS_PER_RUSH],
+    def_rush_first_downs: safeDiv(row[DEFENSE_COLUMNS.RUSH_FIRST_DOWNS], games),
+    def_scoring_percentage: row[DEFENSE_COLUMNS.SCORING_PCT],
+    def_turnover_percentage: row[DEFENSE_COLUMNS.TURNOVER_PCT],
+    expected_points_defense: row[DEFENSE_COLUMNS.EXP_POINTS]
   };
 }
 
