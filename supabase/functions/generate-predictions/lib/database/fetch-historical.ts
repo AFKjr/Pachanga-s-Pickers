@@ -44,14 +44,14 @@ export async function fetchHistoricalGames(
       return null;
     }
 
-    // Extract unique games (avoid duplicates from multiple picks)
+    
     const gamesMap = new Map();
 
     for (const pick of data) {
       const gameInfo = pick.game_info;
       const gameKey = `${gameInfo.away_team}_${gameInfo.home_team}`;
 
-      // Only add if we have stored odds
+      
       if (gameInfo.home_ml_odds || gameInfo.spread_odds || gameInfo.over_odds) {
         if (!gamesMap.has(gameKey)) {
           gamesMap.set(gameKey, {

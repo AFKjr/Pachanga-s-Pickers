@@ -31,7 +31,7 @@ export interface ATSResult {
 export interface ComprehensiveATSRecord {
   totalPicks: number;
   
-  // Moneyline tracking
+  
   moneyline: {
     wins: number;
     losses: number;
@@ -39,46 +39,46 @@ export interface ComprehensiveATSRecord {
     totalResolved: number;
   };
   
-  // Against The Spread tracking
+  
   ats: {
     wins: number;
     losses: number;
     pushes: number;
     winRate: number;
     totalResolved: number;
-    coverMargin: number; // Average margin when covering
+    coverMargin: number; 
   };
   
-  // Over/Under tracking
+  
   overUnder: {
     wins: number;
     losses: number;
     pushes: number;
     winRate: number;
     totalResolved: number;
-    averageTotal: number; // Average total points in games
+    averageTotal: number; 
   };
   
-  // Advanced metrics
+  
   roi: {
-    estimated: number; // Estimated ROI assuming standard -110 odds
-    units: number; // Units won/lost
+    estimated: number; 
+    units: number; 
   };
   
-  // Confidence-based performance
+  
   byConfidence: {
-    high: { picks: number; winRate: number }; // 80%+
-    medium: { picks: number; winRate: number }; // 60-79%
-    low: { picks: number; winRate: number }; // <60%
+    high: { picks: number; winRate: number }; 
+    medium: { picks: number; winRate: number }; 
+    low: { picks: number; winRate: number }; 
   };
 }
 
 export interface BettingEfficiency {
   breakEvenRate: number;
-  actualAdvantage: number; // How much above/below break-even
-  kellyPercent: number; // Suggested Kelly betting percentage
-  confidenceAccuracy: number; // How well confidence correlates with results
-  valueGames: number; // Games where confidence > 75% and won
+  actualAdvantage: number; 
+  kellyPercent: number; 
+  confidenceAccuracy: number; 
+  valueGames: number; 
 }
 
 export type { Pick };

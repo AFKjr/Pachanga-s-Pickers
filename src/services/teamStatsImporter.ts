@@ -8,13 +8,9 @@ interface ImportResult {
   skipped: number;
 }
 
-/**
- * Service for importing team statistics from CSV files into the database
- */
+
 export class TeamStatsImporter {
-  /**
-   * Import weekly team stats from offense and defense CSV files
-   */
+  
   static async importWeeklyStats(
     offenseCSV: string,
     defenseCSV: string,
@@ -31,10 +27,10 @@ export class TeamStatsImporter {
     try {
       console.log(`📊 Importing team stats for Week ${week}, Season ${season}`);
 
-      // Parse the CSV files
+      
       const parsedStats = parseWeeklyTeamStats(offenseCSV, defenseCSV);
 
-      // Validate we have data
+      
       if (Object.keys(parsedStats).length === 0) {
         result.errors.push('No team stats found in CSV files');
         return result;
@@ -42,7 +38,7 @@ export class TeamStatsImporter {
 
       console.log(`📈 Processing ${Object.keys(parsedStats).length} teams`);
 
-      // Process each team's stats
+      
       for (const [teamName, stats] of Object.entries(parsedStats)) {
         try {
           await this.importTeamStats(teamName, stats, week, season);
@@ -66,26 +62,24 @@ export class TeamStatsImporter {
     return result;
   }
 
-  /**
-   * Import stats for a single team
-   */
+  
   private static async importTeamStats(
     teamName: string,
     stats: any,
     week: number,
     season: number
   ): Promise<void> {
-    // Normalize team name to match database format
+    
     const normalizedTeamName = this.normalizeTeamName(teamName);
 
-    // Prepare the data for insertion
+    
     const teamStatsData = {
       team_name: normalizedTeamName,
       week,
       season,
       games_played: stats.games_played || 1,
 
-      // Offensive stats
+      
       offensive_yards_per_game: stats.offensive_yards_per_game || 0,
       points_per_game: stats.points_per_game || 0,
       passing_yards: stats.passing_yards || 0,
@@ -97,8 +91,8 @@ export class TeamStatsImporter {
       red_zone_efficiency: stats.red_zone_efficiency || 0,
       turnovers_lost: stats.turnovers_lost || 0,
 
-      // NEW: Critical stats that were missing
-      drives_per_game: stats.drives_per_game || 12, // NFL average fallback
+      
+      drives_per_game: stats.drives_per_game || 12, 
       third_down_attempts: stats.third_down_attempts || 0,
       third_down_conversions: stats.third_down_conversions || 0,
       fourth_down_attempts: stats.fourth_down_attempts || 0,
@@ -106,7 +100,7 @@ export class TeamStatsImporter {
       red_zone_attempts: stats.red_zone_attempts || 0,
       red_zone_touchdowns: stats.red_zone_touchdowns || 0,
 
-      // Defensive stats
+      
       defensive_yards_allowed: stats.defensive_yards_allowed || 0,
       points_allowed_per_game: stats.points_allowed_per_game || 0,
       def_passing_yards_allowed: stats.def_passing_yards_allowed || 0,
@@ -121,7 +115,7 @@ export class TeamStatsImporter {
       updated_at: new Date().toISOString()
     };
 
-    // Insert or update the team stats
+    
     const { error } = await supabase
       .from('team_stats_cache')
       .upsert(teamStatsData, {
@@ -133,11 +127,9 @@ export class TeamStatsImporter {
     }
   }
 
-  /**
-   * Normalize team name to match database format
-   */
+  
   private static normalizeTeamName(teamName: string): string {
-    // Use the team_name_mapping table or fallback to title case
+    
     const normalized = teamName
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -146,9 +138,7 @@ export class TeamStatsImporter {
     return normalized;
   }
 
-  /**
-   * Get existing team stats for validation
-   */
+  
   static async getExistingStats(teamName: string, week: number, season: number) {
     const { data, error } = await supabase
       .from('team_stats_cache')
@@ -158,16 +148,14 @@ export class TeamStatsImporter {
       .eq('season', season)
       .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+    if (error && error.code !== 'PGRST116') { 
       throw error;
     }
 
     return data;
   }
 
-  /**
-   * Validate CSV content before import
-   */
+  
   static validateCSVContent(csvContent: string, type: 'offense' | 'defense'): string[] {
     const errors: string[] = [];
     const lines = csvContent.split('\n').filter(line => line.trim());
@@ -177,7 +165,7 @@ export class TeamStatsImporter {
       return errors;
     }
 
-    // Check for expected headers
+    
     const firstLine = lines[0].toLowerCase();
     const expectedHeaders = type === 'offense'
       ? ['tm', 'g', 'pf', 'yds']
@@ -191,7 +179,7 @@ export class TeamStatsImporter {
       errors.push(`${type} CSV: Missing expected headers (${expectedHeaders.join(', ')})`);
     }
 
-    // Check for data rows
+    
     let dataRowCount = 0;
     for (let i = 1; i < lines.length; i++) {
       const cells = lines[i].split(',');

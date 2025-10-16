@@ -111,7 +111,7 @@ const AdminTeamStats: React.FC = () => {
         </div>
       )}
 
-      {/* Stats Table */}
+      {}
       <div className="bg-gray-800 rounded-lg overflow-hidden shadow-lg">
         <div className="overflow-x-auto max-w-full">
           <table className="w-full min-w-max">

@@ -5,10 +5,10 @@ import CSVImportStats from '../../components/CSVImportStats';
 const TeamStatsPage: React.FC = () => {
   return (
     <div className="space-y-6">
-      {/* CSV Upload Section */}
+      {}
       <CSVImportStats />
 
-      {/* Full Stats Management Table */}
+      {}
       <AdminTeamStats />
     </div>
   );

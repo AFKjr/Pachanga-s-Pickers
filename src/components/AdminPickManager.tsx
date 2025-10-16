@@ -23,7 +23,7 @@ import { getPickWeek } from '../utils/nflWeeks';
 type ViewMode = 'list' | 'results' | 'revision';
 
 const AdminPickManagerRefactored: React.FC = () => {
-  // Use custom hooks for all business logic
+  
   const {
     picks,
     loading,
@@ -42,31 +42,26 @@ const AdminPickManagerRefactored: React.FC = () => {
     clearError: clearDuplicateError
   } = useDuplicateDetection(picks);
 
-  // Local UI state only
+  
   const [selectedWeek, setSelectedWeek] = useState<NFLWeek | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedPick, setSelectedPick] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Get available weeks from picks using proper week calculation
   const availableWeeks = [...new Set(picks.map(pick => getPickWeek(pick) as NFLWeek))].sort((a, b) => b - a);
 
-  // Set default week on load
   useEffect(() => {
     if (!selectedWeek && availableWeeks.length > 0) {
       setSelectedWeek(availableWeeks[0]);
     }
   }, [availableWeeks, selectedWeek]);
 
-  // Load picks on mount
   useEffect(() => {
     loadPicks();
   }, [loadPicks]);
 
-  // Filter picks using the service
   const filteredPicks = filterPicks({ week: selectedWeek, searchTerm });
 
-  // Handle duplicate cleanup
   const handleCleanDuplicates = async () => {
     if (!confirm(`Remove ${duplicateCount} duplicate picks? The oldest pick for each game will be kept.`)) {
       return;
@@ -84,7 +79,7 @@ const AdminPickManagerRefactored: React.FC = () => {
     }
   };
 
-  // Handle revision completion
+  
   const handleRevisionComplete = () => {
     setViewMode('list');
     setSelectedPick(null);
@@ -92,19 +87,19 @@ const AdminPickManagerRefactored: React.FC = () => {
     globalEvents.emit('refreshPicks');
   };
 
-  // Handle revision cancellation
+  
   const cancelRevision = () => {
     setViewMode('list');
     setSelectedPick(null);
   };
 
-  // Handle pick revision start
+  
   const startRevision = (pick: any) => {
     setSelectedPick(pick);
     setViewMode('revision');
   };
 
-  // Render loading state
+  
   if (loading) {
     return (
       <div className='bg-gray-800 rounded-lg p-6 mb-6'>
@@ -115,7 +110,7 @@ const AdminPickManagerRefactored: React.FC = () => {
     );
   }
 
-  // Render revision view
+  
   if (viewMode === 'revision' && selectedPick) {
     return (
       <AdminPickRevision
@@ -126,7 +121,7 @@ const AdminPickManagerRefactored: React.FC = () => {
     );
   }
 
-  // Render results view
+  
   if (viewMode === 'results') {
     return (
       <div>
@@ -143,10 +138,10 @@ const AdminPickManagerRefactored: React.FC = () => {
     );
   }
 
-  // Render main list view
+  
   return (
     <div className='bg-gray-800 rounded-lg p-6 mb-6'>
-      {/* Error notifications */}
+      {}
       {pickError && (
         <ErrorNotification error={pickError} onClose={clearPickError} />
       )}
@@ -154,7 +149,7 @@ const AdminPickManagerRefactored: React.FC = () => {
         <ErrorNotification error={duplicateError} onClose={clearDuplicateError} />
       )}
 
-      {/* Header */}
+      {}
       <div className='flex items-center justify-between mb-6'>
         <h2 className='text-xl font-semibold text-white'>Pick Management</h2>
         <div className="flex space-x-2">
@@ -177,7 +172,7 @@ const AdminPickManagerRefactored: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters */}
+      {}
       <div className="flex gap-4 mb-6">
         <select
           value={selectedWeek || ''}
@@ -199,7 +194,7 @@ const AdminPickManagerRefactored: React.FC = () => {
         />
       </div>
 
-      {/* Picks list */}
+      {}
       <div className="space-y-4">
         {filteredPicks.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
@@ -216,7 +211,7 @@ const AdminPickManagerRefactored: React.FC = () => {
                   <div className="text-gray-400 text-sm mt-1">
                     {pick.prediction}
                   </div>
-                  {/* ATS and O/U Predictions */}
+                  {}
                   {(pick.spread_prediction || pick.ou_prediction) && (
                     <div className="flex flex-wrap gap-2 mt-1">
                       {pick.spread_prediction && (

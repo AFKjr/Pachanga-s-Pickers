@@ -10,12 +10,12 @@ import { globalEvents } from '../lib/events';
 import * as pickService from '../services/pickManagement';
 
 export interface UsePickManagerReturn {
-  // State
+  
   picks: Pick[];
   loading: boolean;
   error: AppError | null;
   
-  // Actions
+  
   loadPicks: () => Promise<void>;
   updateResult: (pickId: string, result: 'win' | 'loss' | 'push') => Promise<boolean>;
   updateScores: (pickId: string, awayScore: number | null, homeScore: number | null) => { success: boolean; pick: Pick | null };
@@ -24,12 +24,12 @@ export interface UsePickManagerReturn {
   createPick: (pickData: Omit<Pick, 'id' | 'created_at' | 'updated_at'>) => Promise<Pick | null>;
   refreshPicks: () => Promise<void>;
   
-  // Utilities
+  
   getAvailableWeeks: () => NFLWeek[];
   getPicksByWeek: (week: NFLWeek) => Pick[];
   filterPicks: (options: { week?: NFLWeek | null; searchTerm?: string }) => Pick[];
   
-  // Error handling
+  
   clearError: () => void;
 }
 
@@ -38,9 +38,7 @@ export function usePickManager(): UsePickManagerReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<AppError | null>(null);
 
-  /**
-   * Load all picks from database
-   */
+  
   const loadPicks = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -57,9 +55,7 @@ export function usePickManager(): UsePickManagerReturn {
     setLoading(false);
   }, []);
 
-  /**
-   * Update a pick's result
-   */
+  
   const updateResult = useCallback(async (
     pickId: string,
     result: 'win' | 'loss' | 'push'
@@ -78,9 +74,7 @@ export function usePickManager(): UsePickManagerReturn {
     return true;
   }, []);
 
-  /**
-   * Update pick with scores (auto-calculates results)
-   */
+  
   const updateScores = useCallback((
     pickId: string,
     awayScore: number | null,
@@ -93,15 +87,13 @@ export function usePickManager(): UsePickManagerReturn {
 
     const { updatedPick } = pickService.updatePickWithScores(pick, awayScore, homeScore);
     
-    // Update local state immediately (optimistic update)
+    
     setPicks(prev => prev.map(p => p.id === pickId ? updatedPick : p));
     
     return { success: true, pick: updatedPick };
   }, [picks]);
 
-  /**
-   * Delete a pick
-   */
+  
   const deletePick = useCallback(async (pickId: string): Promise<boolean> => {
     const { success, error: deleteError } = await pickService.deletePick(pickId);
     
@@ -118,9 +110,7 @@ export function usePickManager(): UsePickManagerReturn {
     return success;
   }, []);
 
-  /**
-   * Delete all picks (admin only)
-   */
+  
   const deleteAllPicks = useCallback(async (): Promise<{ success: boolean; deletedCount: number }> => {
     const result = await pickService.deleteAllPicks();
     
@@ -136,9 +126,7 @@ export function usePickManager(): UsePickManagerReturn {
     return { success: result.success, deletedCount: result.deletedCount };
   }, []);
 
-  /**
-   * Create a new pick
-   */
+  
   const createPick = useCallback(async (
     pickData: Omit<Pick, 'id' | 'created_at' | 'updated_at'>
   ): Promise<Pick | null> => {
@@ -157,43 +145,33 @@ export function usePickManager(): UsePickManagerReturn {
     return data;
   }, []);
 
-  /**
-   * Refresh picks (alias for loadPicks)
-   */
+  
   const refreshPicks = useCallback(async () => {
     await loadPicks();
   }, [loadPicks]);
 
-  /**
-   * Get available weeks from current picks
-   */
+  
   const getAvailableWeeks = useCallback((): NFLWeek[] => {
     return pickService.getAvailableWeeks(picks);
   }, [picks]);
 
-  /**
-   * Get picks for a specific week
-   */
+  
   const getPicksByWeek = useCallback((week: NFLWeek): Pick[] => {
     const weekGroups = pickService.groupPicksByWeek(picks);
     return weekGroups[week] || [];
   }, [picks]);
 
-  /**
-   * Filter picks by week and search term
-   */
+  
   const filterPicks = useCallback((options: { week?: NFLWeek | null; searchTerm?: string }): Pick[] => {
     return pickService.filterPicks(picks, options);
   }, [picks]);
 
-  /**
-   * Clear error state
-   */
+  
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  // Listen for global refresh events
+  
   useEffect(() => {
     const handleRefresh = () => {
       loadPicks();
@@ -207,12 +185,12 @@ export function usePickManager(): UsePickManagerReturn {
   }, [loadPicks]);
 
   return {
-    // State
+    
     picks,
     loading,
     error,
     
-    // Actions
+    
     loadPicks,
     updateResult,
     updateScores,
@@ -221,12 +199,12 @@ export function usePickManager(): UsePickManagerReturn {
     createPick,
     refreshPicks,
     
-    // Utilities
+    
     getAvailableWeeks,
     getPicksByWeek,
     filterPicks,
     
-    // Error handling
+    
     clearError
   };
 }

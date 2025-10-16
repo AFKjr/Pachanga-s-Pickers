@@ -172,7 +172,7 @@ const AdminTeamStatsImporter: React.FC = () => {
         </div>
       </div>
 
-      {/* Validation Errors */}
+      {}
       {validationErrors.length > 0 && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
           <h3 className="text-sm font-medium text-red-800 mb-2">Validation Errors:</h3>
@@ -184,7 +184,7 @@ const AdminTeamStatsImporter: React.FC = () => {
         </div>
       )}
 
-      {/* Action Buttons */}
+      {}
       <div className="flex space-x-4 mb-6">
         <button
           onClick={handleImport}
@@ -202,7 +202,7 @@ const AdminTeamStatsImporter: React.FC = () => {
         </button>
       </div>
 
-      {/* Import Results */}
+      {}
       {importResult && (
         <div className={`p-4 rounded-md ${importResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
           <h3 className={`text-sm font-medium mb-2 ${importResult.success ? 'text-green-800' : 'text-red-800'}`}>
@@ -233,7 +233,7 @@ const AdminTeamStatsImporter: React.FC = () => {
         </div>
       )}
 
-      {/* Instructions */}
+      {}
       <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-md">
         <h3 className="text-sm font-medium text-blue-800 mb-2">Instructions:</h3>
         <ul className="list-disc list-inside text-sm text-blue-700 space-y-1">

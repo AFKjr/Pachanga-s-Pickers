@@ -19,7 +19,6 @@ const SegmentedWeekSelector: React.FC<SegmentedWeekSelectorProps> = ({
 }) => {
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // Show most recent weeks first
   const sortedWeeks = [...availableWeeks].sort((a, b) => b - a);
   const visibleWeeks = sortedWeeks.slice(0, maxVisibleWeeks);
   const hiddenWeeks = sortedWeeks.slice(maxVisibleWeeks);
@@ -112,7 +111,7 @@ const SegmentedWeekSelector: React.FC<SegmentedWeekSelectorProps> = ({
         )}
       </div>
 
-      {/* Selected Week Context Label */}
+      {}
       {availableWeeks.length > 0 && (
         <span className="text-xs text-gray-500 hidden md:inline">
           {availableWeeks.length} weeks total

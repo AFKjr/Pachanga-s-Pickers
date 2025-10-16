@@ -3,8 +3,8 @@
 import { NFLWeek } from '../types/index';
 import { validateGameDate, safeDate, isValidNFLGameDate } from './dateValidation';
 
-// NFL 2025 Official Schedule Week Mapping
-// Based on https://operations.nfl.com/gameday/nfl-schedule/2025-nfl-schedule/
+
+
 export const NFL_2025_SCHEDULE: Record<NFLWeek, { start: string; end: string; description: string }> = {
   1: { 
     start: '2025-09-04', 
@@ -98,13 +98,9 @@ export const NFL_2025_SCHEDULE: Record<NFLWeek, { start: string; end: string; de
   }
 };
 
-/**
- * Get NFL week from game date using official 2025 schedule with robust validation
- * @param gameDate - Game date in YYYY-MM-DD format or Date object
- * @returns NFL week number (1-18) or null if date doesn't fall in any NFL week
- */
+
 export const getNFLWeekFromDate = (gameDate: string | Date): NFLWeek | null => {
-  // Use safe date validation
+  
   const validation = validateGameDate(gameDate, { away_team: 'Unknown', home_team: 'Unknown' });
   
   if (!validation.isValid) {
@@ -114,7 +110,7 @@ export const getNFLWeekFromDate = (gameDate: string | Date): NFLWeek | null => {
   
   const date = validation.date!;
 
-  // Check each week range with safe date parsing
+  
   for (const [weekStr, range] of Object.entries(NFL_2025_SCHEDULE)) {
     const week = parseInt(weekStr) as NFLWeek;
     
@@ -129,7 +125,7 @@ export const getNFLWeekFromDate = (gameDate: string | Date): NFLWeek | null => {
     const startDate = startValidation.date!;
     const endDate = endValidation.date!;
     
-    // Include end date in range (games can be on Monday)
+    
     if (date >= startDate && date <= endDate) {
       return week;
     }
@@ -139,25 +135,22 @@ export const getNFLWeekFromDate = (gameDate: string | Date): NFLWeek | null => {
   return null;
 };
 
-/**
- * Enhanced week detection for picks
- * Prioritizes: stored week > date mapping > fallback ONLY for 2025 season
- */
+
 export const getPickWeek = (pick: { week?: number; game_info: { game_date: string; away_team: string; home_team: string } }): number => {
   const gameTeams = `${pick.game_info.away_team} @ ${pick.game_info.home_team}`;
   
-  // 1. Use stored week if available (highest priority)
+  
   if (pick.week) {
     return pick.week;
   }
 
-  // 2. Try to get week from official schedule mapping (most reliable)
+  
   const weekFromDate = getNFLWeekFromDate(pick.game_info.game_date);
   if (weekFromDate) {
     return weekFromDate;
   }
 
-  // 3. Validate game date before fallback calculation
+  
   const dateValidation = validateGameDate(pick.game_info.game_date, pick.game_info);
   
   if (!dateValidation.isValid) {
@@ -165,15 +158,15 @@ export const getPickWeek = (pick: { week?: number; game_info: { game_date: strin
     return 1 as NFLWeek;
   }
 
-  // 4. Check if date is in 2025 NFL season range BEFORE calculating week
+  
   const gameDateObj = dateValidation.date!;
   if (!isValidNFLGameDate(gameDateObj)) {
     console.warn(`Game date ${pick.game_info.game_date} for ${gameTeams} is outside 2025 NFL season, defaulting to Week 1`);
     return 1 as NFLWeek;
   }
 
-  // 5. Fallback calculation ONLY for dates within 2025 season
-  const seasonStart = safeDate('2025-09-04', { throwOnInvalid: true }); // First game Thu 9/4
+  
+  const seasonStart = safeDate('2025-09-04', { throwOnInvalid: true }); 
   
   try {
     const daysDiff = Math.floor((gameDateObj.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24));
@@ -187,9 +180,7 @@ export const getPickWeek = (pick: { week?: number; game_info: { game_date: strin
   }
 };
 
-/**
- * Check if a date falls within the 2025 NFL season
- */
+
 export const isValidNFLDate = (gameDate: string | Date): boolean => {
   const seasonStart = new Date('2025-09-04');
   const seasonEnd = new Date('2026-01-05');
@@ -198,29 +189,23 @@ export const isValidNFLDate = (gameDate: string | Date): boolean => {
   return date >= seasonStart && date <= seasonEnd;
 };
 
-/**
- * Get week info including description
- */
+
 export const getWeekInfo = (week: NFLWeek) => {
   return NFL_2025_SCHEDULE[week] || null;
 };
 
-/**
- * Get all available weeks for the current season
- */
+
 export const getAllNFLWeeks = (): NFLWeek[] => {
   return Object.keys(NFL_2025_SCHEDULE).map(w => parseInt(w)).sort((a, b) => a - b) as NFLWeek[];
 };
 
-/**
- * Check if we're currently in a specific NFL week
- */
+
 export const getCurrentNFLWeek = (): NFLWeek | null => {
   const today = new Date();
   return getNFLWeekFromDate(today);
 };
 
-// Special scheduling notes for reference
+
 export const SPECIAL_SCHEDULING_NOTES = {
   internationalGames: [
     { week: 1, teams: 'Chiefs vs Chargers', location: 'São Paulo, Brazil', date: '2025-09-05' },

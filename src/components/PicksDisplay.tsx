@@ -49,7 +49,7 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
 
       const allPicks = data || [];
       
-      // Calculate edges for each pick
+      
       const picksWithEdges = allPicks.map(pick => {
         if (pick.monte_carlo_results && pick.game_info) {
           const edges = calculatePickEdges(pick, pick.monte_carlo_results, pick.game_info);

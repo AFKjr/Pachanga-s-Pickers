@@ -21,9 +21,7 @@ export interface PickUpdatePayload {
   game_info?: Pick['game_info'];
 }
 
-/**
- * Load all picks from the database
- */
+
 export async function loadAllPicks(): Promise<{ data: Pick[] | null; error: AppError | null }> {
   try {
     const { data, error } = await picksApi.getAll();
@@ -44,9 +42,7 @@ export async function loadAllPicks(): Promise<{ data: Pick[] | null; error: AppE
   }
 }
 
-/**
- * Group picks by week
- */
+
 export function groupPicksByWeek(picks: Pick[]): PicksByWeek {
   const weekGroups: PicksByWeek = {};
 
@@ -61,9 +57,7 @@ export function groupPicksByWeek(picks: Pick[]): PicksByWeek {
   return weekGroups;
 }
 
-/**
- * Get available weeks from picks (sorted most recent first)
- */
+
 export function getAvailableWeeks(picks: Pick[]): NFLWeek[] {
   const weekGroups = groupPicksByWeek(picks);
   return Object.keys(weekGroups)
@@ -71,9 +65,7 @@ export function getAvailableWeeks(picks: Pick[]): NFLWeek[] {
     .sort((a, b) => b - a) as NFLWeek[];
 }
 
-/**
- * Update a pick's result
- */
+
 export async function updatePickResult(
   pickId: string,
   result: 'win' | 'loss' | 'push'
@@ -97,15 +89,13 @@ export async function updatePickResult(
   }
 }
 
-/**
- * Update pick with scores and auto-calculate results
- */
+
 export function updatePickWithScores(
   pick: Pick,
   awayScore: number | null | undefined,
   homeScore: number | null | undefined
 ): { updatedPick: Pick; updatePayload: PickUpdatePayload } {
-  // Update the pick with new scores
+  
   const updatedPick: Pick = {
     ...pick,
     game_info: {
@@ -115,7 +105,7 @@ export function updatePickWithScores(
     }
   };
 
-  // Calculate results if both scores are provided
+  
   const updatePayload: PickUpdatePayload = {
     game_info: updatedPick.game_info
   };
@@ -136,9 +126,7 @@ export function updatePickWithScores(
   return { updatedPick, updatePayload };
 }
 
-/**
- * Delete a pick
- */
+
 export async function deletePick(
   pickId: string
 ): Promise<{ success: boolean; error: AppError | null }> {
@@ -161,9 +149,7 @@ export async function deletePick(
   }
 }
 
-/**
- * Delete all picks (admin only)
- */
+
 export async function deleteAllPicks(): Promise<{ 
   success: boolean; 
   deletedCount: number;
@@ -199,9 +185,7 @@ export async function deleteAllPicks(): Promise<{
   }
 }
 
-/**
- * Filter picks by week and search term
- */
+
 export function filterPicks(
   picks: Pick[],
   options: {
@@ -222,14 +206,12 @@ export function filterPicks(
   });
 }
 
-/**
- * Create a new pick with edge calculations
- */
+
 export async function createPick(
   pickData: Omit<Pick, 'id' | 'created_at' | 'updated_at'>
 ): Promise<{ data: Pick | null; error: AppError | null }> {
   try {
-    // Calculate edge values if Monte Carlo results are available
+    
     let enrichedPickData = { ...pickData };
     
     if (pickData.monte_carlo_results && pickData.game_info) {
@@ -265,9 +247,7 @@ export async function createPick(
   }
 }
 
-/**
- * Recalculate edge values for a pick
- */
+
 export function recalculatePickEdges(pick: Pick): Partial<Pick> {
   if (!pick.monte_carlo_results || !pick.game_info) {
     return {};

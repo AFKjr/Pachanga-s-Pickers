@@ -18,7 +18,7 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
   onRevisionComplete, 
   onCancel 
 }) => {
-  // Form state for all editable fields
+  
   const [formData, setFormData] = useState({
     prediction: pick.prediction,
     spreadPrediction: pick.spread_prediction || '', // NEW: Spread prediction text
@@ -33,7 +33,6 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
     overUnder: pick.game_info.over_under?.toString() || '',
     week: pick.week || 1,
     isPinned: pick.is_pinned || false,
-    // NEW: Manual odds input fields
     homeMLOdds: pick.game_info.home_ml_odds?.toString() || '',
     awayMLOdds: pick.game_info.away_ml_odds?.toString() || '',
     spreadOdds: pick.game_info.spread_odds?.toString() || '',
@@ -41,7 +40,6 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
     underOdds: pick.game_info.under_odds?.toString() || ''
   });
 
-  // Weather override state
   const [weatherOverride, setWeatherOverride] = useState({
     temperature: pick.weather?.temperature || '',
     windSpeed: pick.weather?.wind_speed || '',
@@ -54,7 +52,6 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
   const { showConfirmation, confirmationModal } = useSecureConfirmation();
   const { error, clearError, executeWithErrorHandling } = useErrorHandler();
 
-  // Track changes
   useEffect(() => {
     const originalData = {
       prediction: pick.prediction,
@@ -90,7 +87,6 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
   };
 
   const validateAndSave = async () => {
-    // Validate all data
     const validation = validatePickData({
       homeTeam: formData.homeTeam,
       awayTeam: formData.awayTeam,
@@ -105,7 +101,6 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
       throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
     }
 
-    // Extract spread and O/U values from prediction text
     const extractNumber = (text: string, defaultValue?: number): number | undefined => {
       const match = text.match(/[-+]?\d+\.?\d*/);
       return match ? parseFloat(match[0]) : defaultValue;
@@ -114,13 +109,11 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
     const spreadValue = formData.spreadPrediction ? extractNumber(formData.spreadPrediction, formData.spread ? parseFloat(formData.spread) : undefined) : (formData.spread ? parseFloat(formData.spread) : undefined);
     const ouValue = formData.ouPrediction ? extractNumber(formData.ouPrediction, formData.overUnder ? parseFloat(formData.overUnder) : undefined) : (formData.overUnder ? parseFloat(formData.overUnder) : undefined);
 
-    // Parse odds values
     const parseOdds = (value: string): number | undefined => {
       const num = parseInt(value);
       return isNaN(num) ? undefined : num;
     };
 
-    // Prepare update payload
     const updates: Partial<Pick> = {
       prediction: validation.sanitizedData.prediction,
       spread_prediction: formData.spreadPrediction || undefined,
@@ -139,20 +132,20 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
         over_under: ouValue,
         home_score: pick.game_info.home_score,
         away_score: pick.game_info.away_score,
-        // NEW: Include manually entered odds
+        
         home_ml_odds: parseOdds(formData.homeMLOdds),
         away_ml_odds: parseOdds(formData.awayMLOdds),
         spread_odds: parseOdds(formData.spreadOdds),
         over_odds: parseOdds(formData.overOdds),
         under_odds: parseOdds(formData.underOdds),
-        // Preserve existing fields
+        
         favorite_team: pick.game_info.favorite_team,
         underdog_team: pick.game_info.underdog_team,
         favorite_is_home: pick.game_info.favorite_is_home
       }
     };
 
-    // Add weather override if provided
+    
     if (weatherOverride.temperature !== '' || weatherOverride.windSpeed !== '' || weatherOverride.condition) {
       updates.weather = {
         temperature: typeof weatherOverride.temperature === 'number' ? weatherOverride.temperature : (pick.weather?.temperature || 72),
@@ -167,7 +160,7 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
     const { data, error } = await picksApi.update(pick.id, updates);
     if (error) throw error;
 
-    // Emit events to refresh other components
+    
     globalEvents.emit('refreshStats');
     globalEvents.emit('refreshPicks');
 
@@ -240,7 +233,7 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
         />
       )}
 
-      {/* Game Information */}
+      {}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -266,7 +259,7 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
         </div>
       </div>
 
-      {/* Game Details */}
+      {}
       <div className="grid grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -310,9 +303,9 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
         </div>
       </div>
 
-      {/* Predictions Section */}
+      {}
       <div className="space-y-4">
-        {/* Moneyline Prediction */}
+        {}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
             Prediction (Moneyline)
@@ -326,7 +319,7 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
           />
         </div>
 
-        {/* Spread Prediction */}
+        {}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
             Spread Prediction
@@ -343,7 +336,7 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
           </div>
         </div>
 
-        {/* O/U Prediction */}
+        {}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
             Over/Under Prediction
@@ -361,14 +354,14 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
         </div>
       </div>
 
-      {/* Manual Odds Input Section */}
+      {}
       <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-blue-300">Manual Odds Entry</h3>
           <span className="text-xs text-blue-400">American odds format (e.g., -110, +150)</span>
         </div>
         
-        {/* Moneyline Odds */}
+        {}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">Moneyline Odds</label>
           <div className="grid grid-cols-2 gap-3">
@@ -395,7 +388,7 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
           </div>
         </div>
 
-        {/* Spread Odds */}
+        {}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">Spread Odds</label>
           <input
@@ -410,7 +403,7 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
           </div>
         </div>
 
-        {/* Over/Under Odds */}
+        {}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">Over/Under Odds</label>
           <div className="grid grid-cols-2 gap-3">
@@ -444,7 +437,7 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
         </div>
       </div>
 
-      {/* Weather Override */}
+      {}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-300 mb-1">
           Weather Override (Optional)
@@ -481,7 +474,7 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
         </div>
       </div>
 
-      {/* Reasoning */}
+      {}
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-1">
           Reasoning
@@ -495,7 +488,7 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
         />
       </div>
 
-      {/* Options */}
+      {}
       <div className="flex items-center space-x-4">
         <label className="flex items-center space-x-2">
           <input
@@ -508,7 +501,7 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
         </label>
       </div>
 
-      {/* Action Buttons */}
+      {}
       <div className="flex justify-end space-x-3 pt-4 border-t border-gray-700">
         <button
           onClick={handleCancel}
@@ -526,7 +519,7 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
         </button>
       </div>
 
-      {/* Change Summary */}
+      {}
       {hasChanges && (
         <div className="bg-yellow-900 border border-yellow-700 rounded-lg p-3">
           <h4 className="text-yellow-200 font-medium text-sm mb-2">Pending Changes:</h4>

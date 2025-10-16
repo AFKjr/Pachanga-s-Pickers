@@ -16,7 +16,7 @@ const Header = () => {
       <header className="bg-[#0a0a0a] border-b border-[rgba(255,255,255,0.05)]">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            {/* Logo */}
+            {}
             <Link to="/" className="flex items-center gap-3 group">
               <div className="w-10 h-10 bg-gradient-to-br from-lime-500 to-lime-600 rounded-lg flex items-center justify-center transform group-hover:scale-105 transition-transform">
                 <span className="text-black font-bold text-xl">P</span>
@@ -28,7 +28,7 @@ const Header = () => {
               </div>
             </Link>
 
-            {/* Navigation */}
+            {}
             <nav className="hidden md:flex items-center gap-6">
               <Link
                 to="/"
@@ -46,7 +46,7 @@ const Header = () => {
               )}
             </nav>
 
-            {/* User Section */}
+            {}
             <div className="flex items-center gap-4">
               {loading ? (
                 <span className="text-gray-400 text-sm">Loading...</span>

@@ -66,7 +66,7 @@ export async function generateHistoricalPredictions(
     try {
       console.log(`\n🏈 [${gameIndex + 1}/${historicalGames.length}] Processing: ${game.away_team} @ ${game.home_team}`);
 
-      // Fetch team stats for the specific week
+      
       const homeStats = await fetchTeamStatsWithFallback(
         game.home_team,
         supabaseUrl,
@@ -86,7 +86,7 @@ export async function generateHistoricalPredictions(
       console.log(`📈 Using Week ${targetWeek} stats for both teams`);
       console.log(`💰 Using stored odds: ML ${game.home_ml_odds || 'N/A'}/${game.away_ml_odds || 'N/A'}`);
 
-      // Fetch weather if API key available
+      
       let gameWeather: GameWeather | null = null;
       let weatherImpact = 'No weather data';
 
@@ -102,11 +102,11 @@ export async function generateHistoricalPredictions(
         }
       }
 
-      // Determine which team is the favorite (use stored odds if available)
+      
       const favoriteInfo = determineFavorite(game.home_ml_odds || -110, game.away_ml_odds || +110);
       console.log(`🏆 Favorite: ${favoriteInfo.favoriteIsHome ? game.home_team : game.away_team} (${favoriteInfo.favoriteIsHome ? 'home' : 'away'})`);
 
-      // Run simulation
+      
       console.log(`⚙️ Running ${SIMULATION_ITERATIONS.toLocaleString()} Monte Carlo simulations...`);
       const simResult = runMonteCarloSimulation(
         homeStats,
@@ -114,10 +114,10 @@ export async function generateHistoricalPredictions(
         game.spread,
         game.over_under,
         gameWeather,
-        favoriteInfo.favoriteIsHome  // NEW: Pass favorite information
+        favoriteInfo.favoriteIsHome  
       );
 
-      // Calculate picks and probabilities
+      
       const moneylineProb = Math.max(simResult.homeWinProbability, simResult.awayWinProbability);
       const moneylineConfidence = getConfidenceLevel(moneylineProb);
       const moneylinePick = simResult.homeWinProbability > simResult.awayWinProbability 

@@ -20,7 +20,6 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
   const [success, setSuccess] = useState('');
   const [passwordValidation, setPasswordValidation] = useState<PasswordValidation | null>(null);
   
-  // Rate limiting
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [isRateLimited, setIsRateLimited] = useState(false);
   const lastAttemptTime = useRef<number>(0);
@@ -28,7 +27,6 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
 
   const { signUp, signIn, resetPassword } = useAuth();
 
-  // Clear sensitive data on unmount
   useEffect(() => {
     return () => {
       setPassword('');
@@ -38,7 +36,6 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
     };
   }, []);
 
-  // OWASP: Client-side rate limiting
   const checkRateLimit = (): boolean => {
     const now = Date.now();
     const oneMinute = 60 * 1000;
@@ -60,7 +57,6 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
     return true;
   };
 
-  // OWASP: Calculate password entropy (better than complexity rules)
   const calculateEntropy = (pwd: string): number => {
     let charsetSize = 0;
     
@@ -69,17 +65,15 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
     if (/[0-9]/.test(pwd)) charsetSize += 10;
     if (/[^a-zA-Z0-9]/.test(pwd)) charsetSize += 32;
     
-    // Entropy = log2(charset^length)
     return Math.log2(Math.pow(charsetSize, pwd.length));
   };
 
-  // OWASP-Compliant Password Validation
   const validatePassword = (pwd: string): PasswordValidation => {
     const errors: string[] = [];
     const warnings: string[] = [];
     let strength: 'weak' | 'medium' | 'strong' = 'weak';
 
-    // OWASP Rule 1: Minimum length of 8 characters
+    
     if (pwd.length < 8) {
       errors.push('Password must be at least 8 characters');
       return {
@@ -91,7 +85,7 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
       };
     }
 
-    // OWASP Rule 2: Maximum length (bcrypt limit is 72)
+    
     if (pwd.length > 72) {
       errors.push('Password must be 72 characters or less');
       return {
@@ -103,10 +97,10 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
       };
     }
 
-    // Calculate entropy for strength assessment
+    
     const entropy = calculateEntropy(pwd);
 
-    // OWASP Rule 3: Check against common/breached passwords
+    
     const commonPasswords = [
       'password', '123456', '12345678', 'qwerty', 'abc123', 'monkey', 
       '1234567', 'letmein', 'trustno1', 'dragon', 'baseball', 'iloveyou',
@@ -133,8 +127,8 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
       };
     }
 
-    // OWASP Rule 4: Check for sequential characters
-    const hasSequential = /(.)\1{2,}/.test(pwd) || // aaa, 111
+    
+    const hasSequential = /(.)\1{2,}/.test(pwd) || 
                           /(abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)/i.test(pwd) ||
                           /(012|123|234|345|456|567|678|789|890)/.test(pwd);
     
@@ -142,7 +136,7 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
       warnings.push('Avoid sequential or repeated characters for better security');
     }
 
-    // OWASP Rule 5: Check for keyboard patterns
+    
     const keyboardPatterns = ['qwerty', 'asdfgh', 'zxcvbn', '1qaz2wsx', 'qwertz'];
     const hasKeyboardPattern = keyboardPatterns.some(pattern => 
       lowerPwd.includes(pattern)
@@ -152,7 +146,7 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
       warnings.push('Avoid keyboard patterns for better security');
     }
 
-    // OWASP Rule 6: Check if password contains username or email
+    
     if (username && lowerPwd.includes(username.toLowerCase())) {
       errors.push('Password cannot contain your username');
       return {
@@ -178,7 +172,7 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
       }
     }
 
-    // OWASP: Determine strength based on entropy, not complexity rules
+    
     if (entropy < 28) {
       strength = 'weak';
       warnings.push('Consider using a longer password or more varied characters');
@@ -191,7 +185,7 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
       strength = 'strong';
     }
 
-    // OWASP: Encourage longer passwords over complex shorter ones
+    
     if (pwd.length >= 15) {
       strength = 'strong';
     }
@@ -218,12 +212,12 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
     if (user.length < 3) return 'Username must be at least 3 characters';
     if (user.length > 30) return 'Username must be less than 30 characters';
     
-    // OWASP: Strict character whitelist
+    
     if (!/^[a-zA-Z0-9_-]+$/.test(user)) {
       return 'Username can only contain letters, numbers, hyphens, and underscores';
     }
     
-    // Reserved usernames
+    
     const reservedUsernames = [
       'admin', 'root', 'system', 'moderator', 'administrator',
       'support', 'help', 'api', 'null', 'undefined', 'superuser'
@@ -492,7 +486,7 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
                 aria-describedby={isSignUp ? 'password-strength' : undefined}
               />
               
-              {/* Password Strength Indicator */}
+              {}
               {isSignUp && passwordValidation && password.length > 0 && (
                 <div id="password-strength" className="mt-2">
                   <div className="flex items-center justify-between text-xs mb-1">
@@ -511,7 +505,7 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
                     ></div>
                   </div>
                   
-                  {/* Validation Errors */}
+                  {}
                   {passwordValidation.errors.length > 0 && (
                     <div className="mt-2 space-y-1">
                       {passwordValidation.errors.map((err, idx) => (
@@ -523,7 +517,7 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
                     </div>
                   )}
                   
-                  {/* Validation Warnings */}
+                  {}
                   {passwordValidation.warnings.length > 0 && passwordValidation.errors.length === 0 && (
                     <div className="mt-2 space-y-1">
                       {passwordValidation.warnings.map((warning, idx) => (
@@ -535,7 +529,7 @@ const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
                     </div>
                   )}
                   
-                  {/* Entropy Display for Strong Passwords */}
+                  {}
                   {passwordValidation.isValid && passwordValidation.strength === 'strong' && (
                     <p className="text-xs text-green-400 mt-2 flex items-start">
                       <span className="mr-1">✓</span>

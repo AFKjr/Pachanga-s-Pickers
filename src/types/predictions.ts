@@ -7,10 +7,10 @@ export interface ParsedPrediction {
   homeTeam: string;
   awayTeam: string;
   prediction: string;
-  confidence: ConfidenceLevel; // Strictly typed: only values 0, 10, 20, ..., 100
+  confidence: ConfidenceLevel; 
   reasoning: string;
-  gameDate: Date; // Strongly typed as Date object
-  week: NFLWeek; // Strictly typed: only values 1-18 (NFL season weeks)
+  gameDate: Date; 
+  week: NFLWeek; 
 }
 
 export interface PredictionSaveResult {

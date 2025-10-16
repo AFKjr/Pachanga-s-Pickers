@@ -15,7 +15,7 @@ const AdminPickResults: React.FC = () => {
   const [selectedWeek, setSelectedWeek] = useState<NFLWeek | null>(null);
   const [editingScores, setEditingScores] = useState<Record<string, { away: string; home: string }>>({});
   
-  // Use hooks for business logic
+  
   const { 
     picks: allPicksFromService, 
     loading: serviceLoading, 
@@ -28,7 +28,7 @@ const AdminPickResults: React.FC = () => {
   const { showConfirmation, confirmationModal } = useSecureConfirmation();
   const { error, clearError, executeWithErrorHandling } = useErrorHandler();
 
-  // Optimistic updates for queued changes
+  
   const {
     state: optimisticState,
     optimisticUpdate,
@@ -43,14 +43,14 @@ const AdminPickResults: React.FC = () => {
   const { data: allPicks, pendingOperations, isOperationPending } = optimisticState;
   const loading = serviceLoading || isOperationPending;
 
-  // Initialize data
+  
   useEffect(() => {
     loadPicks();
     globalEvents.on('refreshPicks', loadPicks);
     return () => globalEvents.off('refreshPicks', loadPicks);
   }, [loadPicks]);
 
-  // Sync service picks to optimistic state
+  
   useEffect(() => {
     if (allPicksFromService.length > 0) {
       setData(allPicksFromService);
@@ -62,14 +62,14 @@ const AdminPickResults: React.FC = () => {
     }
   }, [allPicksFromService, setData, getAvailableWeeks, selectedWeek]);
 
-  // Queue result update
+  
   const queueUpdateResult = (pickId: string, result: 'win' | 'loss' | 'push') => {
     const pick = allPicks.find(p => p.id === pickId);
     if (!pick) return;
 
     const updatePayload: Partial<Pick> = { result };
     
-    // Auto-calculate ATS/OU if scores exist
+    
     if (pick.game_info.home_score != null && pick.game_info.away_score != null) {
       const results = calculateAllResultsFromScores(pick);
       updatePayload.ats_result = results.ats;
@@ -79,7 +79,7 @@ const AdminPickResults: React.FC = () => {
     optimisticUpdate(pickId, updatePayload, pick);
   };
 
-  // Queue score update
+  
   const queueScoreUpdate = (
     pickId: string, 
     awayScore: number | null | undefined, 
@@ -92,24 +92,21 @@ const AdminPickResults: React.FC = () => {
     optimisticUpdate(pickId, updatePayload, pick);
   };
 
-  // Save scores for a specific pick
+  
   const saveScoresForPick = (pickId: string) => {
     const editedScores = editingScores[pickId];
     if (!editedScores) return;
 
-    // Parse and validate both scores
+    
     const awayScore = editedScores.away === '' ? null : parseInt(editedScores.away, 10);
     const homeScore = editedScores.home === '' ? null : parseInt(editedScores.home, 10);
 
-    // Validate that at least one score is provided and both are in valid range
     if (awayScore === null && homeScore === null) return;
     if (awayScore !== null && (awayScore < 0 || awayScore > 99)) return;
     if (homeScore !== null && (homeScore < 0 || homeScore > 99)) return;
 
-    // Queue the score update
     queueScoreUpdate(pickId, awayScore, homeScore);
 
-    // Clear editing state for this pick
     setEditingScores(prev => {
       const updated = { ...prev };
       delete updated[pickId];
@@ -117,19 +114,18 @@ const AdminPickResults: React.FC = () => {
     });
   };
 
-  // Handle key press on score inputs
   const handleScoreKeyDown = (event: React.KeyboardEvent, pickId: string) => {
     if (event.key === 'Enter') {
       saveScoresForPick(pickId);
     }
   };
 
-  // Check if scores have been edited for a pick
+  
   const hasEditedScores = (pickId: string): boolean => {
     return editingScores[pickId] !== undefined;
   };
 
-  // Check if both scores are valid for saving
+  
   const canSaveScores = (pickId: string): boolean => {
     const editedScores = editingScores[pickId];
     if (!editedScores) return false;
@@ -137,10 +133,9 @@ const AdminPickResults: React.FC = () => {
     const awayValue = editedScores.away;
     const homeValue = editedScores.home;
     
-    // At least one score must be entered
+    
     if (awayValue === '' && homeValue === '') return false;
     
-    // If entered, must be valid numbers
     if (awayValue !== '') {
       const away = parseInt(awayValue, 10);
       if (isNaN(away) || away < 0 || away > 99) return false;
@@ -153,7 +148,6 @@ const AdminPickResults: React.FC = () => {
     return true;
   };
 
-  // Queue delete
   const queueDelete = (pickId: string, homeTeam: string, awayTeam: string) => {
     showConfirmation({
       title: 'Delete Pick',
@@ -166,7 +160,7 @@ const AdminPickResults: React.FC = () => {
     });
   };
 
-  // Discard all queued changes
+  
   const discardChanges = () => {
     if (!hasPendingChanges()) return;
 
@@ -181,7 +175,7 @@ const AdminPickResults: React.FC = () => {
     });
   };
 
-  // Save all queued changes
+  
   const saveChanges = async () => {
     if (!hasPendingChanges()) return;
 
@@ -192,7 +186,7 @@ const AdminPickResults: React.FC = () => {
       level: 'medium'
     }, async () => {
       const result = await commitOperations(async (operations) => {
-        // Execute operations atomically
+        
         const successfulOperations = [];
         const failedOperations = [];
         let firstError = null;
@@ -206,7 +200,7 @@ const AdminPickResults: React.FC = () => {
               }
               successfulOperations.push(operation);
             } else if (operation.type === 'delete') {
-              // For delete operations, we might need a delete API - but this component only does updates
+              
               throw new Error('Delete operations not implemented in this context');
             }
           } catch (error) {
@@ -244,7 +238,7 @@ const AdminPickResults: React.FC = () => {
     });
   };
 
-  // Clear all picks
+  
   const clearAll = async () => {
     showConfirmation({
       title: 'Delete ALL Picks',
@@ -263,7 +257,7 @@ const AdminPickResults: React.FC = () => {
     });
   };
 
-  // Get current week picks
+  
   const currentWeekPicks = selectedWeek ? getPicksByWeek(selectedWeek) : [];
   const availableWeeks = getAvailableWeeks();
 
@@ -277,7 +271,7 @@ const AdminPickResults: React.FC = () => {
 
   return (
     <div className='bg-gray-800 rounded-lg p-6 mb-6'>
-      {/* Header */}
+      {}
       <div className='flex items-center justify-between mb-4'>
         <h2 className='text-xl font-semibold text-white'>Update Pick Results</h2>
         <div className='flex space-x-2'>
@@ -309,7 +303,7 @@ const AdminPickResults: React.FC = () => {
         </div>
       </div>
 
-      {/* Week Selector */}
+      {}
       {availableWeeks.length > 0 && (
         <div className='mb-4'>
           <label className='block text-sm font-medium text-gray-300 mb-2'>Week:</label>
@@ -333,7 +327,7 @@ const AdminPickResults: React.FC = () => {
         onRetry={error?.retryable ? loadPicks : undefined}
       />
 
-      {/* Picks List */}
+      {}
       <div className='space-y-4 max-h-96 overflow-y-auto'>
         {currentWeekPicks.length === 0 ? (
           <div className='text-center py-8 text-gray-400'>
@@ -373,7 +367,7 @@ const AdminPickResults: React.FC = () => {
                       {pick.prediction}
                     </div>
 
-                    {/* ATS and O/U Predictions */}
+                    {}
                     {(pick.spread_prediction || pick.ou_prediction) && (
                       <div className='flex flex-wrap gap-2 mb-3'>
                         {pick.spread_prediction && (
@@ -391,7 +385,7 @@ const AdminPickResults: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Score Inputs */}
+                    {}
                     <div className='flex items-center space-x-3 mb-3'>
                       <div className='flex flex-col'>
                         <label className='text-gray-400 text-xs mb-1'>Away Score</label>
@@ -405,16 +399,13 @@ const AdminPickResults: React.FC = () => {
                           }
                           onChange={(e) => {
                             const value = e.target.value;
-                            // Only allow digits or empty string
                             if (!/^[0-9]*$/.test(value)) return;
                             
-                            // Validate range if not empty
                             if (value !== '') {
                               const numValue = parseInt(value, 10);
                               if (numValue > 99) return;
                             }
                             
-                            // Update local editing state only
                             setEditingScores(prev => ({
                               ...prev,
                               [pick.id]: { 
@@ -441,16 +432,13 @@ const AdminPickResults: React.FC = () => {
                           }
                           onChange={(e) => {
                             const value = e.target.value;
-                            // Only allow digits or empty string
                             if (!/^[0-9]*$/.test(value)) return;
                             
-                            // Validate range if not empty
                             if (value !== '') {
                               const numValue = parseInt(value, 10);
                               if (numValue > 99) return;
                             }
                             
-                            // Update local editing state only
                             setEditingScores(prev => ({
                               ...prev,
                               [pick.id]: { 
@@ -465,7 +453,7 @@ const AdminPickResults: React.FC = () => {
                         />
                       </div>
                       
-                      {/* Save Scores Button */}
+                      {}
                       {isEditingScores && (
                         <button
                           onClick={() => saveScoresForPick(pick.id)}
@@ -477,7 +465,7 @@ const AdminPickResults: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Calculated Results */}
+                    {}
                     {pick.game_info.home_score != null && pick.game_info.away_score != null && (
                       <div className='flex gap-2 mb-3'>
                         {(() => {
@@ -503,7 +491,7 @@ const AdminPickResults: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Action Buttons */}
+                  {}
                   <div className='flex flex-col space-y-2 min-w-[90px]'>
                     <button
                       onClick={() => queueDelete(pick.id, pick.game_info.home_team, pick.game_info.away_team)}
@@ -543,7 +531,7 @@ const AdminPickResults: React.FC = () => {
         )}
       </div>
 
-      {/* Pending Changes Summary */}
+      {}
       {hasPendingChanges() && (
         <div className='mt-4 p-4 bg-yellow-900 border border-yellow-700 rounded-lg'>
           <h3 className='text-yellow-200 font-medium mb-2'>

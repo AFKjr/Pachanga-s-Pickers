@@ -54,16 +54,11 @@ interface BookmakerOdds {
   total: number;
 }
 
-/**
- * NFL Prediction Engine
- * Calculates predicted scores and betting edges
- */
+
 export class NFLPredictionEngine {
   private homeFieldAdvantagePoints: number = 2.5;
 
-  /**
-   * Calculate predicted score for a team
-   */
+  
   calculateScore(
     offenseStats: OffensiveStats,
     opponentDefenseStats: DefensiveStats,
@@ -73,36 +68,34 @@ export class NFLPredictionEngine {
     const offensiveYPG = offenseStats.offensiveYardsPerGame;
     const opponentDefensivePPG = opponentDefenseStats.pointsAllowedPerGame;
     
-    // Baseline calculation
-    let predictedScore = 
-      (offensivePPG * 0.6) +                                    // 60% weight on offensive output
-      ((40 - opponentDefensivePPG) * 0.3) +                     // 30% weight on defensive matchup
-      ((offensiveYPG / 350) * 3);                               // Yards efficiency bonus
     
-    // Add home field advantage
+    let predictedScore = 
+      (offensivePPG * 0.6) +                                    
+      ((40 - opponentDefensivePPG) * 0.3) +                     
+      ((offensiveYPG / 350) * 3);                               
+    
+    
     if (isHomeTeam) {
       predictedScore += this.homeFieldAdvantagePoints;
     }
     
-    // Add turnover differential impact
+    
     const turnoverDiff = 
       (opponentDefenseStats.turnoversForced - offenseStats.turnoversLost) / 
       (offenseStats.gamesPlayed || 1);
-    predictedScore += turnoverDiff * 2; // Each turnover worth ~2 points
+    predictedScore += turnoverDiff * 2; 
     
     return Math.round(predictedScore);
   }
 
-  /**
-   * Generate game prediction
-   */
+  
   predictGame(
     awayTeam: string,
     homeTeam: string,
     awayStats: TeamStatsForPrediction,
     homeStats: TeamStatsForPrediction
   ): GamePrediction {
-    // Calculate predicted scores
+    
     const awayScore = this.calculateScore(
       awayStats.offensiveStats,
       homeStats.defensiveStats,
@@ -115,13 +108,13 @@ export class NFLPredictionEngine {
       true
     );
     
-    // Calculate derived metrics
+    
     const predictedSpread = homeScore - awayScore;
     const predictedTotal = homeScore + awayScore;
     const winner = homeScore > awayScore ? homeTeam : awayTeam;
     const winningMargin = Math.abs(homeScore - awayScore);
     
-    // Calculate confidence
+    
     const confidence = this.calculateConfidence(awayStats, homeStats);
     
     return {
@@ -138,9 +131,7 @@ export class NFLPredictionEngine {
     };
   }
 
-  /**
-   * Calculate prediction confidence level
-   */
+  
   calculateConfidence(
     awayStats: TeamStatsForPrediction,
     homeStats: TeamStatsForPrediction
@@ -162,14 +153,12 @@ export class NFLPredictionEngine {
     return 'Low';
   }
 
-  /**
-   * Calculate edge value against sportsbook odds
-   */
+  
   calculateEdge(prediction: GamePrediction, odds: BookmakerOdds): EdgeAnalysis {
     const spreadDifference = Math.abs(prediction.predictedSpread - odds.spread);
     const totalDifference = Math.abs(prediction.predictedTotal - odds.total);
     
-    // Determine edge strength
+    
     const spreadEdge: 'Strong' | 'Moderate' | 'Minimal' = 
       spreadDifference >= 3 ? 'Strong' : 
       spreadDifference >= 1.5 ? 'Moderate' : 'Minimal';
@@ -178,7 +167,7 @@ export class NFLPredictionEngine {
       totalDifference >= 5 ? 'Strong' : 
       totalDifference >= 3 ? 'Moderate' : 'Minimal';
     
-    // Generate recommendations
+    
     let spreadRecommendation = 'No strong edge';
     if (prediction.predictedSpread > odds.spread + 2) {
       spreadRecommendation = `Bet ${prediction.homeTeam} to cover`;
@@ -211,9 +200,7 @@ export class NFLPredictionEngine {
     };
   }
 
-  /**
-   * Calculate edge percentage (for ROI tracking)
-   */
+  
   calculateEdgePercentage(
     modelProbability: number,
     impliedProbability: number
@@ -221,9 +208,7 @@ export class NFLPredictionEngine {
     return ((modelProbability - impliedProbability) / impliedProbability) * 100;
   }
 
-  /**
-   * Convert American odds to implied probability
-   */
+  
   oddsToImpliedProbability(americanOdds: number): number {
     if (americanOdds > 0) {
       return 100 / (americanOdds + 100);
@@ -232,9 +217,7 @@ export class NFLPredictionEngine {
     }
   }
 
-  /**
-   * Calculate Kelly Criterion stake size
-   */
+  
   calculateKellyCriterion(
     probability: number,
     odds: number,
@@ -246,14 +229,9 @@ export class NFLPredictionEngine {
   }
 }
 
-/**
- * Edge Calculator
- * Standalone utility for calculating betting edges
- */
+
 export class EdgeCalculator {
-  /**
-   * Calculate comprehensive edge analysis
-   */
+  
   static analyzeEdge(
     modelProbability: number,
     bookmakerOdds: number
@@ -283,9 +261,7 @@ export class EdgeCalculator {
     };
   }
 
-  /**
-   * Convert American odds to implied probability
-   */
+  
   static oddsToImpliedProbability(americanOdds: number): number {
     if (americanOdds > 0) {
       return 100 / (americanOdds + 100);
@@ -294,18 +270,14 @@ export class EdgeCalculator {
     }
   }
 
-  /**
-   * Calculate Kelly Criterion
-   */
+  
   static calculateKelly(probability: number, odds: number, fraction: number = 0.25): number {
     const decimalOdds = odds > 0 ? (odds / 100) + 1 : (100 / Math.abs(odds)) + 1;
     const kelly = ((probability * decimalOdds) - 1) / (decimalOdds - 1);
     return Math.max(0, kelly * fraction);
   }
 
-  /**
-   * Calculate expected value (EV)
-   */
+  
   static calculateEV(
     probability: number,
     payout: number,
@@ -314,9 +286,7 @@ export class EdgeCalculator {
     return (probability * payout) - ((1 - probability) * stake);
   }
 
-  /**
-   * Calculate ROI for a bet
-   */
+  
   static calculateROI(
     probability: number,
     odds: number
@@ -327,45 +297,32 @@ export class EdgeCalculator {
   }
 }
 
-/**
- * Performance Tracker
- * Track betting performance and calculate metrics
- */
+
 export class PerformanceTracker {
-  /**
-   * Calculate win rate
-   */
+  
   static calculateWinRate(wins: number, total: number): number {
     return total > 0 ? (wins / total) * 100 : 0;
   }
 
-  /**
-   * Calculate ROI
-   */
+  
   static calculateROI(profit: number, totalStaked: number): number {
     return totalStaked > 0 ? (profit / totalStaked) * 100 : 0;
   }
 
-  /**
-   * Calculate units won/lost (assuming -110 odds)
-   */
+  
   static calculateUnits(wins: number, losses: number, pushes: number = 0): number {
-    // Pushes don't count toward profit/loss
-    const wonUnits = wins; // 1 unit per win
-    const lostUnits = losses * 1.1; // Lose 1.1 units per loss at -110
-    return wonUnits - lostUnits + (pushes * 0); // Pushes return stake
+    
+    const wonUnits = wins; 
+    const lostUnits = losses * 1.1; 
+    return wonUnits - lostUnits + (pushes * 0); 
   }
 
-  /**
-   * Calculate break-even percentage for -110 odds
-   */
+  
   static breakEvenPercentage(): number {
-    return 52.38; // Need to win 52.38% to break even at -110
+    return 52.38; 
   }
 
-  /**
-   * Calculate Sharpe Ratio (risk-adjusted return)
-   */
+  
   static calculateSharpeRatio(
     returns: number[],
     riskFreeRate: number = 0

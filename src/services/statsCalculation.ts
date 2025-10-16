@@ -7,7 +7,7 @@ import { Pick, NFLWeek } from '../types';
 import { ATSCalculator, ComprehensiveATSRecord } from '../utils/calculations';
 import { getPickWeek } from '../utils/nflWeeks';
 
-// Re-export the comprehensive stats type from calculations
+
 export type OverallStats = ComprehensiveATSRecord;
 
 export interface WeeklyStats {
@@ -20,16 +20,12 @@ export interface TeamStats {
   stats: OverallStats;
 }
 
-/**
- * Calculate overall statistics for a set of picks
- */
+
 export function calculateOverallStats(picks: Pick[]): OverallStats {
   return ATSCalculator.calculateComprehensiveATSRecord(picks);
 }
 
-/**
- * Calculate statistics grouped by week
- */
+
 export function calculateWeeklyStats(picks: Pick[]): WeeklyStats[] {
   const weeklyRecords = ATSCalculator.calculateWeeklyATSRecords(picks);
   
@@ -38,12 +34,10 @@ export function calculateWeeklyStats(picks: Pick[]): WeeklyStats[] {
       week: parseInt(week) as NFLWeek,
       stats: data.record
     }))
-    .sort((a, b) => b.week - a.week); // Most recent first
+    .sort((a, b) => b.week - a.week); 
 }
 
-/**
- * Calculate statistics grouped by team
- */
+
 export function calculateTeamStats(picks: Pick[]): TeamStats[] {
   const teamRecords = ATSCalculator.calculateTeamATSRecords(picks);
   
@@ -55,17 +49,13 @@ export function calculateTeamStats(picks: Pick[]): TeamStats[] {
     .sort((a, b) => b.stats.moneyline.winRate - a.stats.moneyline.winRate);
 }
 
-/**
- * Get statistics for a specific week
- */
+
 export function calculateStatsForWeek(picks: Pick[], week: NFLWeek): OverallStats {
   const weekPicks = picks.filter(pick => getPickWeek(pick) === week);
   return calculateOverallStats(weekPicks);
 }
 
-/**
- * Get statistics for a specific team
- */
+
 export function calculateStatsForTeam(picks: Pick[], teamName: string): OverallStats {
   const normalizedTeamName = teamName.toLowerCase().trim();
   const teamPicks = picks.filter(pick => {
@@ -77,17 +67,13 @@ export function calculateStatsForTeam(picks: Pick[], teamName: string): OverallS
   return calculateOverallStats(teamPicks);
 }
 
-/**
- * Get list of unique weeks from picks
- */
+
 export function getUniqueWeeks(picks: Pick[]): NFLWeek[] {
   const weeks = [...new Set(picks.map(pick => getPickWeek(pick)))];
-  return weeks.sort((a, b) => b - a) as NFLWeek[]; // Most recent first
+  return weeks.sort((a, b) => b - a) as NFLWeek[]; 
 }
 
-/**
- * Get list of unique teams from picks
- */
+
 export function getUniqueTeams(picks: Pick[]): string[] {
   const teams = new Set<string>();
   
@@ -99,15 +85,13 @@ export function getUniqueTeams(picks: Pick[]): string[] {
   return Array.from(teams).sort();
 }
 
-/**
- * Calculate win streaks (current and longest)
- */
+
 export function calculateWinStreaks(picks: Pick[]): {
   current: number;
   longest: number;
   type: 'moneyline' | 'ats' | 'ou';
 } {
-  // Sort picks by date (most recent first)
+  
   const sortedPicks = [...picks].sort((a, b) => 
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
@@ -116,7 +100,7 @@ export function calculateWinStreaks(picks: Pick[]): {
   let longestStreak = 0;
   let tempStreak = 0;
 
-  // Calculate current streak (from most recent)
+  
   for (const pick of sortedPicks) {
     if (pick.result === 'win') {
       if (currentStreak === 0) {
@@ -127,10 +111,10 @@ export function calculateWinStreaks(picks: Pick[]): {
     } else if (pick.result === 'loss') {
       break;
     }
-    // Skip pending/push
+    
   }
 
-  // Calculate longest streak
+  
   for (const pick of sortedPicks) {
     if (pick.result === 'win') {
       tempStreak++;
@@ -147,10 +131,7 @@ export function calculateWinStreaks(picks: Pick[]): {
   };
 }
 
-/**
- * Calculate betting units (profit/loss)
- * Assumes standard -110 odds for simplicity
- */
+
 export function calculateUnits(picks: Pick[], betSize: number = 1): {
   moneyline: number;
   ats: number;
@@ -158,8 +139,8 @@ export function calculateUnits(picks: Pick[], betSize: number = 1): {
 } {
   const moneylineUnits = picks.reduce((total, pick) => {
     if (pick.result === 'win') return total + betSize;
-    if (pick.result === 'loss') return total - (betSize * 1.1); // Standard vig
-    return total; // Push or pending
+    if (pick.result === 'loss') return total - (betSize * 1.1); 
+    return total; 
   }, 0);
 
   const atsUnits = picks.reduce((total, pick) => {
@@ -181,9 +162,7 @@ export function calculateUnits(picks: Pick[], betSize: number = 1): {
   };
 }
 
-/**
- * Calculate ROI (Return on Investment)
- */
+
 export function calculateROI(picks: Pick[], betSize: number = 1): {
   moneyline: number;
   ats: number;
@@ -205,19 +184,15 @@ export function calculateROI(picks: Pick[], betSize: number = 1): {
   };
 }
 
-/**
- * Get best performing teams
- */
+
 export function getBestTeams(picks: Pick[], limit: number = 5): TeamStats[] {
   const teamStats = calculateTeamStats(picks);
   return teamStats
-    .filter(team => team.stats.moneyline.totalResolved >= 3) // At least 3 games
+    .filter(team => team.stats.moneyline.totalResolved >= 3) 
     .slice(0, limit);
 }
 
-/**
- * Get worst performing teams
- */
+
 export function getWorstTeams(picks: Pick[], limit: number = 5): TeamStats[] {
   const teamStats = calculateTeamStats(picks);
   return teamStats
