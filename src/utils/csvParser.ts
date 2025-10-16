@@ -555,3 +555,105 @@ export function parseWeeklyTeamStats(
 
   return mergedStats;
 }
+
+/**
+ * Parse a simple CSV with automatic multi-level header detection
+ * 
+ * FEATURES:
+ * - Automatically detects category headers (like Sports Reference format)
+ * - Handles percentage symbols and numeric conversions
+ * - Skips empty rows
+ * - Uses same detection logic as parseStatsSection
+ * 
+ * @param csvText - Raw CSV text content
+ * @returns Array of parsed row objects with column headers as keys
+ */
+export function parseSimpleCSV(csvText: string): any[] {
+  const lines = csvText.trim().split('\n');
+  
+  if (lines.length < 2) {
+    return [];
+  }
+  
+  // Parse all rows into 2D array
+  const rows = lines.map(line => 
+    line.split(',').map(cell => cell.trim())
+  );
+  
+  const firstRow = rows[0];
+  const secondRow = rows[1];
+  
+  // Detect if we have a category header row by checking the second row for standard stat column indicators
+  const secondRowHasStatColumns = (
+    secondRow.some(cell => cell === 'Rk') ||  // Has rank column
+    secondRow.some(cell => cell === 'Tm') ||  // Has team column
+    secondRow.some(cell => cell === 'G') ||   // Has games column
+    secondRow.some(cell => cell === 'PF') ||  // Has points for
+    secondRow.some(cell => cell === 'Yds') || // Has yards
+    secondRow.some(cell => cell === 'Cmp') || // Has completions
+    secondRow.some(cell => cell === 'Att')    // Has attempts
+  );
+  
+  // Additional check: first row should have mostly empty cells or category labels if it's a category header
+  const firstRowEmptyCells = firstRow.filter(cell => cell === '').length;
+  const firstRowHasCategoryLabels = firstRow.some(cell => 
+    cell.includes('Passing') || 
+    cell.includes('Rushing') || 
+    cell.includes('Tot Yds') ||
+    cell.includes('Penalties')
+  );
+  
+  // If second row has stat columns AND first row is mostly empty or has category labels, 
+  // then first row is category header and second row is actual headers
+  const hasCategoryHeader = secondRowHasStatColumns && 
+    (firstRowEmptyCells > firstRow.length / 3 || firstRowHasCategoryLabels);
+  
+  // Use second row as headers if we detected a category header row
+  const headerRowIndex = hasCategoryHeader ? 1 : 0;
+  const headers = rows[headerRowIndex];
+  const dataStartIndex = headerRowIndex + 1;
+  
+  console.log(`📋 parseSimpleCSV: Category header = ${hasCategoryHeader}, Using row ${headerRowIndex} as headers`);
+  
+  const parsedData = [];
+  
+  for (let rowIndex = dataStartIndex; rowIndex < rows.length; rowIndex++) {
+    const values = rows[rowIndex];
+    
+    // Skip empty rows
+    if (!values || values.length === 0 || values.every(cell => cell === '')) {
+      continue;
+    }
+    
+    const rowData: any = {};
+    
+    for (let columnIndex = 0; columnIndex < headers.length; columnIndex++) {
+      const header = headers[columnIndex];
+      
+      // Only process non-empty headers
+      if (!header || header === '') {
+        continue;
+      }
+      
+      let value = values[columnIndex] || '';
+      
+      // Strip percentage symbols if present
+      if (value.endsWith('%')) {
+        value = value.replace('%', '');
+      }
+      
+      // Convert to number if possible
+      const numericValue = Number(value);
+      rowData[header] = !isNaN(numericValue) && value !== '' ? numericValue : value;
+    }
+    
+    // Only add rows that have some meaningful data
+    if (Object.keys(rowData).length > 0) {
+      parsedData.push(rowData);
+    }
+  }
+  
+  console.log(`✅ parseSimpleCSV: Parsed ${parsedData.length} data rows`);
+  
+  return parsedData;
+}
