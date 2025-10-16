@@ -288,6 +288,17 @@ export async function generateLivePredictions(
         favoriteInfo.favoriteIsHome
       );
 
+      // Verify Monte Carlo Output format - add logging to confirm probability scale
+      console.log(`🔍 DEBUG - Simulation probabilities:`, {
+        homeWin: simResult.homeWinProbability,
+        awayWin: simResult.awayWinProbability,
+        favCover: simResult.favoriteCoverProbability,
+        sum: simResult.homeWinProbability + simResult.awayWinProbability
+      });
+
+      // If sum ≈ 1.0, probabilities are in decimal format (need to multiply by 100)
+      // If sum ≈ 100, probabilities are in percentage format (correct)
+
       // Calculate picks and probabilities
       const moneylineProb = Math.max(simResult.homeWinProbability, simResult.awayWinProbability);
       const moneylineConfidence = getConfidenceLevel(moneylineProb);

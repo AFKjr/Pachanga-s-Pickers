@@ -20,15 +20,62 @@ export function oddsToImpliedProbability(americanOdds: number): number {
 }
 
 /**
- * Calculate edge percentage
- * Edge = Model Probability - Implied Probability from Odds
+ * Calculate betting edge using Expected Value formula
+ * 
+ * This represents the expected profit per dollar wagered over the long term.
+ * 
+ * Formula: Edge = (Model Probability × Decimal Odds) - 1
+ * 
+ * @param modelProbability - Win probability from Monte Carlo (0-100 scale, e.g., 65 = 65%)
+ * @param americanOdds - American format odds (e.g., -110, +150)
+ * @returns Edge as percentage of stake (e.g., 15.5 = +15.5% expected profit per bet)
+ * 
+ * @example
+ * // Favorite: 65% model probability, -110 odds
+ * calculateEdge(65, -110) // Returns ~24.1%
+ * // Interpretation: Expect to profit $24.10 per $100 wagered long-term
+ * 
+ * @example
+ * // Underdog: 40% model probability, +200 odds
+ * calculateEdge(40, 200) // Returns 20%
+ * // Interpretation: Expect to profit $20 per $100 wagered long-term
+ * 
+ * @example
+ * // No edge: Model matches market
+ * calculateEdge(52.38, -110) // Returns ~0%
+ * // Interpretation: Break-even bet, no advantage
  */
 export function calculateEdge(
-  modelProbability: number,  // e.g., 65 (meaning 65%)
-  americanOdds: number        // e.g., -110
+  modelProbability: number,  // 0-100 scale (e.g., 65 means 65%)
+  americanOdds: number        // American odds format (e.g., -110, +200)
 ): number {
-  const impliedProbability = oddsToImpliedProbability(americanOdds);
-  return modelProbability - impliedProbability;
+  // Input validation - return 0 for invalid inputs
+  if (modelProbability <= 0 || modelProbability >= 100) {
+    console.warn(`Invalid model probability: ${modelProbability}. Must be between 0-100.`);
+    return 0;
+  }
+  
+  if (!americanOdds || americanOdds === 0) {
+    console.warn('Missing or invalid odds. Cannot calculate edge.');
+    return 0;
+  }
+  
+  // Convert probability from percentage to decimal (65% → 0.65)
+  const probabilityDecimal = modelProbability / 100;
+  
+  // Convert American odds to decimal format
+  const decimalOdds = americanToDecimal(americanOdds);
+  
+  // Calculate Expected Value per $1 wagered
+  // EV Formula: (Probability of Win × Payout) - (Probability of Loss × Stake)
+  // Simplified: (Probability × Decimal Odds) - 1
+  // 
+  // Example: 65% win chance at -110 odds (1.909 decimal)
+  // EV = (0.65 × 1.909) - 1 = 1.241 - 1 = 0.241 = 24.1% edge
+  const expectedValuePerDollar = (probabilityDecimal * decimalOdds) - 1;
+  
+  // Return as percentage
+  return expectedValuePerDollar * 100;
 }
 
 /**
@@ -200,10 +247,10 @@ export function getConfidenceBarColor(
   if (edge < 0) return 'red';
   
   // Strong bet: high edge + solid confidence
-  if (edge >= 3 && confidence >= 65) return 'lime';
+  if (edge >= 5 && confidence >= 65) return 'lime';
   
   // Good bet: decent edge + okay confidence
-  if (edge >= 2 && confidence >= 60) return 'lime';
+  if (edge >= 3 && confidence >= 60) return 'lime';
   
   // Marginal: low edge or lower confidence
   if (edge >= 1 || confidence >= 70) return 'yellow';
@@ -234,8 +281,8 @@ export function getEdgeColorClass(edge: number): string {
  * Get text color class for edge display
  */
 export function getEdgeTextColor(edge: number): string {
-  if (edge >= 3) return 'text-lime-400';
-  if (edge >= 1) return 'text-yellow-400';
+  if (edge >= 5) return 'text-lime-400';
+  if (edge >= 3) return 'text-yellow-400';
   if (edge >= 0) return 'text-gray-400';
   return 'text-red-400';
 }
