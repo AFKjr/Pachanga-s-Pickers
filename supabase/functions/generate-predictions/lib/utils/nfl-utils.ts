@@ -81,12 +81,59 @@ export function getConfidenceLevel(probability: number): string {
   return 'Low';
 }
 
+// ============================================================================
+// BUG FIX #5: Single source of truth for week calculation
+// ============================================================================
+
 /**
- * Calculate NFL week from date (alternative method)
+ * Alias for getNFLWeekFromDate for convenience
+ * Provides a shorter function name while maintaining consistency
  */
-export function calculateNFLWeek(gameDate: Date): number {
-  const seasonStart = new Date('2025-09-02'); // Week 1 Tuesday
-  const daysDiff = Math.floor((gameDate.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24));
-  const week = Math.max(1, Math.min(18, Math.floor(daysDiff / 7) + 1));
-  return week;
+export function getNFLWeek(gameDate: Date | string): number | null {
+  return getNFLWeekFromDate(gameDate);
+}
+
+/**
+ * Gets a human-readable label for a given NFL week
+ */
+export function getWeekLabel(week: number): string {
+  if (week >= 1 && week <= 18) {
+    return `Week ${week}`;
+  }
+  
+  // Playoff weeks
+  switch (week) {
+    case 19:
+      return 'Wild Card';
+    case 20:
+      return 'Divisional Round';
+    case 21:
+      return 'Conference Championships';
+    case 22:
+      return 'Super Bowl';
+    default:
+      return `Week ${week}`;
+  }
+}
+
+/**
+ * Gets the date range for a specific NFL week
+ */
+export function getWeekDateRange(week: number): { start: string; end: string } | null {
+  const weekData = NFL_2025_SCHEDULE[week];
+  return weekData || null;
+}
+
+/**
+ * Validates if a week number is valid for the current season
+ */
+export function isValidWeek(week: number): boolean {
+  return week >= 1 && week <= 18;
+}
+
+/**
+ * Determines if a given week is part of the regular season
+ */
+export function isRegularSeasonWeek(week: number): boolean {
+  return week >= 1 && week <= 18;
 }

@@ -1,4 +1,35 @@
 // supabase/functions/generate-predictions/lib/types.ts
+
+export interface FavoriteInfo {
+  favoriteIsHome: boolean;
+  favoriteTeam: string;
+  underdogTeam: string;
+}
+
+// ============================================================================
+// BUG FIX #7: Stats Quality Indicators
+// ============================================================================
+
+export enum StatsQuality {
+  REAL_DATA = 'real',           // Fetched from database with actual team stats
+  PARTIAL_DATA = 'partial',     // Some fields missing, filled with defaults
+  DEFAULT_DATA = 'default',     // No data found, using league averages
+  STALE_DATA = 'stale'          // Data exists but is outdated
+}
+
+export interface TeamStatsMetadata {
+  quality: StatsQuality;
+  source: string;
+  lastUpdated?: Date;
+  missingFields?: string[];
+  warnings?: string[];
+}
+
+export interface TeamStatsWithMetadata {
+  stats: TeamStats;
+  metadata: TeamStatsMetadata;
+}
+
 export interface TeamStats {
   team: string;
   gamesPlayed: number;

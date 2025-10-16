@@ -30,11 +30,13 @@ export async function fetchNFLOdds(): Promise<OddsData[]> {
 }
 
 export interface ExtractedOdds {
-  homeSpread: number;
-  total: number;
+  homeSpread?: number;  // Made optional to handle missing spread data
+  awaySpread?: number;  // Added for completeness
+  total?: number;  // Made optional to handle missing total data
   homeMLOdds?: number;
   awayMLOdds?: number;
-  spreadOdds?: number;
+  homeSpreadOdds?: number;  // Renamed for clarity
+  awaySpreadOdds?: number;  // Added for completeness
   overOdds?: number;
   underOdds?: number;
 }
@@ -50,20 +52,24 @@ export function extractOddsFromGame(game: OddsData): ExtractedOdds {
   const totalsMarket = bookmaker.markets.find(market => market.key === 'totals');
   const h2hMarket = bookmaker.markets.find(market => market.key === 'h2h');
 
-  const homeSpread = spreadsMarket?.outcomes.find(outcome => outcome.name === game.home_team)?.point || 0;
-  const total = totalsMarket?.outcomes[0]?.point || 45;
+  const homeSpread = spreadsMarket?.outcomes.find(outcome => outcome.name === game.home_team)?.point;
+  const awaySpread = spreadsMarket?.outcomes.find(outcome => outcome.name === game.away_team)?.point;
+  const total = totalsMarket?.outcomes[0]?.point;
   const homeMLOdds = h2hMarket?.outcomes.find(outcome => outcome.name === game.home_team)?.price;
   const awayMLOdds = h2hMarket?.outcomes.find(outcome => outcome.name === game.away_team)?.price;
-  const spreadOdds = spreadsMarket?.outcomes.find(outcome => outcome.name === game.home_team)?.price;
+  const homeSpreadOdds = spreadsMarket?.outcomes.find(outcome => outcome.name === game.home_team)?.price;
+  const awaySpreadOdds = spreadsMarket?.outcomes.find(outcome => outcome.name === game.away_team)?.price;
   const overOdds = totalsMarket?.outcomes.find(outcome => outcome.name === 'Over')?.price;
   const underOdds = totalsMarket?.outcomes.find(outcome => outcome.name === 'Under')?.price;
 
   return {
     homeSpread,
+    awaySpread,
     total,
     homeMLOdds,
     awayMLOdds,
-    spreadOdds,
+    homeSpreadOdds,
+    awaySpreadOdds,
     overOdds,
     underOdds
   };
