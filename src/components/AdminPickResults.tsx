@@ -206,8 +206,11 @@ const AdminPickResults: React.FC = () => {
               }
               successfulOperations.push(operation);
             } else if (operation.type === 'delete') {
-              // For delete operations, we might need a delete API - but this component only does updates
-              throw new Error('Delete operations not implemented in this context');
+              const { error } = await picksApi.delete(operation.id);
+              if (error) {
+                throw error;
+              }
+              successfulOperations.push(operation);
             }
           } catch (error) {
             failedOperations.push(operation);
