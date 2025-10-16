@@ -133,64 +133,60 @@ const CSVImportStats: React.FC = () => {
         console.log(`📊 Processing stats for Week ${weekNumber}, Season ${seasonYear}`);
       }
 
-      // Parse stats using new utility
-      const parsedStats = parseWeeklyTeamStats(offensiveContent, defensiveContent);
+      // Parse stats using new index-based utility
+      const parsedStatsArray = parseWeeklyTeamStats(offensiveContent, defensiveContent);
 
-      // Convert to array format for the component
-      const merged: ExtendedTeamStats[] = [];
+      // Convert to ExtendedTeamStats format for the component
+      const merged: ExtendedTeamStats[] = parsedStatsArray.map(stats => ({
+        team: stats.team_name || '',
+        gamesPlayed: stats.games_played || 1,
+        offensiveYardsPerGame: stats.offensive_yards_per_game || 0,
+        pointsPerGame: stats.points_per_game || 0,
+        totalPlays: stats.total_plays || 0,
+        yardsPerPlay: stats.yards_per_play || 0,
+        firstDowns: stats.first_downs || 0,
+        passCompletions: stats.pass_completions || 0,
+        passAttempts: stats.pass_attempts || 0,
+        passCompletionPct: stats.pass_completion_pct || 0,
+        passingYards: stats.passing_yards || 0,
+        passingTds: stats.passing_tds || 0,
+        interceptionsThrown: stats.interceptions_thrown || 0,
+        yardsPerPassAttempt: stats.yards_per_pass_attempt || 0,
+        rushingAttempts: stats.rushing_attempts || 0,
+        rushingYards: stats.rushing_yards || 0,
+        rushingTds: stats.rushing_tds || 0,
+        yardsPerRush: stats.yards_per_rush || 0,
+        penalties: stats.penalties || 0,
+        penaltyYards: stats.penalty_yards || 0,
+        turnoversLost: stats.turnovers_lost || 0,
+        fumblesLost: stats.fumbles_lost || 0,
+        defensiveYardsAllowed: stats.defensive_yards_allowed || 0,
+        pointsAllowedPerGame: stats.points_allowed_per_game || 0,
+        defTotalPlays: stats.def_total_plays || 0,
+        defYardsPerPlayAllowed: stats.def_yards_per_play_allowed || 0,
+        defFirstDownsAllowed: stats.def_first_downs_allowed || 0,
+        defPassCompletionsAllowed: stats.def_pass_completions_allowed || 0,
+        defPassAttempts: stats.def_pass_attempts || 0,
+        defPassingYardsAllowed: stats.def_passing_yards_allowed || 0,
+        defPassingTdsAllowed: stats.def_passing_tds_allowed || 0,
+        defInterceptions: stats.def_interceptions || 0,
+        defRushingAttemptsAllowed: stats.def_rushing_attempts_allowed || 0,
+        defRushingYardsAllowed: stats.def_rushing_yards_allowed || 0,
+        defRushingTdsAllowed: stats.def_rushing_tds_allowed || 0,
+        turnoversForced: stats.turnovers_forced || 0,
+        fumblesForced: stats.fumbles_forced || 0,
+        turnoverDifferential: stats.turnover_differential || 0,
+        thirdDownPct: 0, // Not in database schema
+        redZonePct: 0, // Not in database schema
 
-      Object.entries(parsedStats).forEach(([teamName, stats]) => {
-        merged.push({
-          team: teamName,
-          gamesPlayed: stats.games_played || 1,
-          offensiveYardsPerGame: stats.offensive_yards_per_game || 0,
-          pointsPerGame: stats.points_per_game || 0,
-          totalPlays: 0, // Not available in new format
-          yardsPerPlay: stats.yards_per_play || 0,
-          firstDowns: 0, // Not available in new format
-          passCompletions: 0, // Not available in new format
-          passAttempts: 0, // Not available in new format
-          passCompletionPct: 0, // Not available in new format
-          passingYards: stats.passing_yards || 0,
-          passingTds: stats.passing_tds || 0,
-          interceptionsThrown: stats.turnovers_lost || 0, // Approximation
-          yardsPerPassAttempt: 0, // Not available in new format
-          rushingAttempts: 0, // Not available in new format
-          rushingYards: stats.rushing_yards || 0,
-          rushingTds: stats.rushing_tds || 0,
-          yardsPerRush: 0, // Not available in new format
-          penalties: 0, // Not available in new format
-          penaltyYards: 0, // Not available in new format
-          turnoversLost: stats.turnovers_lost || 0,
-          fumblesLost: 0, // Not available in new format
-          defensiveYardsAllowed: stats.defensive_yards_allowed || 0,
-          pointsAllowedPerGame: stats.points_allowed_per_game || 0,
-          defTotalPlays: 0, // Not available in new format
-          defYardsPerPlayAllowed: stats.def_yards_per_play_allowed || 0,
-          defFirstDownsAllowed: 0, // Not available in new format
-          defPassCompletionsAllowed: 0, // Not available in new format
-          defPassAttempts: 0, // Not available in new format
-          defPassingYardsAllowed: stats.def_passing_yards_allowed || 0,
-          defPassingTdsAllowed: stats.def_passing_tds_allowed || 0,
-          defInterceptions: stats.def_interceptions || 0,
-          defRushingAttemptsAllowed: 0, // Not available in new format
-          defRushingYardsAllowed: stats.def_rushing_yards_allowed || 0,
-          defRushingTdsAllowed: stats.def_rushing_tds_allowed || 0,
-          turnoversForced: stats.turnovers_forced || 0,
-          fumblesForced: 0, // Not available in new format
-          turnoverDifferential: (stats.turnovers_forced || 0) - (stats.turnovers_lost || 0),
-          thirdDownPct: stats.third_down_conversion_rate || 0,
-          redZonePct: stats.red_zone_efficiency || 0,
-
-          // NEW DRIVE-LEVEL STATS
-          drivesPerGame: stats.drives_per_game || 0,
-          playsPerDrive: 0, // Not available in new format
-          pointsPerDrive: 0, // Not available in new format
-          scoringPercentage: 0, // Not available in new format
-          yardsPerDrive: 0, // Not available in new format
-          timePerDriveSeconds: 0, // Not available in new format
-        });
-      });
+        // NEW DRIVE-LEVEL STATS (not in database schema)
+        drivesPerGame: 0,
+        playsPerDrive: 0,
+        pointsPerDrive: 0,
+        scoringPercentage: stats.scoring_percentage || 0,
+        yardsPerDrive: 0,
+        timePerDriveSeconds: 0,
+      }));
 
       setParsedData(merged);
       setParsing(false);

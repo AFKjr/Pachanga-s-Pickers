@@ -627,53 +627,107 @@ function convertToTeamStats(data: any[], type: 'offense' | 'defense'): ParsedTea
 /**
  * Main function to parse both offense and defense CSVs and merge them
  */
+/**
+ * Parse weekly team stats using index-based parsing (more reliable)
+ * Returns array of TeamStats objects ready for database insertion
+ * 
+ * @param offenseCSV - Raw offense CSV text
+ * @param defenseCSV - Raw defense CSV text  
+ * @returns Array of TeamStats objects (not a map)
+ */
 export function parseWeeklyTeamStats(
   offenseCSV: string,
   defenseCSV: string
-): ParsedTeamStats {
-  // Parse CSV content into arrays of rows
-  const offenseRows = offenseCSV.split('\n').map(line => line.split(','));
-  const defenseRows = defenseCSV.split('\n').map(line => line.split(','));
-
-  console.log('📋 Offense CSV Headers (raw):', offenseRows[0]);
-  console.log('📋 Defense CSV Headers (raw):', defenseRows[0]);
-  console.log('📊 Sample Offense Row:', offenseRows[1]);
-  console.log('🛡️ Sample Defense Row:', defenseRows[1]);
-
-  console.log('📊 Parsing offense CSV...');
-  const offenseData = parseStatsSection(offenseRows);
-  console.log('📊 Offense data parsed:', offenseData.length, 'rows');
-
-  console.log('🛡️ Parsing defense CSV...');
-  const defenseData = parseStatsSection(defenseRows);
-  console.log('🛡️ Defense data parsed:', defenseData.length, 'rows');
-
-  // Convert parsed data to team stats format
-  const offenseStats = convertToTeamStats(offenseData, 'offense');
-  const defenseStats = convertToTeamStats(defenseData, 'defense');
-
-  // Merge offense and defense stats
-  const mergedStats: ParsedTeamStats = {};
-
-  // Get all unique team names
-  const allTeams = new Set([
-    ...Object.keys(offenseStats),
-    ...Object.keys(defenseStats)
-  ]);
-
-  allTeams.forEach(team => {
-    mergedStats[team] = {
-      ...(offenseStats[team] || {}),
-      ...(defenseStats[team] || {})
-    };
-
-    // Enrich with calculated stats
-    mergedStats[team] = enrichWithCalculatedStats(mergedStats[team]);
-  });
-
-  console.log(`✅ Parsed stats for ${allTeams.size} teams`);
-
-  return mergedStats;
+): Partial<TeamStats>[] {
+  console.log('📊 Parsing offense CSV with index-based parser...');
+  const offenseRows = parseCSVByIndex(offenseCSV);
+  
+  console.log('🛡️ Parsing defense CSV with index-based parser...');
+  const defenseRows = parseCSVByIndex(defenseCSV);
+  
+  // Automatically detect and skip header rows
+  let offenseStartRow = 1;
+  let defenseStartRow = 1;
+  
+  // Check if row 1 is a header row (contains 'Rk', 'Tm', etc.)
+  if (offenseRows.length > 1 && (offenseRows[1].includes('Rk') || offenseRows[1].includes('Tm'))) {
+    offenseStartRow = 2; // Skip both category and column headers
+    console.log('� Detected category headers in offense CSV, skipping first 2 rows');
+  }
+  
+  if (defenseRows.length > 1 && (defenseRows[1].includes('Rk') || defenseRows[1].includes('Tm'))) {
+    defenseStartRow = 2; // Skip both category and column headers
+    console.log('� Detected category headers in defense CSV, skipping first 2 rows');
+  }
+  
+  const offenseDataRows = offenseRows.slice(offenseStartRow);
+  const defenseDataRows = defenseRows.slice(defenseStartRow);
+  
+  console.log(`✅ Offense: ${offenseDataRows.length} data rows, Defense: ${defenseDataRows.length} data rows`);
+  
+  // Map data by team name
+  const teamStatsMap = new Map<string, Partial<TeamStats>>();
+  
+  // Process offense data
+  for (const row of offenseDataRows) {
+    const teamName = row[OFFENSE_COLUMNS.TEAM];
+    const games = row[OFFENSE_COLUMNS.GAMES] || 1;
+    
+    if (!teamName || typeof teamName !== 'string' || teamName === 'Tm') {
+      continue; // Skip invalid rows or additional header rows
+    }
+    
+    const offenseStats = parseOffenseRow(row, games);
+    teamStatsMap.set(teamName, offenseStats);
+  }
+  
+  // Process defense data and merge
+  for (const row of defenseDataRows) {
+    const teamName = row[DEFENSE_COLUMNS.TEAM];
+    const games = row[DEFENSE_COLUMNS.GAMES] || 1;
+    
+    if (!teamName || typeof teamName !== 'string' || teamName === 'Tm') {
+      continue; // Skip invalid rows or additional header rows
+    }
+    
+    const defenseStats = parseDefenseRow(row, games);
+    const existing = teamStatsMap.get(teamName);
+    
+    if (existing) {
+      // Merge defense stats with existing offense stats
+      Object.assign(existing, defenseStats);
+      
+      // Calculate turnover differential
+      existing.turnover_differential = (existing.turnovers_forced || 0) - (existing.turnovers_lost || 0);
+    } else {
+      // Defense-only entry (shouldn't happen, but handle it)
+      teamStatsMap.set(teamName, {
+        ...defenseStats,
+        turnover_differential: (defenseStats.turnovers_forced || 0)
+      });
+    }
+  }
+  
+  console.log(`✅ Parsed stats for ${teamStatsMap.size} teams`);
+  
+  // Debug output for sample team
+  const sampleTeam = teamStatsMap.get('Detroit Lions');
+  if (sampleTeam) {
+    console.log('✅ SAMPLE PARSED DATA - Detroit Lions:', {
+      offYards: sampleTeam.offensive_yards_per_game,
+      defYards: sampleTeam.defensive_yards_allowed,
+      ppg: sampleTeam.points_per_game,
+      games: sampleTeam.games_played,
+      passingYards: sampleTeam.passing_yards,
+      rushingYards: sampleTeam.rushing_yards,
+      turnovers: sampleTeam.turnovers_lost,
+      defInterceptions: sampleTeam.def_interceptions,
+      turnoverDiff: sampleTeam.turnover_differential
+    });
+  }
+  
+  // Return as array
+  return Array.from(teamStatsMap.values());
 }
 
 /**
