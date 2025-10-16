@@ -216,30 +216,28 @@ export function calculateBothSidesEdge(
   spread: { favorite: number; underdog: number };
   total: { over: number; under: number };
 } {
+  // Helper function to safely calculate edge (skip extremes)
+  const safeCalculateEdge = (probability: number, odds: number | null | undefined): number => {
+    if (!odds && odds !== 0) return 0;
+    if (probability <= 0.1 || probability >= 99.9) {
+      // Don't calculate edges for near-certain outcomes
+      return probability > 50 ? 100 : -100;  // Just return max/min edge
+    }
+    return calculateEdge(probability, odds);
+  };
+
   return {
     moneyline: {
-      home: gameInfo.home_ml_odds 
-        ? calculateEdge(monteCarloResults.home_win_probability, gameInfo.home_ml_odds)
-        : 0,
-      away: gameInfo.away_ml_odds
-        ? calculateEdge(monteCarloResults.away_win_probability, gameInfo.away_ml_odds)
-        : 0
+      home: safeCalculateEdge(monteCarloResults.home_win_probability, gameInfo.home_ml_odds),
+      away: safeCalculateEdge(monteCarloResults.away_win_probability, gameInfo.away_ml_odds)
     },
     spread: {
-      favorite: gameInfo.spread_odds
-        ? calculateEdge(monteCarloResults.spread_cover_probability, gameInfo.spread_odds)
-        : 0,
-      underdog: gameInfo.spread_odds
-        ? calculateEdge(100 - monteCarloResults.spread_cover_probability, gameInfo.spread_odds)
-        : 0
+      favorite: safeCalculateEdge(monteCarloResults.spread_cover_probability, gameInfo.spread_odds),
+      underdog: safeCalculateEdge(100 - monteCarloResults.spread_cover_probability, gameInfo.spread_odds)
     },
     total: {
-      over: gameInfo.over_odds
-        ? calculateEdge(monteCarloResults.over_probability, gameInfo.over_odds)
-        : 0,
-      under: gameInfo.under_odds
-        ? calculateEdge(monteCarloResults.under_probability, gameInfo.under_odds)
-        : 0
+      over: safeCalculateEdge(monteCarloResults.over_probability, gameInfo.over_odds),
+      under: safeCalculateEdge(monteCarloResults.under_probability, gameInfo.under_odds)
     }
   };
 }
