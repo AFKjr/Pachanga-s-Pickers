@@ -64,6 +64,98 @@ function parsePercentage(value: any): number | undefined {
 }
 
 /**
+ * Process cell value - strip % and convert to number if possible
+ */
+function processCellValue(cell: string): string | number {
+  let value = cell.trim();
+  
+  // Strip % symbol before parsing numbers
+  if (value.endsWith('%')) {
+    value = value.replace('%', '').trim();
+  }
+  
+  // Convert numeric strings to numbers
+  if (value && !isNaN(Number(value))) {
+    return Number(value);
+  }
+  
+  return value;
+}
+
+/**
+ * Parse a stats section with multi-level header detection
+ * Handles multiple sections separated by empty rows
+ */
+function parseStatsSection(rows: string[][]): any[] {
+  const allData: any[] = [];
+  
+  let currentSection: string[][] = [];
+  
+  for (const row of rows) {
+    // Check if this is an empty row (section separator)
+    const isEmptyRow = row.every(cell => cell.trim() === '');
+    
+    if (isEmptyRow) {
+      // Process the current section if it has data
+      if (currentSection.length > 0) {
+        const sectionData = processSingleSection(currentSection);
+        allData.push(...sectionData);
+        currentSection = [];
+      }
+    } else {
+      // Add row to current section
+      currentSection.push(row);
+    }
+  }
+  
+  // Process the last section if it exists
+  if (currentSection.length > 0) {
+    const sectionData = processSingleSection(currentSection);
+    allData.push(...sectionData);
+  }
+  
+  return allData;
+}
+
+/**
+ * Process a single section with multi-level header detection
+ */
+function processSingleSection(rows: string[][]): any[] {
+  if (rows.length < 2) {
+    return [];
+  }
+  
+  // Check if first row is a multi-level header (mostly empty or category labels)
+  const firstRow = rows[0];
+  const emptyCount = firstRow.filter(cell => cell.trim() === '').length;
+  const isMultiLevelHeader = emptyCount > firstRow.length / 2;
+  
+  // Use second row as headers if first row is multi-level
+  const headerRowIndex = isMultiLevelHeader ? 1 : 0;
+  const headers = rows[headerRowIndex];
+  const dataStartIndex = headerRowIndex + 1;
+  
+  console.log(`📋 Using headers from row ${headerRowIndex}:`, headers);
+  
+  const parsedData = [];
+  
+  for (let rowIndex = dataStartIndex; rowIndex < rows.length; rowIndex++) {
+    const row = rows[rowIndex];
+    const rowData: any = {};
+    
+    for (let columnIndex = 0; columnIndex < headers.length; columnIndex++) {
+      const header = headers[columnIndex];
+      const cell = row[columnIndex] || '';
+      rowData[header] = processCellValue(cell);
+    }
+    
+    parsedData.push(rowData);
+  }
+  
+  return parsedData;
+}
+
+/**
  * Check if a row should be skipped
  */
 function isInvalidRow(teamName: string, cells: string[]): boolean {
@@ -343,26 +435,54 @@ export function enrichWithCalculatedStats(
 }
 
 /**
+ * Convert parsed CSV data to team stats format
+ */
+function convertToTeamStats(data: any[], type: 'offense' | 'defense'): ParsedTeamStats {
+  const teamStats: ParsedTeamStats = {};
+
+  data.forEach(row => {
+    const teamName = row.Tm || row.Team;
+    if (!teamName || typeof teamName !== 'string') return;
+
+    if (!teamStats[teamName]) {
+      teamStats[teamName] = {};
+    }
+
+    // Map the row data using the existing mapColumnNames logic
+    const mappedRow = mapColumnNames(row, type);
+    Object.assign(teamStats[teamName], mappedRow);
+  });
+
+  return teamStats;
+}
+
+/**
  * Main function to parse both offense and defense CSVs and merge them
  */
 export function parseWeeklyTeamStats(
   offenseCSV: string,
   defenseCSV: string
 ): ParsedTeamStats {
-  // Parse CSV content into arrays of rows for logging
-  const offenseData = offenseCSV.split('\n').map(line => line.split(','));
-  const defenseData = defenseCSV.split('\n').map(line => line.split(','));
+  // Parse CSV content into arrays of rows
+  const offenseRows = offenseCSV.split('\n').map(line => line.split(','));
+  const defenseRows = defenseCSV.split('\n').map(line => line.split(','));
 
-  console.log('📋 Offense CSV Headers:', offenseData[0]);
-  console.log('📋 Defense CSV Headers:', defenseData[0]);
-  console.log('📊 Sample Offense Row:', offenseData[1]);
-  console.log('🛡️ Sample Defense Row:', defenseData[1]);
+  console.log('📋 Offense CSV Headers (raw):', offenseRows[0]);
+  console.log('📋 Defense CSV Headers (raw):', defenseRows[0]);
+  console.log('📊 Sample Offense Row:', offenseRows[1]);
+  console.log('🛡️ Sample Defense Row:', defenseRows[1]);
 
   console.log('📊 Parsing offense CSV...');
-  const offenseStats = parseMultiSectionCSV(offenseCSV, 'offense');
+  const offenseData = parseStatsSection(offenseRows);
+  console.log('📊 Offense data parsed:', offenseData.length, 'rows');
 
   console.log('🛡️ Parsing defense CSV...');
-  const defenseStats = parseMultiSectionCSV(defenseCSV, 'defense');
+  const defenseData = parseStatsSection(defenseRows);
+  console.log('🛡️ Defense data parsed:', defenseData.length, 'rows');
+
+  // Convert parsed data to team stats format
+  const offenseStats = convertToTeamStats(offenseData, 'offense');
+  const defenseStats = convertToTeamStats(defenseData, 'defense');
 
   // Merge offense and defense stats
   const mergedStats: ParsedTeamStats = {};
