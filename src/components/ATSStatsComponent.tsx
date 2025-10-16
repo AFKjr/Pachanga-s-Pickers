@@ -9,7 +9,7 @@ const ATSStatsComponent: React.FC = () => {
   const [selectedWeek, setSelectedWeek] = useState<NFLWeek | 'all'>('all');
   const [activeTab, setActiveTab] = useState<'overview' | 'weekly' | 'teams'>('overview');
 
-  
+  // Use hooks for all business logic
   const { picks, loading, loadPicks } = usePickManager();
   const { 
     overallStats,
@@ -19,7 +19,7 @@ const ATSStatsComponent: React.FC = () => {
     units
   } = useStatistics(picks);
 
-  
+  // Load picks and listen for updates
   useEffect(() => {
     loadPicks();
     const refresh = () => loadPicks();
@@ -31,12 +31,12 @@ const ATSStatsComponent: React.FC = () => {
     };
   }, [loadPicks]);
 
-  
+  // Filter picks for selected week
   const filteredPicks = selectedWeek === 'all' 
     ? picks 
     : picks.filter(pick => getPickWeek(pick) === selectedWeek);
 
-  
+  // Recalculate stats for filtered picks
   const displayStats = selectedWeek === 'all' 
     ? overallStats 
     : useStatistics(filteredPicks).overallStats;
@@ -58,7 +58,7 @@ const ATSStatsComponent: React.FC = () => {
 
   return (
     <div className="bg-gray-800 rounded-lg p-6 mb-8">
-      {}
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-white">Advanced Betting Analytics</h2>
         <SegmentedWeekSelector
@@ -70,7 +70,7 @@ const ATSStatsComponent: React.FC = () => {
         />
       </div>
 
-      {}
+      {/* Tab Navigation */}
       <div className="flex space-x-1 bg-gray-700 p-1 rounded-lg mb-6">
         {(['overview', 'weekly', 'teams'] as const).map(tab => (
           <button
@@ -88,10 +88,10 @@ const ATSStatsComponent: React.FC = () => {
         ))}
       </div>
 
-      {}
+      {/* Overview Tab */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          {}
+          {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <StatCard
               title="Moneyline Record"
@@ -241,6 +241,7 @@ const ATSStatsComponent: React.FC = () => {
   );
 };
 
+// Helper Components
 const StatCard: React.FC<{
   title: string;
   winRate: number;

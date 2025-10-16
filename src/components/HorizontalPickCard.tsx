@@ -133,10 +133,10 @@ const HorizontalPickCard: React.FC<HorizontalPickCardProps> = ({ pick }) => {
     }
   };
 
-  
+  // Calculate opponent edge (simplified - this would be more complex in reality)
   const calcOppEdge = (edge?: number): string => {
     if (!edge) return '-0.0';
-    return formatEdge(-edge - 1.5); 
+    return formatEdge(-edge - 1.5); // Rough approximation
   };
   
   return (
@@ -149,7 +149,7 @@ const HorizontalPickCard: React.FC<HorizontalPickCardProps> = ({ pick }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {}
+      {/* Header */}
       <div className="px-6 py-4 border-b border-[rgba(255,255,255,0.05)]">
         <div className="flex items-center justify-between">
           <h3 className="text-white font-bold text-lg">
@@ -161,9 +161,9 @@ const HorizontalPickCard: React.FC<HorizontalPickCardProps> = ({ pick }) => {
         </div>
       </div>
       
-      {}
+      {/* Bet Sections */}
       <div className="px-6 py-4 flex flex-wrap gap-6 justify-start">
-        {}
+        {/* Moneyline */}
         <BetSection
           title="MONEYLINE"
           prediction={pick.prediction}
@@ -177,7 +177,7 @@ const HorizontalPickCard: React.FC<HorizontalPickCardProps> = ({ pick }) => {
           result={pick.result}
         />
         
-        {}
+        {/* Spread */}
         {pick.spread_prediction && (
           <BetSection
             title="SPREAD"
@@ -193,7 +193,7 @@ const HorizontalPickCard: React.FC<HorizontalPickCardProps> = ({ pick }) => {
           />
         )}
         
-        {}
+        {/* Total */}
         {pick.ou_prediction && (
           <BetSection
             title="TOTAL"

@@ -15,9 +15,9 @@ export interface ErrorContext {
   metadata?: Record<string, any>;
 }
 
-
+// Specific error codes with user-friendly messages
 export const ERROR_CODES = {
-  
+  // Authentication & Authorization
   AUTH_REQUIRED: {
     code: 'AUTH_REQUIRED',
     message: 'User not authenticated',
@@ -43,7 +43,7 @@ export const ERROR_CODES = {
     retryable: false
   },
 
-  
+  // Network & API Errors
   NETWORK_ERROR: {
     code: 'NETWORK_ERROR',
     message: 'Network request failed',
@@ -69,7 +69,7 @@ export const ERROR_CODES = {
     retryable: true
   },
 
-  
+  // Data Validation Errors
   VALIDATION_FAILED: {
     code: 'VALIDATION_FAILED',
     message: 'Data validation failed',
@@ -95,7 +95,7 @@ export const ERROR_CODES = {
     retryable: false
   },
 
-  
+  // Database Errors
   DB_CONNECTION_FAILED: {
     code: 'DB_CONNECTION_FAILED',
     message: 'Database connection failed',
@@ -121,7 +121,7 @@ export const ERROR_CODES = {
     retryable: true
   },
 
-  
+  // Pick-specific Errors
   PICK_SAVE_FAILED: {
     code: 'PICK_SAVE_FAILED',
     message: 'Failed to save pick',
@@ -155,7 +155,7 @@ export const ERROR_CODES = {
     retryable: true
   },
 
-  
+  // AI/LLM Errors
   AI_GENERATION_FAILED: {
     code: 'AI_GENERATION_FAILED',
     message: 'AI prediction generation failed',
@@ -173,7 +173,7 @@ export const ERROR_CODES = {
     retryable: true
   },
 
-  
+  // Generic fallback
   UNKNOWN_ERROR: {
     code: 'UNKNOWN_ERROR',
     message: 'Unknown error occurred',
@@ -184,7 +184,9 @@ export const ERROR_CODES = {
   }
 } as const;
 
-
+/**
+ * Enhanced error class with user-friendly messaging
+ */
 export class AppError extends Error {
   public readonly code: string;
   public readonly userMessage: string;
@@ -211,13 +213,15 @@ export class AppError extends Error {
   }
 }
 
-
+/**
+ * Create an AppError from a generic error
+ */
 export function createAppError(
   error: unknown,
   context: ErrorContext,
   errorCode?: keyof typeof ERROR_CODES
 ): AppError {
-  
+  // If it's already an AppError, just add context
   if (error instanceof AppError) {
     return new AppError(
       ERROR_CODES[error.code as keyof typeof ERROR_CODES] || ERROR_CODES.UNKNOWN_ERROR,
@@ -228,7 +232,7 @@ export function createAppError(
 
   const originalError = error instanceof Error ? error : new Error(String(error));
 
-  
+  // Try to determine error type from message/type
   let detectedErrorCode = errorCode;
 
   if (!detectedErrorCode) {
@@ -260,7 +264,9 @@ export function createAppError(
   );
 }
 
-
+/**
+ * Handle Supabase-specific errors
+ */
 export function handleSupabaseError(
   error: any,
   context: ErrorContext
@@ -269,7 +275,7 @@ export function handleSupabaseError(
     return createAppError(new Error('Unknown Supabase error'), context);
   }
 
-  
+  // Map Supabase error codes to our error types
   if (error.code === 'PGRST116') {
     return createAppError(error, context, 'RECORD_NOT_FOUND');
   }
@@ -289,7 +295,9 @@ export function handleSupabaseError(
   return createAppError(error, context, 'SERVER_ERROR');
 }
 
-
+/**
+ * Format error for display to users
+ */
 export function formatErrorForUser(error: AppError): {
   title: string;
   message: string;
@@ -313,7 +321,9 @@ export function formatErrorForUser(error: AppError): {
   };
 }
 
-
+/**
+ * Log error with context for debugging
+ */
 export function logError(error: AppError): void {
   const logLevel = error.severity === 'critical' || error.severity === 'high' ? 'error' : 'warn';
   
@@ -325,7 +335,9 @@ export function logError(error: AppError): void {
   });
 }
 
-
+/**
+ * Retry wrapper for operations
+ */
 export async function withRetry<T>(
   operation: () => Promise<T>,
   context: ErrorContext,
@@ -349,7 +361,7 @@ export async function withRetry<T>(
         throw lastError;
       }
 
-      
+      // Exponential backoff
       await new Promise(resolve => setTimeout(resolve, delayMs * Math.pow(2, attempt - 1)));
     }
   }

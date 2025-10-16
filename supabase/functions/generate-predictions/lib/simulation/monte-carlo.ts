@@ -50,14 +50,17 @@ function simulateSingleGame(
   return { homeScore, awayScore };
 }
 
-
+/**
+ * Determine which team is the favorite based on moneyline odds
+ * Negative moneyline = favorite, more negative = bigger favorite
+ */
 function determineFavorite(homeMoneyline: number, awayMoneyline: number): {
   favoriteIsHome: boolean;
   favoriteTeam: string;
   underdogTeam: string;
 } {
-  
-  
+  // Negative moneyline = favorite
+  // More negative = bigger favorite
   if (homeMoneyline < awayMoneyline) {
     return {
       favoriteIsHome: true,
@@ -76,16 +79,16 @@ function determineFavorite(homeMoneyline: number, awayMoneyline: number): {
 export function runMonteCarloSimulation(
   homeStats: TeamStats,
   awayStats: TeamStats,
-  spread: number,           
+  spread: number,           // ALWAYS from favorite's perspective (negative)
   total: number,
   weather: GameWeather | null,
-  favoriteIsHome: boolean   
+  favoriteIsHome: boolean   // NEW: Indicate which team is favored
 ): SimulationResult {
   const homeScores: number[] = [];
   const awayScores: number[] = [];
   let homeWins = 0;
   let awayWins = 0;
-  let favoriteCovers = 0;   
+  let favoriteCovers = 0;   // Track favorite covering (bookmaker style)
   let overs = 0;
 
   for (let iteration = 0; iteration < SIMULATION_ITERATIONS; iteration++) {
@@ -94,23 +97,23 @@ export function runMonteCarloSimulation(
     homeScores.push(gameResult.homeScore);
     awayScores.push(gameResult.awayScore);
 
-    
+    // Win probability
     if (gameResult.homeScore > gameResult.awayScore) homeWins++;
     if (gameResult.awayScore > gameResult.homeScore) awayWins++;
 
-    
-    
+    // Spread coverage - BOOKMAKER STYLE
+    // Favorite must win by MORE than the absolute spread value
     const favoriteScore = favoriteIsHome ? gameResult.homeScore : gameResult.awayScore;
     const underdogScore = favoriteIsHome ? gameResult.awayScore : gameResult.homeScore;
     
     const margin = favoriteScore - underdogScore;
-    const spreadValue = Math.abs(spread); 
+    const spreadValue = Math.abs(spread); // Convert -11.5 to 11.5
     
     if (margin > spreadValue) {
       favoriteCovers++;
     }
 
-    
+    // Over/Under
     const totalPoints = gameResult.homeScore + gameResult.awayScore;
     if (totalPoints > total) overs++;
   }
@@ -125,14 +128,14 @@ export function runMonteCarloSimulation(
     awayWinProbability: (awayWins / SIMULATION_ITERATIONS) * 100,
     predictedHomeScore: Math.round(avgHomeScore),
     predictedAwayScore: Math.round(avgAwayScore),
-    spreadCoverProbability: favoriteCoverProb,  
-    favoriteCoverProbability: favoriteCoverProb,  
-    underdogCoverProbability: ((SIMULATION_ITERATIONS - favoriteCovers) / SIMULATION_ITERATIONS) * 100,  
+    spreadCoverProbability: favoriteCoverProb,  // DEPRECATED: Kept for backward compatibility (same as favoriteCoverProbability)
+    favoriteCoverProbability: favoriteCoverProb,  // NEW: Favorite covering spread
+    underdogCoverProbability: ((SIMULATION_ITERATIONS - favoriteCovers) / SIMULATION_ITERATIONS) * 100,  // NEW: Underdog covering
     overProbability: (overs / SIMULATION_ITERATIONS) * 100,
     underProbability: ((SIMULATION_ITERATIONS - overs) / SIMULATION_ITERATIONS) * 100,
     iterations: SIMULATION_ITERATIONS
   };
 }
 
-
+// Export determineFavorite for use in other modules
 export { determineFavorite };

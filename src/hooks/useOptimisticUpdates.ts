@@ -23,22 +23,22 @@ export interface OptimisticState<T> {
 export interface UseOptimisticUpdatesReturn<T> {
   state: OptimisticState<T>;
   
-  
+  // Optimistic operations
   optimisticUpdate: (id: string, updates: Partial<T>, original: T) => void;
   optimisticDelete: (id: string, original: T) => void;
   
-  
+  // Commit operations
   commitOperations: <R>(
     executor: (operations: PendingOperation<T>[]) => Promise<R>
   ) => Promise<{ success: boolean; result?: R; failedOperations: PendingOperation<T>[] }>;
   
-  
+  // State management
   rollbackOperation: (operationId: string) => void;
   rollbackAllOperations: () => void;
   clearPendingOperations: () => void;
   setData: (data: T[]) => void;
   
-  
+  // Utilities
   hasPendingChanges: () => boolean;
   getPendingOperation: (id: string) => PendingOperation<T> | undefined;
 }
@@ -52,11 +52,11 @@ export function useOptimisticUpdates<T extends { id: string }>(
     isOperationPending: false
   });
   
-  
+  // Track original data for rollback purposes
   const originalDataRef = useRef<Map<string, T>>(new Map());
 
   const optimisticUpdate = useCallback((id: string, updates: Partial<T>, original: T) => {
-    
+    // Store original data for potential rollback
     if (!originalDataRef.current.has(id)) {
       originalDataRef.current.set(id, original);
     }
@@ -73,14 +73,14 @@ export function useOptimisticUpdates<T extends { id: string }>(
 
       const updatedOperations = [...prev.pendingOperations];
       if (existingOpIndex >= 0) {
-        
+        // Replace existing operation
         updatedOperations[existingOpIndex] = newOperation;
       } else {
-        
+        // Add new operation
         updatedOperations.push(newOperation);
       }
 
-      
+      // Apply optimistic update to data
       const updatedData = prev.data.map(item =>
         item.id === id ? { ...item, ...updates } : item
       );
@@ -94,7 +94,7 @@ export function useOptimisticUpdates<T extends { id: string }>(
   }, []);
 
   const optimisticDelete = useCallback((id: string, original: T) => {
-    
+    // Store original data for potential rollback
     if (!originalDataRef.current.has(id)) {
       originalDataRef.current.set(id, original);
     }
@@ -110,14 +110,14 @@ export function useOptimisticUpdates<T extends { id: string }>(
 
       const updatedOperations = [...prev.pendingOperations];
       if (existingOpIndex >= 0) {
-        
+        // Replace existing operation
         updatedOperations[existingOpIndex] = newOperation;
       } else {
-        
+        // Add new operation
         updatedOperations.push(newOperation);
       }
 
-      
+      // Apply optimistic delete to data
       const updatedData = prev.data.filter(item => item.id !== id);
 
       return {
@@ -136,22 +136,22 @@ export function useOptimisticUpdates<T extends { id: string }>(
       const originalData = originalDataRef.current.get(operationId);
       if (!originalData) return prev;
 
-      
+      // Remove operation from pending list
       const updatedOperations = prev.pendingOperations.filter(op => op.id !== operationId);
 
-      
+      // Restore original data
       let updatedData = [...prev.data];
       if (operation.type === 'delete') {
-        
+        // Restore deleted item
         updatedData.push(originalData);
       } else if (operation.type === 'update') {
-        
+        // Restore original values
         updatedData = updatedData.map(item =>
           item.id === operationId ? originalData : item
         );
       }
 
-      
+      // Clean up original data reference
       originalDataRef.current.delete(operationId);
 
       return {
@@ -164,22 +164,22 @@ export function useOptimisticUpdates<T extends { id: string }>(
 
   const rollbackAllOperations = useCallback(() => {
     setState(prev => {
-      
+      // Restore all original data
       let restoredData = [...prev.data];
 
-      
+      // Process operations in reverse chronological order for proper restoration
       const sortedOperations = [...prev.pendingOperations].sort((a, b) => b.timestamp - a.timestamp);
 
       sortedOperations.forEach(operation => {
         const originalData = originalDataRef.current.get(operation.id);
         if (originalData) {
           if (operation.type === 'delete') {
-            
+            // Restore deleted item if not already present
             if (!restoredData.find(item => item.id === operation.id)) {
               restoredData.push(originalData);
             }
           } else if (operation.type === 'update') {
-            
+            // Restore original values
             restoredData = restoredData.map(item =>
               item.id === operation.id ? originalData : item
             );
@@ -187,7 +187,7 @@ export function useOptimisticUpdates<T extends { id: string }>(
         }
       });
 
-      
+      // Clear all original data references
       originalDataRef.current.clear();
 
       return {
@@ -210,7 +210,7 @@ export function useOptimisticUpdates<T extends { id: string }>(
     try {
       const result = await executor(state.pendingOperations);
       
-      
+      // Success - clear all pending operations and original data
       setState(prev => ({ ...prev, pendingOperations: [], isOperationPending: false }));
       originalDataRef.current.clear();
       
@@ -218,7 +218,7 @@ export function useOptimisticUpdates<T extends { id: string }>(
     } catch (error) {
       console.error('Commit operations failed:', error);
       
-      
+      // On failure, rollback all operations to ensure UI matches database
       setState(prev => ({ ...prev, isOperationPending: false }));
       rollbackAllOperations();
       
@@ -236,7 +236,7 @@ export function useOptimisticUpdates<T extends { id: string }>(
 
   const setData = useCallback((data: T[]) => {
     setState(prev => ({ ...prev, data }));
-    
+    // Clear any stale original data references
     originalDataRef.current.clear();
   }, []);
 

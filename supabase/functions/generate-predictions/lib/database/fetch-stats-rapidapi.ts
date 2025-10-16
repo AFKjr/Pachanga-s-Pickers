@@ -238,7 +238,7 @@ export async function fetchTeamStatsFromRapidAPI(
     const record = data.record;
     const gamesPlayed = record.games_played || 1;
 
-    
+    // Calculate derived stats
     const thirdDownRate = record.efficiency?.thirddown?.pct || 40.0;
     const redZoneRate = record.efficiency?.redzone?.pct || 55.0;
 
@@ -249,8 +249,8 @@ export async function fetchTeamStatsFromRapidAPI(
       ? (record.passing.yards + record.rushing.yards) / (record.passing.attempts + record.rushing.attempts + record.passing.sacks)
       : 5.5;
 
-    
-    const turnoversLost = (record.passing?.interceptions || 0) + (record.passing?.sacks || 0); 
+    // Calculate turnover differential
+    const turnoversLost = (record.passing?.interceptions || 0) + (record.passing?.sacks || 0); // Simplified
     const turnoversForced = (record.defense?.interceptions || 0) + (record.defense?.fumble_recoveries || 0);
     const turnoverDifferential = calculateSafeAverage(turnoversForced - turnoversLost, gamesPlayed, 0);
 
@@ -259,9 +259,9 @@ export async function fetchTeamStatsFromRapidAPI(
     const offensiveYardsPerGame = record.passing?.yards && record.rushing?.yards
       ? calculateSafeAverage(record.passing.yards + record.rushing.yards, gamesPlayed, 300)
       : 300;
-    const defensiveYardsAllowed = 300; 
+    const defensiveYardsAllowed = 300; // Sports Radar doesn't provide defensive yards allowed directly
 
-    
+    // Drive stats estimation
     const estimatedDrivesPerGame = 12;
     const playsPerDrive = record.passing?.attempts && record.rushing?.attempts
       ? calculateSafeAverage(record.passing.attempts + record.rushing.attempts, gamesPlayed, 60) / estimatedDrivesPerGame
@@ -301,15 +301,15 @@ export async function fetchTeamStatsFromRapidAPI(
       penalties: calculateSafeAverage(record.penalties?.penalties || 0, gamesPlayed, 6),
       penaltyYards: calculateSafeAverage(record.penalties?.yards || 0, gamesPlayed, 50),
       turnoversLost: calculateSafeAverage(turnoversLost, gamesPlayed, 1),
-      fumblesLost: calculateSafeAverage(record.passing?.sacks || 0, gamesPlayed, 0.5), 
-      defPassCompletionsAllowed: 0, 
+      fumblesLost: calculateSafeAverage(record.passing?.sacks || 0, gamesPlayed, 0.5), // Simplified
+      defPassCompletionsAllowed: 0, // Not directly available
       defPassAttempts: 0,
-      defPassingYardsAllowed: 200, 
-      defPassingTdsAllowed: calculateSafeAverage(record.passing?.touchdowns || 0, gamesPlayed, 1.5), 
+      defPassingYardsAllowed: 200, // Estimated
+      defPassingTdsAllowed: calculateSafeAverage(record.passing?.touchdowns || 0, gamesPlayed, 1.5), // Simplified
       defInterceptions: calculateSafeAverage(record.defense?.interceptions || 0, gamesPlayed, 0.5),
       defRushingAttemptsAllowed: 0,
-      defRushingYardsAllowed: 100, 
-      defRushingTdsAllowed: calculateSafeAverage(record.rushing?.touchdowns || 0, gamesPlayed, 0.8), 
+      defRushingYardsAllowed: 100, // Estimated
+      defRushingTdsAllowed: calculateSafeAverage(record.rushing?.touchdowns || 0, gamesPlayed, 0.8), // Simplified
       defTotalPlays: 0,
       defYardsPerPlayAllowed: 0,
       defFirstDownsAllowed: 0,

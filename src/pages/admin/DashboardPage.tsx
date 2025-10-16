@@ -52,7 +52,7 @@ const DashboardPage: React.FC = () => {
         <p className="text-gray-400">Overview of your picks and performance</p>
       </div>
 
-      {}
+      {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-[#0f0f0f] border border-lime-500/10 rounded-lg p-6 hover:border-lime-500/30 transition-colors">
           <div className="text-sm text-gray-400 mb-1">Total Picks</div>
@@ -77,7 +77,7 @@ const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {}
+      {/* Quick Actions */}
       <div className="bg-[#0f0f0f] border border-lime-500/10 rounded-lg p-6">
         <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -110,7 +110,7 @@ const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {}
+      {/* Recent Activity */}
       <div className="bg-[#0f0f0f] border border-lime-500/10 rounded-lg p-6">
         <h2 className="text-xl font-semibold text-white mb-4">Recent Picks</h2>
         {recentPicks.length === 0 ? (
@@ -141,7 +141,7 @@ const DashboardPage: React.FC = () => {
         )}
       </div>
 
-      {}
+      {/* Tips */}
       <div className="bg-lime-500/10 border border-lime-500/30 text-lime-300 px-4 py-3 rounded-lg">
         <h4 className="font-semibold mb-2 text-lime-400">Dashboard Tips:</h4>
         <ul className="list-disc list-inside space-y-1 text-sm">

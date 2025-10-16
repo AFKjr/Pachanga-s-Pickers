@@ -21,7 +21,7 @@ const AdminLayout: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-[#0a0a0a]">
-      {}
+      {/* Sidebar */}
       <aside className="w-64 bg-[#0f0f0f] border-r border-lime-500/10 min-h-screen">
         <div className="p-6">
           <h2 className="text-xl font-bold text-white mb-6">
@@ -45,7 +45,7 @@ const AdminLayout: React.FC = () => {
           </nav>
         </div>
 
-        {}
+        {/* Sidebar Footer */}
         <div className="absolute bottom-0 w-64 p-6 border-t border-lime-500/10">
           <Link
             to="/"
@@ -57,7 +57,7 @@ const AdminLayout: React.FC = () => {
         </div>
       </aside>
 
-      {}
+      {/* Main Content Area */}
       <main className="flex-1 p-8 overflow-y-auto bg-[#0a0a0a]">
         <Outlet />
       </main>

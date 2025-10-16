@@ -64,7 +64,7 @@ export const SecureConfirmationModal: React.FC<SecureConfirmationModalProps> = (
 
   const styles = LEVEL_STYLES[level];
   
-  
+  // Start countdown for critical actions
   React.useEffect(() => {
     if (isOpen && level === 'critical' && isCountdownActive) {
       const timer = setInterval(() => {
@@ -82,7 +82,7 @@ export const SecureConfirmationModal: React.FC<SecureConfirmationModalProps> = (
     }
   }, [isOpen, level, isCountdownActive]);
 
-  
+  // Reset state when modal opens/closes
   React.useEffect(() => {
     if (isOpen) {
       setTypedText('');
@@ -96,10 +96,10 @@ export const SecureConfirmationModal: React.FC<SecureConfirmationModalProps> = (
   if (!isOpen) return null;
 
   const canConfirm = () => {
-    
+    // Must wait for countdown on critical actions
     if (level === 'critical' && isCountdownActive) return false;
     
-    
+    // Must type expected text if required
     if (requireTyping && expectedText) {
       return typedText.toLowerCase().trim() === expectedText.toLowerCase().trim();
     }
@@ -197,7 +197,7 @@ export const SecureConfirmationModal: React.FC<SecureConfirmationModalProps> = (
           )}
         </div>
 
-        {}
+        {/* Actions */}
         <div className="flex space-x-3 p-4 bg-gray-750 rounded-b-lg border-t border-gray-600">
           <button
             onClick={handleClose}
@@ -218,7 +218,7 @@ export const SecureConfirmationModal: React.FC<SecureConfirmationModalProps> = (
   );
 };
 
-
+// Hook for easier usage
 export const useSecureConfirmation = () => {
   const [confirmationState, setConfirmationState] = useState<{
     isOpen: boolean;

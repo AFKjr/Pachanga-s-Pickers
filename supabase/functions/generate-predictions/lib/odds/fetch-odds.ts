@@ -30,13 +30,13 @@ export async function fetchNFLOdds(): Promise<OddsData[]> {
 }
 
 export interface ExtractedOdds {
-  homeSpread?: number;  
-  awaySpread?: number;  
-  total?: number;  
+  homeSpread?: number;  // Made optional to handle missing spread data
+  awaySpread?: number;  // Added for completeness
+  total?: number;  // Made optional to handle missing total data
   homeMLOdds?: number;
   awayMLOdds?: number;
-  homeSpreadOdds?: number;  
-  awaySpreadOdds?: number;  
+  homeSpreadOdds?: number;  // Renamed for clarity
+  awaySpreadOdds?: number;  // Added for completeness
   overOdds?: number;
   underOdds?: number;
 }

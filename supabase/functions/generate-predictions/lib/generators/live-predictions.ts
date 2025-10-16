@@ -23,7 +23,11 @@ export interface LivePredictionsResult {
   };
 }
 
-
+/**
+ * Validates odds data and provides fallbacks for missing values
+ * Ensures all critical odds are available before running simulation
+ * FIX FOR BUG #1 & #2: Prevents undefined moneyline odds and missing spread/total
+ */
 function validateGameOdds(
   odds: ExtractedOdds,
   game: OddsData
@@ -33,7 +37,7 @@ function validateGameOdds(
 } {
   const warnings: string[] = [];
   
-  
+  // Validate and fallback for moneyline odds (CRITICAL for favorite determination)
   const moneylineValidation = validateMoneylineWithFallback(
     odds.homeMLOdds,
     odds.awayMLOdds,
@@ -49,7 +53,7 @@ function validateGameOdds(
     );
   }
   
-  
+  // Validate spread (use 0 if missing - indicates pick'em)
   const homeSpread = odds.homeSpread ?? 0;
   const awaySpread = odds.awaySpread ?? -homeSpread;
   
@@ -60,7 +64,7 @@ function validateGameOdds(
     );
   }
   
-  
+  // Validate total (use NFL average if missing)
   const NFL_AVERAGE_TOTAL = 45;
   const total = odds.total ?? NFL_AVERAGE_TOTAL;
   
@@ -71,7 +75,7 @@ function validateGameOdds(
     );
   }
   
-  
+  // Validate spread odds (use standard -110 if missing)
   const STANDARD_SPREAD_ODDS = -110;
   const homeSpreadOdds = odds.homeSpreadOdds ?? STANDARD_SPREAD_ODDS;
   const awaySpreadOdds = odds.awaySpreadOdds ?? STANDARD_SPREAD_ODDS;
@@ -83,7 +87,7 @@ function validateGameOdds(
     );
   }
   
-  
+  // Validate over/under odds
   const overOdds = odds.overOdds ?? STANDARD_SPREAD_ODDS;
   const underOdds = odds.underOdds ?? STANDARD_SPREAD_ODDS;
   
@@ -103,7 +107,10 @@ function validateGameOdds(
   };
 }
 
-
+/**
+ * Determines the correct spread pick based on favorite cover probability
+ * FIX FOR BUG #3: Fixes inverted spread pick logic for road favorites
+ */
 function determineSpreadPick(
   simResult: any,
   favoriteInfo: FavoriteInfo,
@@ -112,35 +119,39 @@ function determineSpreadPick(
 ): { pick: string; probability: number } {
   const CONFIDENCE_THRESHOLD = 50;
   
-  
+  // Determine if we're picking the favorite or underdog to cover
   const pickingFavorite = simResult.favoriteCoverProbability > CONFIDENCE_THRESHOLD;
   
-  
+  // Build spread pick string based on who the favorite is
   let spreadPick: string;
   let spreadProbability: number;
   
   if (pickingFavorite) {
-    
+    // Picking favorite to cover
     spreadProbability = simResult.favoriteCoverProbability;
     
     if (favoriteInfo.favoriteIsHome) {
-      
+      // Home team is favorite
       const spreadValue = homeSpread;
       const spreadSign = spreadValue > 0 ? '+' : '';
       spreadPick = `${game.home_team} ${spreadSign}${spreadValue}`;
     } else {
+      // Away team is favorite
       const spreadValue = -homeSpread;
       const spreadSign = spreadValue > 0 ? '+' : '';
       spreadPick = `${game.away_team} ${spreadSign}${spreadValue}`;
     }
   } else {
+    // Picking underdog to cover
     spreadProbability = simResult.underdogCoverProbability;
     
     if (favoriteInfo.favoriteIsHome) {
+      // Home team is favorite, so away team is underdog
       const spreadValue = -homeSpread;
       const spreadSign = spreadValue > 0 ? '+' : '';
       spreadPick = `${game.away_team} ${spreadSign}${spreadValue}`;
     } else {
+      // Away team is favorite, so home team is underdog
       const spreadValue = homeSpread;
       const spreadSign = spreadValue > 0 ? '+' : '';
       spreadPick = `${game.home_team} ${spreadSign}${spreadValue}`;
@@ -165,6 +176,7 @@ export async function generateLivePredictions(
 
   console.log(`📊 Generating live predictions for ${oddsData.length} games...`);
 
+  // Log all available games from odds API
   console.log(`📋 All games from odds API:`);
   oddsData.forEach((game, index) => {
     const gameDate = new Date(game.commence_time);
@@ -172,6 +184,9 @@ export async function generateLivePredictions(
     console.log(`  ${index + 1}. ${game.away_team} @ ${game.home_team} - ${gameDate.toISOString()} (Week ${gameWeek})`);
   });
 
+  // ========== SIMPLIFIED FILTERING: PROCESS ALL AVAILABLE GAMES ==========
+  // The Odds API only returns games with active betting lines (upcoming games)
+  // No need to filter by week - just process everything available
   const gamesToProcess = oddsData;
 
   console.log(`✅ Processing ${gamesToProcess.length} games with available odds:`);
@@ -181,6 +196,7 @@ export async function generateLivePredictions(
     console.log(`  ${index + 1}. Week ${gameWeek}: ${game.away_team} @ ${game.home_team} (${gameDate.toLocaleDateString()})`);
   });
 
+  // Handle case where no games are available
   if (gamesToProcess.length === 0) {
     console.warn(`⚠️ No games available from The Odds API`);
     return {
@@ -196,6 +212,7 @@ export async function generateLivePredictions(
       }
     };
   }
+  // ========== END SIMPLIFIED FILTERING ==========
 
   const predictions = [];
   const errors = [];
@@ -206,13 +223,16 @@ export async function generateLivePredictions(
     try {
       console.log(`\n🏈 [${gameIndex + 1}/${gamesToProcess.length}] Processing: ${game.away_team} @ ${game.home_team}`);
 
+      // Call progress callback if provided
       if (onProgress) {
         onProgress(gameIndex + 1, gamesToProcess.length);
       }
 
+      // Fetch team stats (latest available)
       const homeStats = await fetchTeamStatsWithFallback(game.home_team, supabaseUrl, supabaseKey, rapidApiKey);
       const awayStats = await fetchTeamStatsWithFallback(game.away_team, supabaseUrl, supabaseKey, rapidApiKey);
 
+      // Warn if using default stats (FIX FOR BUG #7)
       if (homeStats.team !== game.home_team) {
         console.warn(`⚠️ Using default stats for ${game.home_team}`);
       }
@@ -223,6 +243,7 @@ export async function generateLivePredictions(
       console.log(`📈 ${game.home_team} stats: 3D%=${homeStats.thirdDownConversionRate}, RZ%=${homeStats.redZoneEfficiency}`);
       console.log(`📈 ${game.away_team} stats: 3D%=${awayStats.thirdDownConversionRate}, RZ%=${awayStats.redZoneEfficiency}`);
 
+      // Fetch weather if API key available
       let gameWeather: GameWeather | null = null;
       let weatherImpact = 'No weather data';
 
@@ -238,25 +259,25 @@ export async function generateLivePredictions(
         }
       }
 
-      
+      // Extract raw odds from API response
       const rawOdds = extractOddsFromGame(game);
       
-      
+      // Validate odds and apply fallbacks (FIX FOR BUG #1 & #2)
       const { validatedOdds, warnings } = validateGameOdds(rawOdds, game);
       
-      
+      // Log any warnings about missing odds
       warnings.forEach(warning => console.warn(`⚠️ ${warning}`));
       
       console.log(`💰 Odds - ML: ${game.home_team} ${validatedOdds.homeMLOdds} / ${game.away_team} ${validatedOdds.awayMLOdds}, Spread: ${validatedOdds.homeSpreadOdds}, O/U: ${validatedOdds.overOdds}/${validatedOdds.underOdds}`);
 
-      
+      // Determine which team is the favorite using VALIDATED moneyline odds (FIX FOR BUG #1)
       const favoriteInfo = determineFavorite(
         validatedOdds.homeMLOdds,
         validatedOdds.awayMLOdds
       );
       console.log(`🏆 Favorite: ${favoriteInfo.favoriteIsHome ? game.home_team : game.away_team} (${favoriteInfo.favoriteIsHome ? 'home' : 'away'})`)
 
-      
+      // Run Monte Carlo simulation with validated odds
       console.log(`⚙️ Running ${SIMULATION_ITERATIONS.toLocaleString()} Monte Carlo simulations...`);
       const simResult = runMonteCarloSimulation(
         homeStats,
@@ -267,7 +288,7 @@ export async function generateLivePredictions(
         favoriteInfo.favoriteIsHome
       );
 
-      
+      // Verify Monte Carlo Output format - add logging to confirm probability scale
       console.log(`🔍 DEBUG - Simulation probabilities:`, {
         homeWin: simResult.homeWinProbability,
         awayWin: simResult.awayWinProbability,
@@ -275,17 +296,17 @@ export async function generateLivePredictions(
         sum: simResult.homeWinProbability + simResult.awayWinProbability
       });
 
-      
-      
+      // If sum ≈ 1.0, probabilities are in decimal format (need to multiply by 100)
+      // If sum ≈ 100, probabilities are in percentage format (correct)
 
-      
+      // Calculate picks and probabilities
       const moneylineProb = Math.max(simResult.homeWinProbability, simResult.awayWinProbability);
       const moneylineConfidence = getConfidenceLevel(moneylineProb);
       const moneylinePick = simResult.homeWinProbability > simResult.awayWinProbability
         ? game.home_team
         : game.away_team;
 
-      
+      // Determine spread pick using corrected logic (FIX FOR BUG #3)
       const spreadPickResult = determineSpreadPick(
         simResult,
         favoriteInfo,
@@ -298,7 +319,7 @@ export async function generateLivePredictions(
       const totalPick = simResult.overProbability > 50 ? 'Over' : 'Under';
       const totalProb = Math.max(simResult.overProbability, simResult.underProbability);
 
-      
+      // Store UTC date directly (FIX FOR BUG #6)
       const formattedDate = game.commence_time.split('T')[0];
 
       console.log(`✅ Prediction complete: ${moneylinePick} to win (${moneylineProb.toFixed(1)}%)`);
@@ -318,7 +339,7 @@ export async function generateLivePredictions(
           spread_odds: validatedOdds.homeSpreadOdds,
           over_odds: validatedOdds.overOdds,
           under_odds: validatedOdds.underOdds,
-          
+          // Favorite/Underdog information
           favorite_team: favoriteInfo.favoriteIsHome ? game.home_team : game.away_team,
           underdog_team: favoriteInfo.favoriteIsHome ? game.away_team : game.home_team,
           favorite_is_home: favoriteInfo.favoriteIsHome
@@ -337,7 +358,7 @@ export async function generateLivePredictions(
           gameWeather?.impactRating !== 'none' ? weatherImpact : undefined
         ),
         result: 'pending',
-        
+        // BUG FIX #5: Use consistent week calculation method
         week: getNFLWeekFromDate(new Date(game.commence_time)) ?? 1,
         monte_carlo_results: {
           moneyline_probability: moneylineProb,
@@ -345,9 +366,9 @@ export async function generateLivePredictions(
           total_probability: totalProb,
           home_win_probability: simResult.homeWinProbability,
           away_win_probability: simResult.awayWinProbability,
-          spread_cover_probability: simResult.spreadCoverProbability,  
-          favorite_cover_probability: simResult.favoriteCoverProbability,  
-          underdog_cover_probability: simResult.underdogCoverProbability,  
+          spread_cover_probability: simResult.spreadCoverProbability,  // DEPRECATED - kept for backward compatibility
+          favorite_cover_probability: simResult.favoriteCoverProbability,  // NEW
+          underdog_cover_probability: simResult.underdogCoverProbability,  // NEW
           over_probability: simResult.overProbability,
           under_probability: simResult.underProbability,
           predicted_home_score: simResult.predictedHomeScore,

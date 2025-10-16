@@ -80,6 +80,7 @@ const CurrentWeekDashboard: React.FC<{
   const totalResolved = totalWins + totalLosses;
   const overallWinRate = totalResolved > 0 ? (totalWins / totalResolved) * 100 : 0;
 
+  // Check for hot streak (3+ wins in a row on any bet type)
   const hasHotStreak = weekStats.moneyline.wins >= 3 || weekStats.ats.wins >= 3 || weekStats.overUnder.wins >= 3;
 
   return (
@@ -301,6 +302,7 @@ const AllTimeDashboard: React.FC<{ stats: AllTimeStats; isExpanded: boolean; onT
   );
 };
 
+// Main Stats Dashboard Component
 const StatsDashboard: React.FC = () => {
   const [allTimeExpanded, setAllTimeExpanded] = React.useState(false);
   const [loading, setLoading] = useState(true);
@@ -331,6 +333,7 @@ const StatsDashboard: React.FC = () => {
     setError('');
 
     try {
+      // Load moneyline stats and picks
       const [moneylineResult, picksResult] = await Promise.all([
         agentStatsApi.getOverallStats(),
         picksApi.getAll()
@@ -347,40 +350,46 @@ const StatsDashboard: React.FC = () => {
       const picks = picksResult.data || [];
       const moneylineStats = moneylineResult.data;
 
+      // Calculate ATS and O/U stats
       const atsRecord = ATSCalculator.calculateComprehensiveATSRecord(picks);
 
+      // Calculate available weeks from picks data
       const weeks = [...new Set(picks.map(pick => getPickWeek(pick)).filter(week => week !== null))] as number[];
       weeks.sort((a, b) => b - a); // Sort descending (most recent first)
       setAvailableWeeks(weeks);
 
+      // Set default selected week to the most recent week with picks
       if (!selectedWeek && weeks.length > 0) {
         setSelectedWeek(weeks[0]);
       }
 
+      // Use selected week or default to most recent
       const currentWeek = selectedWeek || weeks[0] || 7;
 
+      // Calculate weekly stats (current week picks)
       const currentWeekPicks = picks.filter(pick => getPickWeek(pick) === currentWeek);
 
+      // Calculate weekly moneyline stats
       const weekMoneylineWins = currentWeekPicks.filter(pick => pick.result === 'win').length;
       const weekMoneylineLosses = currentWeekPicks.filter(pick => pick.result === 'loss').length;
       const weekMoneylineResolved = weekMoneylineWins + weekMoneylineLosses;
       const weekMoneylineWinRate = weekMoneylineResolved > 0 ? (weekMoneylineWins / weekMoneylineResolved) * 100 : 0;
 
-      
+      // Calculate weekly ATS stats
       const weekAtsWins = currentWeekPicks.filter(pick => pick.ats_result === 'win').length;
       const weekAtsLosses = currentWeekPicks.filter(pick => pick.ats_result === 'loss').length;
       const weekAtsPushes = currentWeekPicks.filter(pick => pick.ats_result === 'push').length;
       const weekAtsResolved = weekAtsWins + weekAtsLosses;
       const weekAtsWinRate = weekAtsResolved > 0 ? (weekAtsWins / weekAtsResolved) * 100 : 0;
 
-      
+      // Calculate weekly O/U stats
       const weekOuWins = currentWeekPicks.filter(pick => pick.ou_result === 'win').length;
       const weekOuLosses = currentWeekPicks.filter(pick => pick.ou_result === 'loss').length;
       const weekOuPushes = currentWeekPicks.filter(pick => pick.ou_result === 'push').length;
       const weekOuResolved = weekOuWins + weekOuLosses;
       const weekOuWinRate = weekOuResolved > 0 ? (weekOuWins / weekOuResolved) * 100 : 0;
 
-      
+      // Create week stats object
       const currentWeekStats: WeekStats = {
         week: currentWeek,
         moneyline: {
@@ -388,7 +397,7 @@ const StatsDashboard: React.FC = () => {
           losses: weekMoneylineLosses,
           pushes: 0,
           winRate: weekMoneylineWinRate,
-          units: weekMoneylineWins * 0.9 - weekMoneylineLosses * 1.0 
+          units: weekMoneylineWins * 0.9 - weekMoneylineLosses * 1.0 // Simplified unit calculation
         },
         ats: {
           wins: weekAtsWins,
@@ -407,7 +416,7 @@ const StatsDashboard: React.FC = () => {
         totalPicks: currentWeekPicks.length
       };
 
-      
+      // Create all-time stats object
       const allTimeStatsData: AllTimeStats = {
         moneyline: {
           wins: moneylineStats.wins,
@@ -468,7 +477,7 @@ const StatsDashboard: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-        {}
+        {/* Current Week */}
         {weekStats && (
           <CurrentWeekDashboard 
             weekStats={weekStats}
@@ -476,7 +485,7 @@ const StatsDashboard: React.FC = () => {
             availableWeeks={availableWeeks}
             onWeekChange={setSelectedWeek}
           />
-        )}      {}
+        )}      {/* All-Time (Collapsible) */}
       <AllTimeDashboard
         stats={allTimeStats}
         isExpanded={allTimeExpanded}

@@ -6,7 +6,10 @@ import { GameScore, ATSResult } from './types';
 import { extractPredictedTeamFromText } from './scoreUtils';
 import { BETTING_CONSTANTS } from '../constants';
 
-
+/**
+ * Calculate Against The Spread result
+ * Determines if the predicted team covered the spread
+ */
 export const calculateATSResult = (
   pick: Pick,
   actualScore: GameScore
@@ -19,7 +22,7 @@ export const calculateATSResult = (
     };
   }
 
-  
+  // Use spread_prediction instead of prediction for ATS
   if (!pick.spread_prediction) {
     return {
       type: 'ats',
@@ -28,7 +31,7 @@ export const calculateATSResult = (
     };
   }
 
-  
+  // Extract predicted team from spread_prediction, not prediction
   const predictedTeam = extractPredictedTeamFromText(
     pick.spread_prediction,
     pick.game_info.home_team,

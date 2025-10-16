@@ -16,7 +16,7 @@ const HomePage = () => {
       return;
     }
 
-    
+    // Listen for refresh events from admin updates
     const handleRefresh = () => {
       console.log('HomePage: Received refresh event, updating components...');
       setRefreshKey(prev => prev + 1);
@@ -38,10 +38,10 @@ const HomePage = () => {
           <PageHeader />
 
           <div className="max-w-7xl mx-auto px-6 space-y-8">
-            {}
+            {/* Pachanga Stats Dashboard */}
             <StatsDashboard key={`stats-${refreshKey}`} />
 
-            {}
+            {/* All Picks Display */}
             <PicksDisplay key={`picks-${refreshKey}`} maxPicks={16} showWeekFilter={true} />
           </div>
         </main>

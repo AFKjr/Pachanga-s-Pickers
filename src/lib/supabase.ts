@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { NFLWeek, ConfidenceLevel } from '../types/index';
+// TODO: After running `npm run types:generate`, uncomment this line:
+// import type { Database } from '../types/database.types';
 
-
-
-
+// Validate required environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -11,11 +11,11 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase environment variables. Please check your .env file.');
 }
 
-
-
+// TODO: After generating types, add <Database> generic:
+// export const supabase = createClient<Database>(supabaseUrl, supabaseKey);
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-
+// Database types for TypeScript
 export type Database = {
   public: {
     Tables: {

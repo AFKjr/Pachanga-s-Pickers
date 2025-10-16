@@ -14,7 +14,9 @@ export interface DuplicateInfo {
   key: string;
 }
 
-
+/**
+ * Team name mapping for normalizing team names
+ */
 const TEAM_MAPPINGS: Record<string, string> = {
   '49ers': 'sf49ers',
   'san francisco 49ers': 'sf49ers',
@@ -74,13 +76,17 @@ const TEAM_MAPPINGS: Record<string, string> = {
   'jacksonville jaguars': 'jaxjags',
 };
 
-
+/**
+ * Normalize team name for consistent comparison
+ */
 export function normalizeTeamName(teamName: string): string {
   const normalized = teamName.trim().toLowerCase();
   return TEAM_MAPPINGS[normalized] || normalized;
 }
 
-
+/**
+ * Create a unique key for a game based on teams and week
+ */
 export function createGameKey(pick: Pick): string {
   const homeTeam = pick.game_info?.home_team?.trim() || '';
   const awayTeam = pick.game_info?.away_team?.trim() || '';
@@ -91,16 +97,19 @@ export function createGameKey(pick: Pick): string {
   return `${normalizedHome}-${normalizedAway}-${week}`;
 }
 
+/**
  * Find duplicate picks in a list
  * Returns groups of duplicates, with the oldest pick as the "original"
  */
 export function findDuplicates(picks: Pick[]): DuplicateInfo[] {
+  // Sort by created_at to identify the oldest (original) pick
   const sortedPicks = [...picks].sort((a, b) => 
     new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
 
   const gameMap = new Map<string, Pick[]>();
 
+  // Group picks by game key
   for (const pick of sortedPicks) {
     const key = createGameKey(pick);
     const existing = gameMap.get(key) || [];
@@ -108,6 +117,7 @@ export function findDuplicates(picks: Pick[]): DuplicateInfo[] {
     gameMap.set(key, existing);
   }
 
+  // Find groups with duplicates (more than 1 pick per game)
   const duplicateGroups: DuplicateInfo[] = [];
 
   gameMap.forEach((pickGroup, key) => {
@@ -124,6 +134,7 @@ export function findDuplicates(picks: Pick[]): DuplicateInfo[] {
   return duplicateGroups;
 }
 
+/**
  * Count total number of duplicate picks
  */
 export function countDuplicates(picks: Pick[]): number {
@@ -131,6 +142,7 @@ export function countDuplicates(picks: Pick[]): number {
   return duplicateGroups.reduce((count, group) => count + group.duplicates.length, 0);
 }
 
+/**
  * Clean duplicates by deleting all but the oldest pick for each game
  * Returns the number of picks successfully deleted
  */
@@ -145,6 +157,7 @@ export async function cleanDuplicates(picks: Pick[]): Promise<{
   let failedCount = 0;
   const errors: Array<{ pickId: string; error: AppError }> = [];
 
+  // Delete all duplicates (keeping the original/oldest)
   for (const group of duplicateGroups) {
     for (const duplicate of group.duplicates) {
       const { success, error } = await deletePick(duplicate.id);
@@ -163,12 +176,14 @@ export async function cleanDuplicates(picks: Pick[]): Promise<{
   return { deletedCount, failedCount, errors };
 }
 
+/**
  * Check if a pick is a duplicate of any existing picks
  */
 export function isDuplicate(pick: Pick, existingPicks: Pick[]): boolean {
   const pickKey = createGameKey(pick);
   
   return existingPicks.some(existing => {
+    // Don't compare a pick with itself
     if (existing.id === pick.id) {
       return false;
     }
@@ -177,7 +192,10 @@ export function isDuplicate(pick: Pick, existingPicks: Pick[]): boolean {
   });
 }
 
-
+/**
+ * Find the original (oldest) pick for a given pick
+ * Returns null if the pick is the original or no match found
+ */
 export function findOriginalPick(pick: Pick, allPicks: Pick[]): Pick | null {
   const pickKey = createGameKey(pick);
   
@@ -186,8 +204,8 @@ export function findOriginalPick(pick: Pick, allPicks: Pick[]): Pick | null {
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
   if (matchingPicks.length === 0 || matchingPicks[0].id === pick.id) {
-    return null; 
+    return null; // Pick is original or no matches
   }
 
-  return matchingPicks[0]; 
+  return matchingPicks[0]; // Return oldest pick
 }

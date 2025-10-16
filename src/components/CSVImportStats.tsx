@@ -44,7 +44,7 @@ interface ExtendedTeamStats {
   thirdDownPct: number;
   redZonePct: number;
   
-  
+  // NEW DRIVE-LEVEL STATS
   drivesPerGame: number;
   playsPerDrive: number;
   pointsPerDrive: number;
@@ -111,12 +111,14 @@ const CSVImportStats: React.FC = () => {
     setParsedData([]);
 
     try {
-      
+      // Parse CSV files using the new utility
       const offensiveContent = offensiveFile ? await offensiveFile.text() : '';
       const defensiveContent = defensiveFile ? await defensiveFile.text() : '';
 
+      // Extract week information from filename (simplified approach)
       const fileToCheck = offensiveFile || defensiveFile;
       if (fileToCheck) {
+        // Try to extract week from filename, fallback to current values
         const filename = fileToCheck.name.toLowerCase();
         const weekMatch = filename.match(/week[_\s]+(\d+)/i);
         const seasonMatch = filename.match(/(\d{4})/);
@@ -131,8 +133,10 @@ const CSVImportStats: React.FC = () => {
         console.log(`📊 Processing stats for Week ${weekNumber}, Season ${seasonYear}`);
       }
 
+      // Parse stats using new index-based utility
       const parsedStatsArray = parseWeeklyTeamStats(offensiveContent, defensiveContent);
 
+      // Convert to ExtendedTeamStats format for the component
       const merged: ExtendedTeamStats[] = parsedStatsArray.map(stats => ({
         team: stats.team_name || '',
         gamesPlayed: stats.games_played || 1,
@@ -175,6 +179,7 @@ const CSVImportStats: React.FC = () => {
         thirdDownPct: 0, // Not in database schema
         redZonePct: 0, // Not in database schema
 
+        // NEW DRIVE-LEVEL STATS (not in database schema)
         drivesPerGame: 0,
         playsPerDrive: 0,
         pointsPerDrive: 0,
@@ -241,13 +246,60 @@ const CSVImportStats: React.FC = () => {
               season_year: seasonYear,
               games_played: row.gamesPlayed,
               offensive_yards_per_game: row.offensiveYardsPerGame,
-              defensive_yards_allowed: row.defensiveYardsAllowed,
               points_per_game: row.pointsPerGame,
+              total_plays: row.totalPlays,
+              yards_per_play: row.yardsPerPlay,
+              first_downs: row.firstDowns,
+              pass_completions: row.passCompletions,
+              pass_attempts: row.passAttempts,
+              pass_completion_pct: row.passCompletionPct,
               passing_yards: row.passingYards,
+              passing_tds: row.passingTds,
+              interceptions_thrown: row.interceptionsThrown,
+              yards_per_pass_attempt: row.yardsPerPassAttempt,
+              rushing_attempts: row.rushingAttempts,
               rushing_yards: row.rushingYards,
+              rushing_tds: row.rushingTds,
+              yards_per_rush: row.yardsPerRush,
+              penalties: row.penalties,
+              penalty_yards: row.penaltyYards,
               turnovers_lost: row.turnoversLost,
+              fumbles_lost: row.fumblesLost,
+              defensive_yards_allowed: row.defensiveYardsAllowed,
+              points_allowed_per_game: row.pointsAllowedPerGame,
+              def_total_plays: row.defTotalPlays,
+              def_yards_per_play_allowed: row.defYardsPerPlayAllowed,
+              def_first_downs_allowed: row.defFirstDownsAllowed,
+              def_pass_completions_allowed: row.defPassCompletionsAllowed,
+              def_pass_attempts: row.defPassAttempts,
+              def_passing_yards_allowed: row.defPassingYardsAllowed,
+              def_passing_tds_allowed: row.defPassingTdsAllowed,
               def_interceptions: row.defInterceptions,
+              def_rushing_attempts_allowed: row.defRushingAttemptsAllowed,
+              def_rushing_yards_allowed: row.defRushingYardsAllowed,
+              def_rushing_tds_allowed: row.defRushingTdsAllowed,
+              turnovers_forced: row.turnoversForced,
+              fumbles_forced: row.fumblesForced,
               turnover_differential: row.turnoverDifferential,
+              third_down_conversion_rate: row.thirdDownPct,
+              red_zone_efficiency: row.redZonePct,
+              
+              // Optional drive stats
+              third_down_attempts: row.thirdDownAttempts,
+              third_down_conversions: row.thirdDownConversions,
+              fourth_down_attempts: row.fourthDownAttempts,
+              fourth_down_conversions: row.fourthDownConversions,
+              red_zone_attempts: row.redZoneAttempts,
+              red_zone_touchdowns: row.redZoneTouchdowns,
+              
+              // NEW DRIVE-LEVEL STATS
+              drives_per_game: row.drivesPerGame,
+              plays_per_drive: row.playsPerDrive,
+              points_per_drive: row.pointsPerDrive,
+              scoring_percentage: row.scoringPercentage,
+              yards_per_drive: row.yardsPerDrive,
+              time_per_drive_seconds: row.timePerDriveSeconds,
+              
               source: 'csv',
               last_updated: new Date().toISOString()
             }, {

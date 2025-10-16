@@ -1,6 +1,6 @@
 // supabase/functions/generate-predictions/lib/utils/nfl-utils.ts
 
-
+// NFL 2025 Season Week Mapping (Tuesday to Monday)
 const NFL_2025_SCHEDULE: Record<number, { start: string; end: string }> = {
   1: { start: '2025-09-02', end: '2025-09-08' },
   2: { start: '2025-09-09', end: '2025-09-15' },
@@ -22,7 +22,9 @@ const NFL_2025_SCHEDULE: Record<number, { start: string; end: string }> = {
   18: { start: '2025-12-30', end: '2026-01-05' }
 };
 
-
+/**
+ * Get NFL week from a date
+ */
 export function getNFLWeekFromDate(gameDate: Date | string): number | null {
   const date = typeof gameDate === 'string' ? new Date(gameDate) : gameDate;
 
@@ -31,7 +33,7 @@ export function getNFLWeekFromDate(gameDate: Date | string): number | null {
     const startDate = new Date(range.start);
     const endDate = new Date(range.end);
 
-    
+    // Include end date in range
     endDate.setHours(23, 59, 59, 999);
 
     if (date >= startDate && date <= endDate) {
@@ -43,7 +45,9 @@ export function getNFLWeekFromDate(gameDate: Date | string): number | null {
   return null;
 }
 
-
+/**
+ * Get current NFL week based on today's date
+ */
 export function getCurrentNFLWeek(): number {
   const today = new Date();
   const week = getNFLWeekFromDate(today);
@@ -52,43 +56,52 @@ export function getCurrentNFLWeek(): number {
     return week;
   }
 
-  
+  // If we're outside the season, default to Week 1
   console.warn('Current date is outside NFL season, defaulting to Week 1');
   return 1;
 }
 
-
+/**
+ * Map confidence level string to number
+ */
 export function mapConfidenceToNumber(level: string): number {
   const levelLower = level.toLowerCase();
   if (levelLower.includes('high')) return 80;
   if (levelLower.includes('medium')) return 60;
   if (levelLower.includes('low')) return 40;
-  return 70; 
+  return 70; // default
 }
 
-
+/**
+ * Get confidence level from probability
+ */
 export function getConfidenceLevel(probability: number): string {
   if (probability >= 70) return 'High';
   if (probability >= 55) return 'Medium';
   return 'Low';
 }
 
+// ============================================================================
+// BUG FIX #5: Single source of truth for week calculation
+// ============================================================================
 
-
-
-
-
+/**
+ * Alias for getNFLWeekFromDate for convenience
+ * Provides a shorter function name while maintaining consistency
+ */
 export function getNFLWeek(gameDate: Date | string): number | null {
   return getNFLWeekFromDate(gameDate);
 }
 
-
+/**
+ * Gets a human-readable label for a given NFL week
+ */
 export function getWeekLabel(week: number): string {
   if (week >= 1 && week <= 18) {
     return `Week ${week}`;
   }
   
-  
+  // Playoff weeks
   switch (week) {
     case 19:
       return 'Wild Card';
@@ -103,18 +116,24 @@ export function getWeekLabel(week: number): string {
   }
 }
 
-
+/**
+ * Gets the date range for a specific NFL week
+ */
 export function getWeekDateRange(week: number): { start: string; end: string } | null {
   const weekData = NFL_2025_SCHEDULE[week];
   return weekData || null;
 }
 
-
+/**
+ * Validates if a week number is valid for the current season
+ */
 export function isValidWeek(week: number): boolean {
   return week >= 1 && week <= 18;
 }
 
-
+/**
+ * Determines if a given week is part of the regular season
+ */
 export function isRegularSeasonWeek(week: number): boolean {
   return week >= 1 && week <= 18;
 }

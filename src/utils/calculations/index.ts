@@ -1,18 +1,18 @@
 // Export all types
 export * from './types';
 
-
+// Export utilities
 export * from './scoreUtils';
 
-
+// Export specific calculators
 export * from './moneylineCalculator';
 export * from './atsCalculator';
 export * from './overUnderCalculator';
 
-
+// Import odds utilities
 import { americanToDecimal } from '../edgeCalculator';
 
-
+// Import for comprehensive calculations
 import { Pick } from '../../types/index';
 import { GameScore, CalculatedResults, ComprehensiveATSRecord, BettingEfficiency } from './types';
 import { extractPredictedTeam, getActualScores } from './scoreUtils';
@@ -21,12 +21,15 @@ import { calculateATSResult } from './atsCalculator';
 import { calculateOverUnderResult } from './overUnderCalculator';
 import { getPickWeek } from '../nflWeeks';
 
-
+/**
+ * Calculate all results (Moneyline, ATS, O/U) from actual game scores
+ * This is the main function to use when updating pick results
+ */
 export const calculateAllResultsFromScores = (pick: Pick): CalculatedResults => {
   const homeScore = pick.game_info.home_score;
   const awayScore = pick.game_info.away_score;
   
-  
+  // If no scores provided, everything is pending
   if (homeScore === undefined || homeScore === null || awayScore === undefined || awayScore === null) {
     return {
       moneyline: 'pending',
@@ -39,7 +42,7 @@ export const calculateAllResultsFromScores = (pick: Pick): CalculatedResults => 
   const actualScore: GameScore = { home: homeScore, away: awayScore };
   const predictedTeam = extractPredictedTeam(pick);
 
-  
+  // Calculate Moneyline Result
   let moneylineResult: 'win' | 'loss' | 'push' | 'pending';
   if (homeScore === awayScore) {
     moneylineResult = 'push';
@@ -56,14 +59,14 @@ export const calculateAllResultsFromScores = (pick: Pick): CalculatedResults => 
     }
   }
 
-  
+  // Calculate ATS Result
   let atsResult: 'win' | 'loss' | 'push' | 'pending' = 'pending';
   if (pick.game_info.spread !== undefined && predictedTeam !== 'unknown') {
     const atsCalc = calculateATSResult(pick, actualScore);
     atsResult = atsCalc.result;
   }
 
-  
+  // Calculate O/U Result
   let overUnderResult: 'win' | 'loss' | 'push' | 'pending' = 'pending';
   if (pick.game_info.over_under !== undefined) {
     const ouCalc = calculateOverUnderResult(pick, actualScore);
@@ -78,7 +81,9 @@ export const calculateAllResultsFromScores = (pick: Pick): CalculatedResults => 
   };
 };
 
-
+/**
+ * Calculate comprehensive betting record across all markets
+ */
 export const calculateComprehensiveATSRecord = (
   picks: Pick[],
   getScoreFunction: (pick: Pick) => GameScore | null = getActualScores
@@ -91,11 +96,11 @@ export const calculateComprehensiveATSRecord = (
   let totalPoints = 0, ouGamesCount = 0;
   let estimatedUnits = 0;
   
-  
+  // Confidence buckets
   const confidenceStats = {
-    high: { picks: 0, wins: 0 },    
-    medium: { picks: 0, wins: 0 },  
-    low: { picks: 0, wins: 0 }      
+    high: { picks: 0, wins: 0 },    // 80%+
+    medium: { picks: 0, wins: 0 },  // 60-79%
+    low: { picks: 0, wins: 0 }      // <60%
   };
 
   picks.forEach(pick => {
@@ -104,7 +109,7 @@ export const calculateComprehensiveATSRecord = (
     const actualScore = getScoreFunction(pick);
     if (!actualScore) return;
     
-    
+    // Confidence categorization
     let confidenceLevel: 'high' | 'medium' | 'low';
     if (pick.confidence >= 80) confidenceLevel = 'high';
     else if (pick.confidence >= 60) confidenceLevel = 'medium';
@@ -112,12 +117,12 @@ export const calculateComprehensiveATSRecord = (
     
     confidenceStats[confidenceLevel].picks++;
     
-    
+    // Moneyline tracking
     const mlResult = calculateMoneylineResult(pick);
     if (mlResult.result === 'win') {
       moneylineWins++;
       confidenceStats[confidenceLevel].wins++;
-      
+      // Use actual odds if available, otherwise skip unit calculation
       const predictedHome = pick.prediction.toLowerCase().includes(pick.game_info.home_team.toLowerCase());
       const predictedAway = pick.prediction.toLowerCase().includes(pick.game_info.away_team.toLowerCase());
       let mlOdds: number | null = null;
@@ -128,16 +133,16 @@ export const calculateComprehensiveATSRecord = (
       }
       if (mlOdds) {
         const decimalOdds = americanToDecimal(mlOdds);
-        estimatedUnits += decimalOdds - 1; 
+        estimatedUnits += decimalOdds - 1; // Win pays decimal - 1 (minus stake)
       }
     } else if (mlResult.result === 'loss') {
       moneylineLosses++;
       estimatedUnits -= 1.0;
     }
     
-    
+    // ATS tracking - PREFER stored ats_result field
     if (pick.game_info.spread) {
-      
+      // Use stored result if available, otherwise calculate
       let atsResultValue: 'win' | 'loss' | 'push' | 'pending';
       if (pick.ats_result && pick.ats_result !== 'pending') {
         atsResultValue = pick.ats_result;
@@ -148,12 +153,12 @@ export const calculateComprehensiveATSRecord = (
       
       if (atsResultValue === 'win') {
         atsWins++;
-        
+        // Use actual spread odds if available
         if (pick.game_info.spread_odds) {
           const decimalOdds = americanToDecimal(pick.game_info.spread_odds);
-          estimatedUnits += decimalOdds - 1; 
+          estimatedUnits += decimalOdds - 1; // Win pays decimal - 1 (minus stake)
         }
-        
+        // Calculate cover margin for detail tracking
         const atsResult = calculateATSResult(pick, actualScore);
         if (atsResult.details?.coverMargin) {
           totalCoverMargin += atsResult.details.coverMargin;
@@ -168,9 +173,9 @@ export const calculateComprehensiveATSRecord = (
       }
     }
     
-    
+    // Over/Under tracking - PREFER stored ou_result field
     if (pick.game_info.over_under) {
-      
+      // Use stored result if available, otherwise calculate
       let ouResultValue: 'win' | 'loss' | 'push' | 'pending';
       if (pick.ou_result && pick.ou_result !== 'pending') {
         ouResultValue = pick.ou_result;
@@ -181,7 +186,7 @@ export const calculateComprehensiveATSRecord = (
       
       if (ouResultValue === 'win') {
         ouWins++;
-        
+        // Use actual O/U odds if available
         const pickedOver = pick.ou_prediction?.toLowerCase().includes('over');
         let ouOdds: number | null = null;
         if (pickedOver && pick.game_info.over_odds) {
@@ -191,7 +196,7 @@ export const calculateComprehensiveATSRecord = (
         }
         if (ouOdds) {
           const decimalOdds = americanToDecimal(ouOdds);
-          estimatedUnits += decimalOdds - 1; 
+          estimatedUnits += decimalOdds - 1; // Win pays decimal - 1 (minus stake)
         }
       } else if (ouResultValue === 'loss') {
         ouLosses++;
@@ -200,7 +205,7 @@ export const calculateComprehensiveATSRecord = (
         ouPushes++;
       }
       
-      
+      // Calculate total points for detail tracking
       const ouResult = calculateOverUnderResult(pick, actualScore);
       if (ouResult.details?.totalPoints) {
         totalPoints += ouResult.details.totalPoints;
@@ -266,7 +271,9 @@ export const calculateComprehensiveATSRecord = (
   };
 };
 
-
+/**
+ * Calculate weekly ATS records
+ */
 export const calculateWeeklyATSRecords = (
   picks: Pick[],
   getScoreFunction?: (pick: Pick) => GameScore | null
@@ -288,7 +295,9 @@ export const calculateWeeklyATSRecords = (
   })).sort((a, b) => a.week - b.week);
 };
 
-
+/**
+ * Calculate team-specific ATS records
+ */
 export const calculateTeamATSRecords = (
   picks: Pick[],
   getScoreFunction?: (pick: Pick) => GameScore | null
@@ -315,7 +324,9 @@ export const calculateTeamATSRecords = (
   return teamRecords;
 };
 
-
+/**
+ * Get recent form (last N picks)
+ */
 export const getRecentForm = (
   picks: Pick[],
   count: number = 5,
@@ -328,14 +339,16 @@ export const getRecentForm = (
   return calculateComprehensiveATSRecord(recentPicks, getScoreFunction);
 };
 
-
+/**
+ * Calculate betting efficiency metrics
+ */
 export const calculateBettingEfficiency = (
   picks: Pick[],
   getScoreFunction?: (pick: Pick) => GameScore | null
 ): BettingEfficiency => {
   
   const record = calculateComprehensiveATSRecord(picks, getScoreFunction);
-  const breakEvenRate = 52.38; 
+  const breakEvenRate = 52.38; // 110/210 = 52.38% needed to break even at -110
   
   let highConfidenceWins = 0;
   let highConfidencePicks = 0;
@@ -352,7 +365,7 @@ export const calculateBettingEfficiency = (
   const actualWinRate = record.moneyline.winRate;
   const advantage = actualWinRate - breakEvenRate;
   
-  
+  // Simplified Kelly calculation (assumes we know true win probability)
   const kellyPercent = Math.max(0, Math.min(25, advantage / 100 * 2));
   
   return {
@@ -365,7 +378,9 @@ export const calculateBettingEfficiency = (
   };
 };
 
-
+/**
+ * Export utility object for easy importing (backward compatibility)
+ */
 export const ATSCalculator = {
   calculateATSResult,
   calculateOverUnderResult,

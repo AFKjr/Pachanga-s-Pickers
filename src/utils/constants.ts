@@ -2,12 +2,12 @@
 // Centralized constants for the NFL prediction system
 // This file contains all magic numbers that were previously hardcoded
 
-
+// === MONTE CARLO SIMULATION CONSTANTS ===
 export const SIMULATION_ITERATIONS = 10000;
 export const QUARTERS_PER_GAME = 4;
 export const POSSESSIONS_PER_QUARTER = 6;
 
-
+// === STATISTICAL WEIGHTS ===
 export const OFFENSIVE_STRENGTH_WEIGHTS = {
   RED_ZONE_EFFICIENCY: 0.6,
   THIRD_DOWN_CONVERSION: 0.4,
@@ -26,7 +26,7 @@ export const DEFENSIVE_STRENGTH_WEIGHTS = {
   TURNOVER_MULTIPLIER: 5,
 } as const;
 
-
+// === WEATHER IMPACT CONSTANTS ===
 export const WEATHER_CONSTANTS = {
   FORECAST_HOURS_THRESHOLD: 120,
   DOME_DEFAULTS: {
@@ -94,7 +94,7 @@ export const WEATHER_CONSTANTS = {
   DEFENSIVE_WEATHER_BENEFIT: 0.3,
 } as const;
 
-
+// === BETTING CALCULATION CONSTANTS ===
 export const BETTING_CONSTANTS = {
   PUSH_THRESHOLD: 0.5,
   CONFIDENCE_THRESHOLDS: {
@@ -107,7 +107,7 @@ export const BETTING_CONSTANTS = {
   },
 } as const;
 
-
+// === SCORE GENERATION CONSTANTS ===
 export const SCORE_CONSTANTS = {
   BASE_SCORES: {
     HOME_MIN: 17,
@@ -118,7 +118,7 @@ export const SCORE_CONSTANTS = {
   RESULT_ADJUSTMENT: 7,
 } as const;
 
-
+// === API CONSTANTS ===
 export const API_CONSTANTS = {
   TIMEOUT_MS: 5000,
   DEFAULT_STATS: {
@@ -130,7 +130,7 @@ export const API_CONSTANTS = {
   },
 } as const;
 
-
+// === TEAM NAME PARSING CONSTANTS ===
 export const TEAM_NAME_CONSTANTS = {
   MIN_NAME_LENGTH: 3,
 } as const;

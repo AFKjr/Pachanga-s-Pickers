@@ -23,12 +23,13 @@ export default function APIPredictionsGenerator() {
     setPredictions([]);
 
     try {
+      // Get auth session
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
       console.log('Calling /api/generate-predictions...');
 
-      
+      // Call Supabase Edge Function
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const functionUrl = `${supabaseUrl}/functions/v1/generate-predictions`;
       
@@ -69,7 +70,7 @@ export default function APIPredictionsGenerator() {
 
       setPredictions(data.predictions);
 
-      
+      // Save using hook
       let savedCount = 0;
       const saveErrors: string[] = [];
 
@@ -111,7 +112,7 @@ export default function APIPredictionsGenerator() {
         Generates predictions using 10,000 Monte Carlo simulations per game with live odds, imported team stats, and weather data.
       </p>
 
-      {}
+      {/* Generate Button */}
       <button
         onClick={generatePredictions}
         disabled={loading}
@@ -120,7 +121,7 @@ export default function APIPredictionsGenerator() {
         {loading ? 'Generating...' : 'Generate Predictions'}
       </button>
 
-      {}
+      {/* Error Message */}
       {error && (
         <div className="mt-4 bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded">
           <p className="font-semibold">Error</p>
@@ -128,7 +129,7 @@ export default function APIPredictionsGenerator() {
         </div>
       )}
 
-      {}
+      {/* Success Message */}
       {success && (
         <div className="mt-4 bg-green-900 border border-green-700 text-green-200 px-4 py-3 rounded">
           <p className="font-semibold">Success!</p>
@@ -136,7 +137,7 @@ export default function APIPredictionsGenerator() {
         </div>
       )}
 
-      {}
+      {/* Predictions List */}
       {predictions.length > 0 && (
         <div className="mt-6">
           <h3 className="text-lg font-semibold text-white mb-3">
@@ -183,7 +184,7 @@ export default function APIPredictionsGenerator() {
                   <p>Confidence: ML {pred.monte_carlo_results.moneyline_probability.toFixed(1)}% | ATS {pred.monte_carlo_results.spread_probability.toFixed(1)}% | O/U {pred.monte_carlo_results.total_probability.toFixed(1)}%</p>
                 </div>
                 
-                {}
+                {/* Edge Analysis */}
                 <EdgeAnalysisDisplay prediction={pred} />
               </div>
             ))}
@@ -194,7 +195,7 @@ export default function APIPredictionsGenerator() {
   );
 }
 
-
+// Helper Component
 const PredictionCard: React.FC<{
   title: string;
   prediction: string;
@@ -213,39 +214,39 @@ const PredictionCard: React.FC<{
   </div>
 );
 
-
+// Edge Analysis Component
 const EdgeAnalysisDisplay: React.FC<{ prediction: any }> = ({ prediction }) => {
   const { game_info, monte_carlo_results } = prediction;
   
-  
+  // Calculate edges for each bet type
   const calculateBetEdge = (probability: number, americanOdds: number) => {
     if (!americanOdds || americanOdds === 0) return null;
     return EdgeCalculator.analyzeEdge(probability / 100, americanOdds);
   };
 
-  
+  // Moneyline edge (use higher probability team)
   const homeWinProb = monte_carlo_results.home_win_probability;
   const awayWinProb = monte_carlo_results.away_win_probability;
   const mlProb = Math.max(homeWinProb, awayWinProb);
   const mlOdds = homeWinProb > awayWinProb ? game_info.home_ml : game_info.away_ml;
   const mlEdge = mlOdds ? calculateBetEdge(mlProb, mlOdds) : null;
 
-  
+  // Spread edge
   const spreadProb = monte_carlo_results.spread_probability;
-  const spreadEdge = calculateBetEdge(spreadProb, -110); 
+  const spreadEdge = calculateBetEdge(spreadProb, -110); // Standard -110 odds
 
-  
+  // Total edge
   const totalProb = monte_carlo_results.total_probability;
-  const totalEdge = calculateBetEdge(totalProb, -110); 
+  const totalEdge = calculateBetEdge(totalProb, -110); // Standard -110 odds
 
-  
+  // Helper to get edge color
   const getEdgeColor = (edgePercentage: number) => {
     if (edgePercentage >= 5) return 'text-green-400';
     if (edgePercentage >= 2) return 'text-yellow-400';
     return 'text-gray-400';
   };
 
-  
+  // Helper to get recommendation badge
   const getRecommendationBadge = (recommendation: string) => {
     if (recommendation === 'Strong Bet') return 'bg-green-600';
     if (recommendation === 'Moderate Bet') return 'bg-yellow-600';
@@ -257,7 +258,7 @@ const EdgeAnalysisDisplay: React.FC<{ prediction: any }> = ({ prediction }) => {
       <p className="text-xs font-semibold text-gray-300 mb-2">📊 Betting Edge Analysis</p>
       
       <div className="grid grid-cols-3 gap-2 text-xs">
-        {}
+        {/* Moneyline Edge */}
         <div className="bg-gray-800 rounded p-2">
           <p className="text-gray-400 mb-1">Moneyline</p>
           {mlEdge ? (

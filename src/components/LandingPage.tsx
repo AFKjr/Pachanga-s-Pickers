@@ -14,34 +14,34 @@ interface WeekStats {
   overUnder: BetTypeStats;
 }
 
-
+// Hero Section
 const Hero: React.FC<{ onSignIn: () => void }> = ({ onSignIn }) => {
   return (
     <div className="relative overflow-hidden">
-      {}
+      {/* Background gradient effect */}
       <div className="absolute inset-0 bg-gradient-to-b from-lime-500/5 to-transparent pointer-events-none" />
       
       <div className="max-w-7xl mx-auto px-6 py-24 relative">
         <div className="max-w-3xl mx-auto text-center">
-          {}
+          {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-lime-500/10 border border-lime-500/20 rounded-full px-4 py-2 mb-6">
             <div className="w-2 h-2 bg-lime-500 rounded-full animate-pulse" />
             <span className="text-lime-400 text-sm font-medium">Live NFL Week 7 Picks Available</span>
           </div>
           
-          {}
+          {/* Main Headline */}
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
             Find Your Edge in
             <span className="text-lime-400"> NFL Betting</span>
           </h1>
           
-          {}
+          {/* Subheadline */}
           <p className="text-xl text-gray-400 mb-10 leading-relaxed">
             Data-driven predictions across Moneyline, ATS, and Over/Under markets. 
             Track real edge.
           </p>
           
-          {}
+          {/* CTA Button */}
           <button
             onClick={onSignIn}
             className="inline-flex items-center gap-2 bg-lime-500 hover:bg-lime-400 text-black text-lg font-bold px-8 py-4 rounded-lg transition-all shadow-2xl shadow-lime-500/25 hover:shadow-lime-500/40 hover:scale-105"
@@ -61,7 +61,7 @@ const Hero: React.FC<{ onSignIn: () => void }> = ({ onSignIn }) => {
   );
 };
 
-
+// Value Props Section
 const ValueProps: React.FC = () => {
   const props = [
     {
@@ -108,7 +108,7 @@ const ValueProps: React.FC = () => {
   );
 };
 
-
+// Current Week Stats Showcase
 const CurrentWeekShowcase: React.FC<{ weekStats: WeekStats | null; loading: boolean }> = ({ weekStats, loading }) => {
   if (loading) {
     return (
@@ -150,7 +150,7 @@ const CurrentWeekShowcase: React.FC<{ weekStats: WeekStats | null; loading: bool
         <p className="text-gray-400">See how our picks performed this week</p>
       </div>
       
-      {}
+      {/* Overall Stats Card */}
       <div className="bg-[#1a1a1a] rounded-lg border border-[rgba(255,255,255,0.05)] p-8 mb-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           <div>
@@ -266,7 +266,7 @@ const CurrentWeekShowcase: React.FC<{ weekStats: WeekStats | null; loading: bool
         </div>
       </div>
       
-      {}
+      {/* Sign Up CTA */}
       <div className="mt-12 text-center">
         <p className="text-gray-400 mb-4">Want to see the actual picks and detailed analysis?</p>
         <button className="inline-flex items-center gap-2 bg-lime-500 hover:bg-lime-400 text-black font-bold px-6 py-3 rounded-lg transition-all">
@@ -280,7 +280,7 @@ const CurrentWeekShowcase: React.FC<{ weekStats: WeekStats | null; loading: bool
   );
 };
 
-
+// Social Proof / Support Section
 const SupportSection: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-6 py-16">
@@ -304,7 +304,7 @@ const SupportSection: React.FC = () => {
   );
 };
 
-
+// Demo Component
 const Demo = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   

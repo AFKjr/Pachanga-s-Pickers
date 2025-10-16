@@ -1,14 +1,14 @@
 // supabase/functions/generate-predictions/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-
+// Import generators
 import { generateHistoricalPredictions } from './lib/generators/historical-predictions.ts';
 import { generateLivePredictions } from './lib/generators/live-predictions.ts';
 import { fetchNFLOdds } from './lib/odds/fetch-odds.ts';
 
-
-
-
+// ============================================================================
+// MAIN HANDLER
+// ============================================================================
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,7 +16,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -24,12 +24,12 @@ serve(async (req) => {
   const startTime = Date.now();
   
   function logMemory(label: string) {
-    
+    // Deno doesn't have process.memoryUsage, so skip memory logging
     const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`⏱️  ${elapsedSeconds}s | ${label}`);
   }
 
-  
+  // Validate request method
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
@@ -40,7 +40,7 @@ serve(async (req) => {
     );
   }
 
-  
+  // Validate authorization
   const authHeader = req.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return new Response(
@@ -56,15 +56,15 @@ serve(async (req) => {
     console.log('🎲 Starting prediction generation...');
     logMemory('Function started');
 
-    
+    // Extract request parameters
     const { targetWeek, useStoredOdds } = await req.json();
     console.log(`📋 Parameters: targetWeek=${targetWeek}, useStoredOdds=${useStoredOdds}`);
 
-    
+    // Load environment variables
     const SUPABASE_URL = Deno.env.get('VITE_SUPABASE_URL') || Deno.env.get('SUPABASE_URL');
     const SUPABASE_KEY = Deno.env.get('VITE_SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_ANON_KEY');
     const WEATHER_API_KEY = Deno.env.get('OPENWEATHER_API_KEY');
-    const RAPIDAPI_KEY = undefined; 
+    const RAPIDAPI_KEY = undefined; // Sports Radar API DISABLED - using database stats only
 
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return new Response(
@@ -79,12 +79,12 @@ serve(async (req) => {
       );
     }
 
-    
+    // Sports Radar API validation DISABLED - using database-only approach
     console.log('ℹ️ Sports Radar API disabled - using team_stats_cache database for stats');
 
-    
-    
-    
+    // ========================================================================
+    // ROUTE 1: Historical Mode (stored odds + week-specific stats)
+    // ========================================================================
     if (useStoredOdds && targetWeek) {
       console.log('📚 Using historical mode with stored odds...');
       
@@ -110,9 +110,9 @@ serve(async (req) => {
       );
     }
 
-    
-    
-    
+    // ========================================================================
+    // ROUTE 2: Live Mode (current odds + latest stats)
+    // ========================================================================
     console.log('📊 Using live mode (current odds + latest stats)...');
     console.log('📊 Fetching odds from The Odds API...');
 
@@ -137,7 +137,7 @@ serve(async (req) => {
       );
     }
 
-    
+    // Handle case where no games are available
     if (!oddsData || oddsData.length === 0) {
       return new Response(
         JSON.stringify({
@@ -156,12 +156,12 @@ serve(async (req) => {
       );
     }
 
-    
+    // Warn if weather API is not configured
     if (!WEATHER_API_KEY) {
       console.warn('⚠️ OPENWEATHER_API_KEY not set - predictions will run without weather data');
     }
 
-    
+    // Generate live predictions
     const result = await generateLivePredictions(
       oddsData,
       SUPABASE_URL,
