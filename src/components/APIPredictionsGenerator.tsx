@@ -7,12 +7,14 @@ import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { usePickManager } from '../hooks/usePickManager';
 import { EdgeCalculator } from '../utils/predictionEngine';
+import { NFLWeek } from '../types';
 
 export default function APIPredictionsGenerator() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [predictions, setPredictions] = useState<any[]>([]);
+  const [targetWeek, setTargetWeek] = useState<NFLWeek | null>(null);
 
   const { createPick } = usePickManager();
 
@@ -39,7 +41,9 @@ export default function APIPredictionsGenerator() {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({})
+        body: JSON.stringify({
+          targetWeek: targetWeek
+        })
       });
 
       console.log('API Response status:', response.status);
@@ -111,6 +115,23 @@ export default function APIPredictionsGenerator() {
       <p className="text-gray-300 text-sm mb-4">
         Generates predictions using 10,000 Monte Carlo simulations per game with live odds, imported team stats, and weather data.
       </p>
+
+      {/* Week Selector */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Target Week (Optional - leave empty for all upcoming games)
+        </label>
+        <select
+          value={targetWeek || ''}
+          onChange={(e) => setTargetWeek(e.target.value ? parseInt(e.target.value) as NFLWeek : null)}
+          className="bg-gray-700 border border-gray-600 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Weeks (Default)</option>
+          {Array.from({ length: 18 }, (_, i) => i + 1).map(week => (
+            <option key={week} value={week}>Week {week}</option>
+          ))}
+        </select>
+      </div>
 
       {/* Generate Button */}
       <button

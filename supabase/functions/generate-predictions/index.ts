@@ -167,7 +167,8 @@ serve(async (req) => {
       SUPABASE_URL,
       SUPABASE_KEY,
       WEATHER_API_KEY,
-      RAPIDAPI_KEY
+      RAPIDAPI_KEY,
+      targetWeek
     );
 
     logMemory('Live predictions complete');

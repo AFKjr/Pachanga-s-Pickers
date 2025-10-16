@@ -170,6 +170,7 @@ export async function generateLivePredictions(
   supabaseKey: string,
   weatherApiKey: string | undefined,
   rapidApiKey: string | undefined,
+  targetWeek?: number,
   onProgress?: (current: number, total: number) => void
 ): Promise<LivePredictionsResult> {
   const startTime = Date.now();
@@ -184,17 +185,30 @@ export async function generateLivePredictions(
     console.log(`  ${index + 1}. ${game.away_team} @ ${game.home_team} - ${gameDate.toISOString()} (Week ${gameWeek})`);
   });
 
-  // ========== SIMPLIFIED FILTERING: PROCESS ALL AVAILABLE GAMES ==========
-  // The Odds API only returns games with active betting lines (upcoming games)
-  // No need to filter by week - just process everything available
-  const gamesToProcess = oddsData;
+  // ========== WEEK FILTERING: PROCESS GAMES FROM SPECIFIC WEEK IF REQUESTED ==========
+  let gamesToProcess = oddsData;
 
-  console.log(`✅ Processing ${gamesToProcess.length} games with available odds:`);
-  gamesToProcess.forEach((game, index) => {
-    const gameDate = new Date(game.commence_time);
-    const gameWeek = getNFLWeekFromDate(gameDate);
-    console.log(`  ${index + 1}. Week ${gameWeek}: ${game.away_team} @ ${game.home_team} (${gameDate.toLocaleDateString()})`);
-  });
+  if (targetWeek !== undefined) {
+    console.log(`🎯 Filtering for Week ${targetWeek} games only...`);
+    gamesToProcess = oddsData.filter(game => {
+      const gameDate = new Date(game.commence_time);
+      const gameWeek = getNFLWeekFromDate(gameDate);
+      return gameWeek === targetWeek;
+    });
+
+    console.log(`✅ Filtered to ${gamesToProcess.length} games for Week ${targetWeek}:`);
+    gamesToProcess.forEach((game, index) => {
+      const gameDate = new Date(game.commence_time);
+      console.log(`  ${index + 1}. ${game.away_team} @ ${game.home_team} (${gameDate.toLocaleDateString()})`);
+    });
+  } else {
+    console.log(`✅ Processing all ${gamesToProcess.length} available games:`);
+    gamesToProcess.forEach((game, index) => {
+      const gameDate = new Date(game.commence_time);
+      const gameWeek = getNFLWeekFromDate(gameDate);
+      console.log(`  ${index + 1}. Week ${gameWeek}: ${game.away_team} @ ${game.home_team} (${gameDate.toLocaleDateString()})`);
+    });
+  }
 
   // Handle case where no games are available
   if (gamesToProcess.length === 0) {
