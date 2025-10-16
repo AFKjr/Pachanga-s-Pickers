@@ -32,7 +32,13 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
     spread: pick.game_info.spread?.toString() || '',
     overUnder: pick.game_info.over_under?.toString() || '',
     week: pick.week || 1,
-    isPinned: pick.is_pinned || false
+    isPinned: pick.is_pinned || false,
+    // NEW: Manual odds input fields
+    homeMLOdds: pick.game_info.home_ml_odds?.toString() || '',
+    awayMLOdds: pick.game_info.away_ml_odds?.toString() || '',
+    spreadOdds: pick.game_info.spread_odds?.toString() || '',
+    overOdds: pick.game_info.over_odds?.toString() || '',
+    underOdds: pick.game_info.under_odds?.toString() || ''
   });
 
   // Weather override state
@@ -63,7 +69,12 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
       spread: pick.game_info.spread?.toString() || '',
       overUnder: pick.game_info.over_under?.toString() || '',
       week: pick.week || 1,
-      isPinned: pick.is_pinned || false
+      isPinned: pick.is_pinned || false,
+      homeMLOdds: pick.game_info.home_ml_odds?.toString() || '',
+      awayMLOdds: pick.game_info.away_ml_odds?.toString() || '',
+      spreadOdds: pick.game_info.spread_odds?.toString() || '',
+      overOdds: pick.game_info.over_odds?.toString() || '',
+      underOdds: pick.game_info.under_odds?.toString() || ''
     };
 
     const hasChanges = JSON.stringify(formData) !== JSON.stringify(originalData);
@@ -103,6 +114,12 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
     const spreadValue = formData.spreadPrediction ? extractNumber(formData.spreadPrediction, formData.spread ? parseFloat(formData.spread) : undefined) : (formData.spread ? parseFloat(formData.spread) : undefined);
     const ouValue = formData.ouPrediction ? extractNumber(formData.ouPrediction, formData.overUnder ? parseFloat(formData.overUnder) : undefined) : (formData.overUnder ? parseFloat(formData.overUnder) : undefined);
 
+    // Parse odds values
+    const parseOdds = (value: string): number | undefined => {
+      const num = parseInt(value);
+      return isNaN(num) ? undefined : num;
+    };
+
     // Prepare update payload
     const updates: Partial<Pick> = {
       prediction: validation.sanitizedData.prediction,
@@ -121,7 +138,17 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
         spread: spreadValue,
         over_under: ouValue,
         home_score: pick.game_info.home_score,
-        away_score: pick.game_info.away_score
+        away_score: pick.game_info.away_score,
+        // NEW: Include manually entered odds
+        home_ml_odds: parseOdds(formData.homeMLOdds),
+        away_ml_odds: parseOdds(formData.awayMLOdds),
+        spread_odds: parseOdds(formData.spreadOdds),
+        over_odds: parseOdds(formData.overOdds),
+        under_odds: parseOdds(formData.underOdds),
+        // Preserve existing fields
+        favorite_team: pick.game_info.favorite_team,
+        underdog_team: pick.game_info.underdog_team,
+        favorite_is_home: pick.game_info.favorite_is_home
       }
     };
 
@@ -334,6 +361,89 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
         </div>
       </div>
 
+      {/* Manual Odds Input Section */}
+      <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-blue-300">Manual Odds Entry</h3>
+          <span className="text-xs text-blue-400">American odds format (e.g., -110, +150)</span>
+        </div>
+        
+        {/* Moneyline Odds */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Moneyline Odds</label>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">{formData.homeTeam}</label>
+              <input
+                type="number"
+                value={formData.homeMLOdds}
+                onChange={(e) => handleInputChange('homeMLOdds', e.target.value)}
+                placeholder="-150"
+                className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">{formData.awayTeam}</label>
+              <input
+                type="number"
+                value={formData.awayMLOdds}
+                onChange={(e) => handleInputChange('awayMLOdds', e.target.value)}
+                placeholder="+130"
+                className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Spread Odds */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Spread Odds</label>
+          <input
+            type="number"
+            value={formData.spreadOdds}
+            onChange={(e) => handleInputChange('spreadOdds', e.target.value)}
+            placeholder="-110"
+            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+          />
+          <div className="mt-1 text-xs text-gray-400">
+            Typically -110 for both sides
+          </div>
+        </div>
+
+        {/* Over/Under Odds */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Over/Under Odds</label>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Over</label>
+              <input
+                type="number"
+                value={formData.overOdds}
+                onChange={(e) => handleInputChange('overOdds', e.target.value)}
+                placeholder="-110"
+                className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Under</label>
+              <input
+                type="number"
+                value={formData.underOdds}
+                onChange={(e) => handleInputChange('underOdds', e.target.value)}
+                placeholder="-110"
+                className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-blue-950 rounded p-3 text-xs text-blue-200">
+          <strong className="block mb-1">💡 Auto Edge Calculation:</strong>
+          When you save these odds, edge values will be automatically calculated based on Monte Carlo probabilities.
+          Edge = Model Probability - Implied Probability from odds.
+        </div>
+      </div>
+
       {/* Weather Override */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -435,6 +545,21 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
             )}
             {formData.awayTeam !== pick.game_info.away_team && (
               <li>• Away Team: {pick.game_info.away_team} → {formData.awayTeam}</li>
+            )}
+            {formData.homeMLOdds !== (pick.game_info.home_ml_odds?.toString() || '') && (
+              <li>• Home ML Odds: {pick.game_info.home_ml_odds || 'none'} → {formData.homeMLOdds || 'none'} (Edge will recalculate)</li>
+            )}
+            {formData.awayMLOdds !== (pick.game_info.away_ml_odds?.toString() || '') && (
+              <li>• Away ML Odds: {pick.game_info.away_ml_odds || 'none'} → {formData.awayMLOdds || 'none'} (Edge will recalculate)</li>
+            )}
+            {formData.spreadOdds !== (pick.game_info.spread_odds?.toString() || '') && (
+              <li>• Spread Odds: {pick.game_info.spread_odds || 'none'} → {formData.spreadOdds || 'none'} (Edge will recalculate)</li>
+            )}
+            {formData.overOdds !== (pick.game_info.over_odds?.toString() || '') && (
+              <li>• Over Odds: {pick.game_info.over_odds || 'none'} → {formData.overOdds || 'none'} (Edge will recalculate)</li>
+            )}
+            {formData.underOdds !== (pick.game_info.under_odds?.toString() || '') && (
+              <li>• Under Odds: {pick.game_info.under_odds || 'none'} → {formData.underOdds || 'none'} (Edge will recalculate)</li>
             )}
           </ul>
         </div>
