@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { NFLStatsParser } from '../utils/csvParser';
+import { parseWeeklyTeamStats } from '../utils/csvParser';
 
 interface ExtendedTeamStats {
   team: string;
@@ -111,80 +111,84 @@ const CSVImportStats: React.FC = () => {
     setParsedData([]);
 
     try {
-      // Use NFLStatsParser utility to parse CSV files
+      // Parse CSV files using the new utility
       const offensiveContent = offensiveFile ? await offensiveFile.text() : '';
       const defensiveContent = defensiveFile ? await defensiveFile.text() : '';
 
-      // Extract week information
+      // Extract week information from filename (simplified approach)
       const fileToCheck = offensiveFile || defensiveFile;
       if (fileToCheck) {
-        const lines = (offensiveContent || defensiveContent).split('\n').filter((line: string) => line.trim());
-        const { week, season } = NFLStatsParser.extractWeekFromCSV(lines, fileToCheck.name);
-        setWeekNumber(week);
-        setSeasonYear(season);
-        console.log(`📊 Processing stats for Week ${week}, Season ${season}`);
+        // Try to extract week from filename, fallback to current values
+        const filename = fileToCheck.name.toLowerCase();
+        const weekMatch = filename.match(/week[_\s]+(\d+)/i);
+        const seasonMatch = filename.match(/(\d{4})/);
+
+        if (weekMatch) {
+          setWeekNumber(parseInt(weekMatch[1]));
+        }
+        if (seasonMatch) {
+          setSeasonYear(parseInt(seasonMatch[1]));
+        }
+
+        console.log(`📊 Processing stats for Week ${weekNumber}, Season ${seasonYear}`);
       }
 
-      // Parse stats using utility
-      const statsMap = await NFLStatsParser.parseCompleteStats(offensiveContent, defensiveContent);
-      
-      // Convert Map to array format for the component
+      // Parse stats using new utility
+      const parsedStats = parseWeeklyTeamStats(offensiveContent, defensiveContent);
+
+      // Convert to array format for the component
       const merged: ExtendedTeamStats[] = [];
-      
-      statsMap.forEach((stats, teamName) => {
+
+      Object.entries(parsedStats).forEach(([teamName, stats]) => {
         merged.push({
           team: teamName,
-          gamesPlayed: stats.gamesPlayed || 1,
-          offensiveYardsPerGame: stats.offensiveYardsPerGame || 0,
-          pointsPerGame: stats.pointsPerGame || 0,
-          totalPlays: stats.totalPlays || 0,
-          yardsPerPlay: stats.yardsPerPlay || 0,
-          firstDowns: stats.firstDowns || 0,
-          passCompletions: stats.passCompletions || 0,
-          passAttempts: stats.passAttempts || 0,
-          passCompletionPct: stats.passCompletionPct || 0,
-          passingYards: stats.passingYards || 0,
-          passingTds: stats.passingTds || 0,
-          interceptionsThrown: stats.interceptionsThrown || 0,
-          yardsPerPassAttempt: stats.yardsPerPassAttempt || 0,
-          rushingAttempts: stats.rushingAttempts || 0,
-          rushingYards: stats.rushingYards || 0,
-          rushingTds: stats.rushingTds || 0,
-          yardsPerRush: stats.yardsPerRush || 0,
-          penalties: stats.penalties || 0,
-          penaltyYards: stats.penaltyYards || 0,
-          turnoversLost: stats.turnoversLost || 0,
-          fumblesLost: stats.fumblesLost || 0,
-          defensiveYardsAllowed: stats.defensiveYardsAllowed || 0,
-          pointsAllowedPerGame: stats.pointsAllowedPerGame || 0,
-          defTotalPlays: stats.defTotalPlays || 0,
-          defYardsPerPlayAllowed: stats.defYardsPerPlayAllowed || 0,
-          defFirstDownsAllowed: stats.defFirstDownsAllowed || 0,
-          defPassCompletionsAllowed: stats.defPassCompletionsAllowed || 0,
-          defPassAttempts: stats.defPassAttempts || 0,
-          defPassingYardsAllowed: stats.defPassingYardsAllowed || 0,
-          defPassingTdsAllowed: stats.defPassingTdsAllowed || 0,
-          defInterceptions: stats.defInterceptions || 0,
-          defRushingAttemptsAllowed: stats.defRushingAttemptsAllowed || 0,
-          defRushingYardsAllowed: stats.defRushingYardsAllowed || 0,
-          defRushingTdsAllowed: stats.defRushingTdsAllowed || 0,
-          turnoversForced: stats.turnoversForced || 0,
-          fumblesForced: stats.fumblesForced || 0,
-          turnoverDifferential: stats.turnoverDifferential || 0,
-          thirdDownPct: stats.thirdDownPct || 40.0,
-          redZonePct: stats.redZonePct || 50.0,
-          drivesPerGame: stats.drivesPerGame || 11.0,
-          playsPerDrive: stats.playsPerDrive || 5.5,
-          pointsPerDrive: stats.pointsPerDrive || 2.0,
-          scoringPercentage: stats.scoringPercentage || 40.0,
-          yardsPerDrive: stats.yardsPerDrive || 30.0,
-          timePerDriveSeconds: stats.timePerDriveSeconds || 162,
-          thirdDownAttempts: stats.thirdDownAttempts,
-          thirdDownConversions: stats.thirdDownConversions,
-          fourthDownAttempts: stats.fourthDownAttempts,
-          fourthDownConversions: stats.fourthDownConversions,
-          redZoneAttempts: stats.redZoneAttempts,
-          redZoneTouchdowns: stats.redZoneTouchdowns
+          gamesPlayed: stats.games_played || 1,
+          offensiveYardsPerGame: stats.offensive_yards_per_game || 0,
+          pointsPerGame: stats.points_per_game || 0,
+          totalPlays: 0, // Not available in new format
+          yardsPerPlay: stats.yards_per_play || 0,
+          firstDowns: 0, // Not available in new format
+          passCompletions: 0, // Not available in new format
+          passAttempts: 0, // Not available in new format
+          passCompletionPct: 0, // Not available in new format
+          passingYards: stats.passing_yards || 0,
+          passingTds: stats.passing_tds || 0,
+          interceptionsThrown: stats.turnovers_lost || 0, // Approximation
+          yardsPerPassAttempt: 0, // Not available in new format
+          rushingAttempts: 0, // Not available in new format
+          rushingYards: stats.rushing_yards || 0,
+          rushingTds: stats.rushing_tds || 0,
+          yardsPerRush: 0, // Not available in new format
+          penalties: 0, // Not available in new format
+          penaltyYards: 0, // Not available in new format
+          turnoversLost: stats.turnovers_lost || 0,
+          fumblesLost: 0, // Not available in new format
+          defensiveYardsAllowed: stats.defensive_yards_allowed || 0,
+          pointsAllowedPerGame: stats.points_allowed_per_game || 0,
+          defTotalPlays: 0, // Not available in new format
+          defYardsPerPlayAllowed: stats.def_yards_per_play_allowed || 0,
+          defFirstDownsAllowed: 0, // Not available in new format
+          defPassCompletionsAllowed: 0, // Not available in new format
+          defPassAttempts: 0, // Not available in new format
+          defPassingYardsAllowed: stats.def_passing_yards_allowed || 0,
+          defPassingTdsAllowed: stats.def_passing_tds_allowed || 0,
+          defInterceptions: stats.def_interceptions || 0,
+          defRushingAttemptsAllowed: 0, // Not available in new format
+          defRushingYardsAllowed: stats.def_rushing_yards_allowed || 0,
+          defRushingTdsAllowed: stats.def_rushing_tds_allowed || 0,
+          turnoversForced: stats.turnovers_forced || 0,
+          fumblesForced: 0, // Not available in new format
+          turnoverDifferential: (stats.turnovers_forced || 0) - (stats.turnovers_lost || 0),
+          thirdDownPct: stats.third_down_conversion_rate || 0,
+          redZonePct: stats.red_zone_efficiency || 0,
+
+          // NEW DRIVE-LEVEL STATS
+          drivesPerGame: stats.drives_per_game || 0,
+          playsPerDrive: 0, // Not available in new format
+          pointsPerDrive: 0, // Not available in new format
+          scoringPercentage: 0, // Not available in new format
+          yardsPerDrive: 0, // Not available in new format
+          timePerDriveSeconds: 0, // Not available in new format
         });
       });
 
@@ -226,7 +230,7 @@ const CSVImportStats: React.FC = () => {
 
       for (const row of parsedData) {
         try {
-          const canonicalName = NFLStatsParser.resolveTeamName(row.team);
+          const canonicalName = row.team;
           if (!canonicalName) {
             console.warn(`⚠️ Skipping unknown team: "${row.team}"`);
             importErrors.push(`Unknown team: "${row.team}" - not in NFL team list`);
@@ -316,7 +320,7 @@ const CSVImportStats: React.FC = () => {
           imported++;
         } catch (err) {
           failed++;
-          const displayName = NFLStatsParser.resolveTeamName(row.team) || row.team;
+          const displayName = row.team;
           importErrors.push(`${displayName}: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
       }
