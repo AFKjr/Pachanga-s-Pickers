@@ -3,18 +3,24 @@ import { picksApi } from '../lib/api';
 import { globalEvents } from '../lib/events';
 import type { Pick } from '../types';
 import { getPickWeek } from '../utils/nflWeeks';
-import HorizontalPickCard from './HorizontalPickCard';
+import AuthoritativePickCard from './AuthoritativePickCard';
+import BestBetsSection from './BestBetsSection';
 import SegmentedWeekSelector from './SegmentedWeekSelector';
 import { calculatePickEdges } from '../utils/edgeCalculator';
+import { isBestBet } from '../utils/confidenceHelpers';
 
 interface PicksDisplayProps {
   maxPicks?: number;
   showWeekFilter?: boolean;
+  showBestBets?: boolean;
+  bestBetsThreshold?: number;
 }
 
 const PicksDisplay: React.FC<PicksDisplayProps> = ({ 
   maxPicks = 20, 
-  showWeekFilter = true 
+  showWeekFilter = true,
+  showBestBets = true,
+  bestBetsThreshold = 7
 }) => {
   const [picks, setPicks] = useState<Pick[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +89,21 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
     ? picks.filter(pick => (pick.week || getPickWeek(pick)) === selectedWeek)
     : picks;
 
-  const displayPicks = filteredPicks.slice(0, maxPicks);
+  // Separate best bets from regular picks
+  const bestBets = showBestBets ? filteredPicks.filter(pick => 
+    isBestBet(
+      pick.moneyline_edge || 0,
+      pick.spread_edge || 0,
+      pick.ou_edge || 0,
+      bestBetsThreshold
+    )
+  ) : [];
+
+  const regularPicks = showBestBets 
+    ? filteredPicks.filter(pick => !bestBets.includes(pick))
+    : filteredPicks;
+
+  const displayPicks = regularPicks.slice(0, maxPicks);
 
   if (loading) {
     return (
@@ -98,43 +118,63 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
   }
 
   return (
-    <div className="bg-[#1a1a1a] rounded-lg p-6 border border-[rgba(255,255,255,0.05)]">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-white">Recent Picks</h2>
-        
-        {showWeekFilter && availableWeeks.length > 0 && (
-          <SegmentedWeekSelector
-            selectedWeek={selectedWeek}
-            availableWeeks={availableWeeks}
-            onChange={setSelectedWeek}
-            showAllOption={true}
-            maxVisibleWeeks={5}
-          />
+    <div className="space-y-8">
+      {/* Best Bets Section */}
+      {showBestBets && bestBets.length > 0 && (
+        <BestBetsSection
+          picks={bestBets}
+          minEdgeThreshold={bestBetsThreshold}
+          maxDisplayCount={3}
+        />
+      )}
+
+      {/* All Games Section */}
+      <div className="bg-[#1a1a1a] rounded-lg p-6 border border-[rgba(255,255,255,0.05)]">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white">
+            {showBestBets ? 'All Games' : 'Recent Picks'}
+          </h2>
+
+          {showWeekFilter && availableWeeks.length > 0 && (
+            <SegmentedWeekSelector
+              selectedWeek={selectedWeek}
+              availableWeeks={availableWeeks}
+              onChange={setSelectedWeek}
+              showAllOption={true}
+              maxVisibleWeeks={5}
+            />
+          )}
+        </div>
+
+        {displayPicks.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-gray-400 text-lg">
+              {showBestBets && bestBets.length > 0
+                ? 'No additional games available'
+                : 'No picks available'
+              }
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2">
+            {displayPicks.map((pick) => (
+              <AuthoritativePickCard
+                key={pick.id}
+                pick={pick}
+                showAllBets={false}
+              />
+            ))}
+          </div>
+        )}
+
+        {regularPicks.length > maxPicks && (
+          <div className="text-center mt-8 pt-6 border-t border-[rgba(255,255,255,0.05)]">
+            <div className="text-gray-400 text-sm">
+              Showing {maxPicks} of {regularPicks.length} games
+            </div>
+          </div>
         )}
       </div>
-
-      {displayPicks.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="text-gray-400 text-lg">No picks available</div>
-        </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2">
-          {displayPicks.map((pick) => (
-            <HorizontalPickCard 
-              key={pick.id} 
-              pick={pick}
-            />
-          ))}
-        </div>
-      )}
-
-      {filteredPicks.length > maxPicks && (
-        <div className="text-center mt-8 pt-6 border-t border-[rgba(255,255,255,0.05)]">
-          <div className="text-gray-400 text-sm">
-            Showing {maxPicks} of {filteredPicks.length} picks
-          </div>
-        </div>
-      )}
     </div>
   );
 };
