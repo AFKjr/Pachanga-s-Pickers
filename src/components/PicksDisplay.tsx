@@ -3,21 +3,18 @@ import { picksApi } from '../lib/api';
 import { globalEvents } from '../lib/events';
 import type { Pick } from '../types';
 import { getPickWeek } from '../utils/nflWeeks';
-import AuthoritativePickCard from './AuthoritativePickCard';
-import BestBetsSection from './BestBetsSection';
+import BestBetsSection, { BestBetCard } from './BestBetsSection';
 import SegmentedWeekSelector from './SegmentedWeekSelector';
 import { calculatePickEdges } from '../utils/edgeCalculator';
 import { isBestBet } from '../utils/confidenceHelpers';
 
 interface PicksDisplayProps {
-  maxPicks?: number;
   showWeekFilter?: boolean;
   showBestBets?: boolean;
   bestBetsThreshold?: number;
 }
 
 const PicksDisplay: React.FC<PicksDisplayProps> = ({ 
-  maxPicks = 20, 
   showWeekFilter = true,
   showBestBets = true,
   bestBetsThreshold = 7
@@ -99,12 +96,6 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
     )
   ) : [];
 
-  const regularPicks = showBestBets 
-    ? filteredPicks.filter(pick => !bestBets.includes(pick))
-    : filteredPicks;
-
-  const displayPicks = regularPicks.slice(0, maxPicks);
-
   if (loading) {
     return (
       <div className="bg-gray-800 rounded-lg p-6">
@@ -128,12 +119,17 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
         />
       )}
 
-      {/* All Games Section */}
-      <div className="bg-[#1a1a1a] rounded-lg p-6 border border-[rgba(255,255,255,0.05)]">
+      {/* All Picks This Week Section */}
+      <div>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white">
-            {showBestBets ? 'All Games' : 'Recent Picks'}
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-white">
+              All Picks This Week
+            </h2>
+            <span className="px-3 py-1 bg-[#0a0a0a] text-lime-400 text-xs font-bold rounded-full border border-lime-500/30">
+              {filteredPicks.length} GAMES
+            </span>
+          </div>
 
           {showWeekFilter && availableWeeks.length > 0 && (
             <SegmentedWeekSelector
@@ -146,32 +142,19 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
           )}
         </div>
 
-        {displayPicks.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-lg">
-              {showBestBets && bestBets.length > 0
-                ? 'No additional games available'
-                : 'No picks available'
-              }
+        {filteredPicks.length === 0 ? (
+          <div className="bg-[#1a1a1a] rounded-lg p-6 border border-[rgba(255,255,255,0.05)]">
+            <div className="text-center py-12">
+              <div className="text-gray-400 text-lg">
+                No picks available for this week
+              </div>
             </div>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2">
-            {displayPicks.map((pick) => (
-              <AuthoritativePickCard
-                key={pick.id}
-                pick={pick}
-                showAllBets={false}
-              />
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredPicks.map((pick) => (
+              <BestBetCard key={pick.id} pick={pick} />
             ))}
-          </div>
-        )}
-
-        {regularPicks.length > maxPicks && (
-          <div className="text-center mt-8 pt-6 border-t border-[rgba(255,255,255,0.05)]">
-            <div className="text-gray-400 text-sm">
-              Showing {maxPicks} of {regularPicks.length} games
-            </div>
           </div>
         )}
       </div>

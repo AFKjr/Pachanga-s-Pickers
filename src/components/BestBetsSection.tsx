@@ -220,3 +220,4 @@ const BestBetsSection: React.FC<BestBetsSectionProps> = ({
 };
 
 export default BestBetsSection;
+export { BestBetCard };

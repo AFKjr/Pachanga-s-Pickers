@@ -42,7 +42,7 @@ const HomePage = () => {
             <StatsDashboard key={`stats-${refreshKey}`} />
 
             {/* All Picks Display */}
-            <PicksDisplay key={`picks-${refreshKey}`} maxPicks={16} showWeekFilter={true} />
+            <PicksDisplay key={`picks-${refreshKey}`} showWeekFilter={true} />
           </div>
         </main>
 
