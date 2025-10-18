@@ -24,6 +24,21 @@ interface ParsedTeamStats {
   drives_per_game: number;
   scoring_percentage: number; // Used as proxy for red zone
   
+  // Additional offensive stats
+  first_downs: number;
+  pass_completions: number;
+  pass_attempts: number;
+  pass_completion_pct: number;
+  passing_tds: number;
+  interceptions_thrown: number;
+  yards_per_pass_attempt: number;
+  rushing_attempts: number;
+  rushing_tds: number;
+  yards_per_rush: number;
+  penalties: number;
+  penalty_yards: number;
+  fumbles_lost: number;
+  
   // Defensive stats
   defensive_yards_allowed: number;
   defensive_yards_per_game: number;
@@ -33,6 +48,20 @@ interface ParsedTeamStats {
   takeaways: number;
   turnover_differential: number;
   defensive_scoring_pct_allowed: number;
+  
+  // Additional defensive stats
+  def_total_plays: number;
+  def_yards_per_play_allowed: number;
+  def_first_downs_allowed: number;
+  def_pass_completions_allowed: number;
+  def_pass_attempts: number;
+  def_passing_yards_allowed: number;
+  def_passing_tds_allowed: number;
+  def_rushing_attempts_allowed: number;
+  def_rushing_yards_allowed: number;
+  def_rushing_tds_allowed: number;
+  turnovers_forced: number;
+  fumbles_forced: number;
   
   // Metadata
   source: string;
@@ -109,6 +138,21 @@ export function parseWeeklyTeamStats(
       drives_per_game: drivesPerGame,
       scoring_percentage: offRow['Percentage of drives ending in a score'] || 0,
       
+      // Additional offensive stats
+      first_downs: offRow['First downs'] || 0,
+      pass_completions: offRow['Pass completions'] || 0,
+      pass_attempts: offRow['Pass attempts'] || 0,
+      pass_completion_pct: offRow['Pass completion percentage'] || 0,
+      passing_tds: offRow['Passing TDs'] || 0,
+      interceptions_thrown: offRow['Interceptions thrown'] || 0,
+      yards_per_pass_attempt: offRow['Yards per pass attempt'] || 0,
+      rushing_attempts: offRow['Rushing attempts'] || 0,
+      rushing_tds: offRow['Rushing TDs'] || 0,
+      yards_per_rush: offRow['Yards per rush attempt'] || 0,
+      penalties: offRow['Penalties'] || 0,
+      penalty_yards: offRow['Penalty yards'] || 0,
+      fumbles_lost: offRow['Fumbles lost'] || 0,
+      
       // Defensive
       defensive_yards_allowed: defRow['Yards allowed'] || 0,
       defensive_yards_per_game: (defRow['Yards allowed'] || 0) / games,
@@ -118,6 +162,20 @@ export function parseWeeklyTeamStats(
       takeaways: defRow.Takeaways || 0,
       turnover_differential: (defRow.Takeaways || 0) - (offRow.Turnovers || 0),
       defensive_scoring_pct_allowed: defRow['Percentage of drives ending in a offensive score'] || 0,
+      
+      // Additional defensive stats
+      def_total_plays: defRow['Total plays'] || 0,
+      def_yards_per_play_allowed: defRow['Yards per offensive play'] || 0,
+      def_first_downs_allowed: defRow['First downs'] || 0,
+      def_pass_completions_allowed: defRow['Pass completions allowed'] || 0,
+      def_pass_attempts: defRow['Pass attempts'] || 0,
+      def_passing_yards_allowed: defRow['Passing yards allowed'] || 0,
+      def_passing_tds_allowed: defRow['Passing TDs allowed'] || 0,
+      def_rushing_attempts_allowed: defRow['Rushing attempts allowed'] || 0,
+      def_rushing_yards_allowed: defRow['Rushing yards allowed'] || 0,
+      def_rushing_tds_allowed: defRow['Rushing TDs allowed'] || 0,
+      turnovers_forced: defRow.Takeaways || 0,
+      fumbles_forced: defRow['Fumbles forced'] || 0,
       
       // Metadata
       source: 'csv',
