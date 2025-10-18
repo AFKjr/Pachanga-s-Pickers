@@ -125,21 +125,23 @@ const CSVImportStats: React.FC = () => {
 
       for (const stats of parsedData) {
         try {
-          const canonicalName = (stats as any).team_name;
+          const canonicalName = stats.team_name;
           if (!canonicalName) {
-            console.warn(`⚠️ Skipping unknown team: "${(stats as any).team_name}"`);
-            importErrors.push(`Unknown team: "${(stats as any).team_name}"`);
+            console.warn(`⚠️ Skipping unknown team: "${stats.team_name}"`);
+            importErrors.push(`Unknown team: "${stats.team_name}"`);
             failed++;
             continue;
           }
 
           // Debug log for first team
-          if ((stats as any).team_name === 'Detroit Lions') {
-            console.log('� IMPORTING Detroit Lions:', {
-              yards_per_play: (stats as any).yards_per_play,
-              yards_per_play_allowed: (stats as any).yards_per_play_allowed,
-              drives_per_game: (stats as any).drives_per_game,
-              points_allowed_per_game: (stats as any).points_allowed_per_game
+          if (stats.team_name === 'Detroit Lions') {
+            console.log('💾 IMPORTING Detroit Lions - ALL STATS:', {
+              passing_tds: stats.passing_tds,
+              rushing_tds: stats.rushing_tds,
+              yards_per_pass_attempt: stats.yards_per_pass_attempt,
+              first_downs: stats.first_downs,
+              def_total_plays: stats.def_total_plays,
+              turnovers_forced: stats.turnovers_forced
             });
           }
 
@@ -150,34 +152,75 @@ const CSVImportStats: React.FC = () => {
               team_name: canonicalName,
               week: weekNumber,
               season_year: seasonYear,
-              games_played: (stats as any).games_played,
+              games_played: stats.games_played,
               
               // CRITICAL STATS - These MUST be included
-              yards_per_play: (stats as any).yards_per_play,
-              yards_per_play_allowed: (stats as any).yards_per_play_allowed,
-              points_allowed_per_game: (stats as any).points_allowed_per_game,
-              drives_per_game: (stats as any).drives_per_game,
+              yards_per_play: stats.yards_per_play,
+              yards_per_play_allowed: stats.yards_per_play_allowed,
+              points_allowed_per_game: stats.points_allowed_per_game,
+              drives_per_game: stats.drives_per_game,
               
               // Core stats
-              offensive_yards_per_game: (stats as any).offensive_yards_per_game,
-              defensive_yards_allowed: (stats as any).defensive_yards_allowed,
-              points_per_game: (stats as any).points_per_game,
-              passing_yards: (stats as any).passing_yards,
-              rushing_yards: (stats as any).rushing_yards,
-              turnovers_lost: (stats as any).turnovers_lost,
-              def_interceptions: (stats as any).def_interceptions,
-              turnover_differential: (stats as any).turnover_differential,
+              offensive_yards_per_game: stats.offensive_yards_per_game,
+              defensive_yards_allowed: stats.defensive_yards_allowed,
+              points_per_game: stats.points_per_game,
+              passing_yards: stats.passing_yards,
+              rushing_yards: stats.rushing_yards,
+              turnovers_lost: stats.turnovers_lost,
+              def_interceptions: stats.def_interceptions,
+              turnover_differential: stats.turnover_differential,
               
-              // Additional useful stats
-              passing_yards_per_game: (stats as any).passing_yards_per_game,
-              rushing_yards_per_game: (stats as any).rushing_yards_per_game,
-              turnovers_per_game: (stats as any).turnovers_per_game,
-              total_plays: (stats as any).total_plays,
-              plays_per_game: (stats as any).plays_per_game,
-              scoring_percentage: (stats as any).scoring_percentage,
-              defensive_yards_per_game: (stats as any).defensive_yards_per_game,
-              takeaways: (stats as any).takeaways,
-              defensive_scoring_pct_allowed: (stats as any).defensive_scoring_pct_allowed,
+              // ALL THE DETAILED STATS (that were showing as zero)
+              passing_yards_per_game: stats.passing_yards_per_game,
+              rushing_yards_per_game: stats.rushing_yards_per_game,
+              turnovers_per_game: stats.turnovers_per_game,
+              total_plays: stats.total_plays,
+              plays_per_game: stats.plays_per_game,
+              scoring_percentage: stats.scoring_percentage,
+              defensive_yards_per_game: stats.defensive_yards_per_game,
+              takeaways: stats.takeaways,
+              defensive_scoring_pct_allowed: stats.defensive_scoring_pct_allowed,
+              
+              // OFFENSIVE DETAIL (used in strength calculator)
+              first_downs: stats.first_downs,
+              pass_completions: stats.pass_completions,
+              pass_attempts: stats.pass_attempts,
+              pass_completion_pct: stats.pass_completion_pct,
+              passing_tds: stats.passing_tds,
+              interceptions_thrown: stats.interceptions_thrown,
+              yards_per_pass_attempt: stats.yards_per_pass_attempt,
+              rushing_attempts: stats.rushing_attempts,
+              rushing_tds: stats.rushing_tds,
+              yards_per_rush: stats.yards_per_rush,
+              penalties: stats.penalties,
+              penalty_yards: stats.penalty_yards,
+              fumbles_lost: stats.fumbles_lost,
+              pass_first_downs: stats.pass_first_downs,
+              rush_first_downs: stats.rush_first_downs,
+              penalty_first_downs: stats.penalty_first_downs,
+              turnover_percentage: stats.turnover_percentage,
+              expected_points_offense: stats.expected_points_offense,
+              
+              // DEFENSIVE DETAIL (used in strength calculator)
+              def_total_plays: stats.def_total_plays,
+              def_yards_per_play_allowed: stats.def_yards_per_play_allowed,
+              def_first_downs_allowed: stats.def_first_downs_allowed,
+              def_pass_completions_allowed: stats.def_pass_completions_allowed,
+              def_pass_attempts: stats.def_pass_attempts,
+              def_passing_yards_allowed: stats.def_passing_yards_allowed,
+              def_passing_tds_allowed: stats.def_passing_tds_allowed,
+              def_rushing_attempts_allowed: stats.def_rushing_attempts_allowed,
+              def_rushing_yards_allowed: stats.def_rushing_yards_allowed,
+              def_rushing_tds_allowed: stats.def_rushing_tds_allowed,
+              turnovers_forced: stats.turnovers_forced,
+              fumbles_forced: stats.fumbles_forced,
+              def_pass_first_downs: stats.def_pass_first_downs,
+              def_rush_first_downs: stats.def_rush_first_downs,
+              def_net_yards_per_pass: stats.def_net_yards_per_pass,
+              def_yards_per_rush_allowed: stats.def_yards_per_rush_allowed,
+              def_scoring_percentage: stats.def_scoring_percentage,
+              def_turnover_percentage: stats.def_turnover_percentage,
+              expected_points_defense: stats.expected_points_defense,
               
               // Metadata
               source: 'csv',
@@ -196,7 +239,7 @@ const CSVImportStats: React.FC = () => {
           imported++;
         } catch (err) {
           failed++;
-          const displayName = (stats as any).team_name;
+          const displayName = stats.team_name;
           importErrors.push(`${displayName}: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
       }
