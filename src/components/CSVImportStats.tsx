@@ -111,14 +111,13 @@ const CSVImportStats: React.FC = () => {
     setParsedData([]);
 
     try {
-      // Parse CSV files using the new utility
+      // Parse CSV files using the utility
       const offensiveContent = offensiveFile ? await offensiveFile.text() : '';
       const defensiveContent = defensiveFile ? await defensiveFile.text() : '';
 
-      // Extract week information from filename (simplified approach)
+      // Extract week information from filename
       const fileToCheck = offensiveFile || defensiveFile;
       if (fileToCheck) {
-        // Try to extract week from filename, fallback to current values
         const filename = fileToCheck.name.toLowerCase();
         const weekMatch = filename.match(/week[_\s]+(\d+)/i);
         const seasonMatch = filename.match(/(\d{4})/);
@@ -133,75 +132,29 @@ const CSVImportStats: React.FC = () => {
         console.log(`📊 Processing stats for Week ${weekNumber}, Season ${seasonYear}`);
       }
 
-      // Parse stats using new index-based utility
-      const parsedStatsArray = parseWeeklyTeamStats(offensiveContent, defensiveContent);
+      // ✅ USE THE PARSER - This is the critical part!
+      const parsedStatsArray = parseWeeklyTeamStats(offensiveContent, defensiveContent, weekNumber, seasonYear);
 
-      // Convert to ExtendedTeamStats format for the component
-      const merged: ExtendedTeamStats[] = parsedStatsArray.map(stats => ({
-        team: stats.team_name || '',
-        gamesPlayed: stats.games_played || 1,
-        offensiveYardsPerGame: stats.offensive_yards_per_game || 0,
-        pointsPerGame: stats.points_per_game || 0,
-        totalPlays: stats.total_plays || 0,
-        yardsPerPlay: stats.yards_per_play || 0,
-        firstDowns: stats.first_downs || 0,
-        passCompletions: stats.pass_completions || 0,
-        passAttempts: stats.pass_attempts || 0,
-        passCompletionPct: stats.pass_completion_pct || 0,
-        passingYards: stats.passing_yards || 0,
-        passingTds: stats.passing_tds || 0,
-        interceptionsThrown: stats.interceptions_thrown || 0,
-        yardsPerPassAttempt: stats.yards_per_pass_attempt || 0,
-        rushingAttempts: stats.rushing_attempts || 0,
-        rushingYards: stats.rushing_yards || 0,
-        rushingTds: stats.rushing_tds || 0,
-        yardsPerRush: stats.yards_per_rush || 0,
-        penalties: stats.penalties || 0,
-        penaltyYards: stats.penalty_yards || 0,
-        turnoversLost: stats.turnovers_lost || 0,
-        fumblesLost: stats.fumbles_lost || 0,
-        defensiveYardsAllowed: stats.defensive_yards_allowed || 0,
-        pointsAllowedPerGame: stats.points_allowed_per_game || 0,
-        defTotalPlays: stats.def_total_plays || 0,
-        defYardsPerPlayAllowed: stats.def_yards_per_play_allowed || 0,
-        defFirstDownsAllowed: stats.def_first_downs_allowed || 0,
-        defPassCompletionsAllowed: stats.def_pass_completions_allowed || 0,
-        defPassAttempts: stats.def_pass_attempts || 0,
-        defPassingYardsAllowed: stats.def_passing_yards_allowed || 0,
-        defPassingTdsAllowed: stats.def_passing_tds_allowed || 0,
-        defInterceptions: stats.def_interceptions || 0,
-        defRushingAttemptsAllowed: stats.def_rushing_attempts_allowed || 0,
-        defRushingYardsAllowed: stats.def_rushing_yards_allowed || 0,
-        defRushingTdsAllowed: stats.def_rushing_tds_allowed || 0,
-        turnoversForced: stats.turnovers_forced || 0,
-        fumblesForced: stats.fumbles_forced || 0,
-        turnoverDifferential: stats.turnover_differential || 0,
-        thirdDownPct: 0, // Not in database schema
-        redZonePct: 0, // Not in database schema
-
-        // NEW DRIVE-LEVEL STATS (not in database schema)
-        drivesPerGame: 0,
-        playsPerDrive: 0,
-        pointsPerDrive: 0,
-        scoringPercentage: stats.scoring_percentage || 0,
-        yardsPerDrive: 0,
-        timePerDriveSeconds: 0,
-      }));
-
-      setParsedData(merged);
+      // ✅ DIRECTLY USE THE PARSED DATA - Don't remap it!
+      // The parser already returns everything in the correct format
+      setParsedData(parsedStatsArray as any);
       setParsing(false);
 
-      const detroitData = merged.find(t => t.team === 'Detroit Lions');
+      // Debug log
+      const detroitData = parsedStatsArray.find(t => t.team_name === 'Detroit Lions');
       if (detroitData) {
         console.log('✅ PARSED DATA - Detroit Lions:', {
-          offYards: detroitData.offensiveYardsPerGame,
-          defYards: detroitData.defensiveYardsAllowed,
-          ppg: detroitData.pointsPerGame,
-          games: detroitData.gamesPlayed
+          yards_per_play: detroitData.yards_per_play,
+          yards_per_play_allowed: detroitData.yards_per_play_allowed,
+          drives_per_game: detroitData.drives_per_game,
+          points_per_game: detroitData.points_per_game,
+          points_allowed_per_game: detroitData.points_allowed_per_game,
+          scoring_percentage: detroitData.scoring_percentage,
+          total_plays: detroitData.total_plays
         });
       }
 
-      if (merged.length === 0) {
+      if (parsedStatsArray.length === 0) {
         setErrors(['No valid team data found in CSV files']);
       }
     } catch (err) {
@@ -224,35 +177,63 @@ const CSVImportStats: React.FC = () => {
       let failed = 0;
       const importErrors: string[] = [];
 
-      for (const row of parsedData) {
+      for (const stats of parsedData) {
         try {
-          const canonicalName = row.team;
+          const canonicalName = (stats as any).team_name;
           if (!canonicalName) {
-            console.warn(`⚠️ Skipping unknown team: "${row.team}"`);
-            importErrors.push(`Unknown team: "${row.team}" - not in NFL team list`);
+            console.warn(`⚠️ Skipping unknown team: "${(stats as any).team_name}"`);
+            importErrors.push(`Unknown team: "${(stats as any).team_name}"`);
             failed++;
             continue;
           }
 
-          if (canonicalName !== row.team) {
-            console.log(`📝 Normalized: "${row.team}" → "${canonicalName}"`);
+          // Debug log for first team
+          if ((stats as any).team_name === 'Detroit Lions') {
+            console.log('� IMPORTING Detroit Lions:', {
+              yards_per_play: (stats as any).yards_per_play,
+              yards_per_play_allowed: (stats as any).yards_per_play_allowed,
+              drives_per_game: (stats as any).drives_per_game,
+              points_allowed_per_game: (stats as any).points_allowed_per_game
+            });
           }
 
+          // Import ALL stats needed for simulation
           const { error } = await supabase
             .from('team_stats_cache')
             .upsert({
               team_name: canonicalName,
               week: weekNumber,
               season_year: seasonYear,
-              games_played: row.gamesPlayed,
-              offensive_yards_per_game: row.offensiveYardsPerGame,
-              defensive_yards_allowed: row.defensiveYardsAllowed,
-              points_per_game: row.pointsPerGame,
-              passing_yards: row.passingYards,
-              rushing_yards: row.rushingYards,
-              turnovers_lost: row.turnoversLost,
-              def_interceptions: row.defInterceptions,
-              turnover_differential: row.turnoverDifferential,
+              games_played: (stats as any).games_played,
+              
+              // CRITICAL STATS - These MUST be included
+              yards_per_play: (stats as any).yards_per_play,
+              yards_per_play_allowed: (stats as any).yards_per_play_allowed,
+              points_allowed_per_game: (stats as any).points_allowed_per_game,
+              drives_per_game: (stats as any).drives_per_game,
+              
+              // Core stats
+              offensive_yards_per_game: (stats as any).offensive_yards_per_game,
+              defensive_yards_allowed: (stats as any).defensive_yards_allowed,
+              points_per_game: (stats as any).points_per_game,
+              passing_yards: (stats as any).passing_yards,
+              rushing_yards: (stats as any).rushing_yards,
+              turnovers_lost: (stats as any).turnovers_lost,
+              def_interceptions: (stats as any).def_interceptions,
+              turnover_differential: (stats as any).turnover_differential,
+              
+              // Additional useful stats
+              passing_yards_per_game: (stats as any).passing_yards_per_game,
+              rushing_yards_per_game: (stats as any).rushing_yards_per_game,
+              turnovers_per_game: (stats as any).turnovers_per_game,
+              total_plays: (stats as any).total_plays,
+              plays_per_game: (stats as any).plays_per_game,
+              scoring_percentage: (stats as any).scoring_percentage,
+              defensive_yards_per_game: (stats as any).defensive_yards_per_game,
+              takeaways: (stats as any).takeaways,
+              defensive_scoring_pct_allowed: (stats as any).defensive_scoring_pct_allowed,
+              
+              // Metadata
               source: 'csv',
               last_updated: new Date().toISOString()
             }, {
@@ -265,11 +246,11 @@ const CSVImportStats: React.FC = () => {
             throw error;
           }
           
-          console.log(`✅ Imported/Updated: ${canonicalName}`);
+          console.log(`✅ Imported/Updated: ${canonicalName} (Week ${weekNumber})`);
           imported++;
         } catch (err) {
           failed++;
-          const displayName = row.team;
+          const displayName = (stats as any).team_name;
           importErrors.push(`${displayName}: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
       }
@@ -277,7 +258,7 @@ const CSVImportStats: React.FC = () => {
       if (imported > 0) {
         const timestamp = new Date().toLocaleTimeString();
         const failureNote = failed > 0 ? ` (${failed} skipped)` : '';
-        setSuccess(`✅ Successfully imported ${imported} teams at ${timestamp}${failureNote}! Refresh page (Ctrl+F5) to see updates.`);
+        setSuccess(`✅ Successfully imported ${imported} teams for Week ${weekNumber} at ${timestamp}${failureNote}! Refresh page to see updates.`);
         
         setParsedData([]);
         setOffensiveFile(null);
