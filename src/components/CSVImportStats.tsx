@@ -2,69 +2,15 @@ import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { parseWeeklyTeamStats } from '../utils/csvParser';
 
-interface ExtendedTeamStats {
-  team: string;
-  gamesPlayed: number;
-  offensiveYardsPerGame: number;
-  pointsPerGame: number;
-  totalPlays: number;
-  yardsPerPlay: number;
-  firstDowns: number;
-  passCompletions: number;
-  passAttempts: number;
-  passCompletionPct: number;
-  passingYards: number;
-  passingTds: number;
-  interceptionsThrown: number;
-  yardsPerPassAttempt: number;
-  rushingAttempts: number;
-  rushingYards: number;
-  rushingTds: number;
-  yardsPerRush: number;
-  penalties: number;
-  penaltyYards: number;
-  turnoversLost: number;
-  fumblesLost: number;
-  defensiveYardsAllowed: number;
-  pointsAllowedPerGame: number;
-  defTotalPlays: number;
-  defYardsPerPlayAllowed: number;
-  defFirstDownsAllowed: number;
-  defPassCompletionsAllowed: number;
-  defPassAttempts: number;
-  defPassingYardsAllowed: number;
-  defPassingTdsAllowed: number;
-  defInterceptions: number;
-  defRushingAttemptsAllowed: number;
-  defRushingYardsAllowed: number;
-  defRushingTdsAllowed: number;
-  turnoversForced: number;
-  fumblesForced: number;
-  turnoverDifferential: number;
-  thirdDownPct: number;
-  redZonePct: number;
-  
-  // NEW DRIVE-LEVEL STATS
-  drivesPerGame: number;
-  playsPerDrive: number;
-  pointsPerDrive: number;
-  scoringPercentage: number;
-  yardsPerDrive: number;
-  timePerDriveSeconds: number;
-  thirdDownAttempts?: number;
-  thirdDownConversions?: number;
-  fourthDownAttempts?: number;
-  fourthDownConversions?: number;
-  redZoneAttempts?: number;
-  redZoneTouchdowns?: number;
-}
+// Import the ParsedTeamStats type from csvParser
+type ParsedTeamStats = ReturnType<typeof parseWeeklyTeamStats>[0];
 
 const CSVImportStats: React.FC = () => {
   const [offensiveFile, setOffensiveFile] = useState<File | null>(null);
   const [defensiveFile, setDefensiveFile] = useState<File | null>(null);
   const [parsing, setParsing] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [parsedData, setParsedData] = useState<ExtendedTeamStats[]>([]);
+  const [parsedData, setParsedData] = useState<ParsedTeamStats[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [success, setSuccess] = useState('');
   const [weekNumber, setWeekNumber] = useState<number>(1);
@@ -137,7 +83,7 @@ const CSVImportStats: React.FC = () => {
 
       // ✅ DIRECTLY USE THE PARSED DATA - Don't remap it!
       // The parser already returns everything in the correct format
-      setParsedData(parsedStatsArray as any);
+      setParsedData(parsedStatsArray);
       setParsing(false);
 
       // Debug log
@@ -405,15 +351,15 @@ const CSVImportStats: React.FC = () => {
               <tbody className="bg-gray-900">
                 {parsedData.map((row, idx) => (
                   <tr key={idx} className="border-t border-gray-700">
-                    <td className="px-2 py-2">{row.team}</td>
-                    <td className="px-2 py-2 text-right">{row.gamesPlayed}</td>
-                    <td className="px-2 py-2 text-right">{row.offensiveYardsPerGame.toFixed(1)}</td>
-                    <td className="px-2 py-2 text-right">{row.defensiveYardsAllowed.toFixed(1)}</td>
-                    <td className="px-2 py-2 text-right">{row.pointsPerGame.toFixed(1)}</td>
-                    <td className="px-2 py-2 text-right">{row.pointsAllowedPerGame.toFixed(1)}</td>
-                    <td className="px-2 py-2 text-right">{row.drivesPerGame?.toFixed(1) || 'N/A'}</td>
-                    <td className="px-2 py-2 text-right">{row.pointsPerDrive?.toFixed(2) || 'N/A'}</td>
-                    <td className="px-2 py-2 text-right">{row.scoringPercentage?.toFixed(1) || 'N/A'}%</td>
+                    <td className="px-2 py-2">{row.team_name}</td>
+                    <td className="px-2 py-2 text-right">{row.games_played}</td>
+                    <td className="px-2 py-2 text-right">{row.offensive_yards_per_game.toFixed(1)}</td>
+                    <td className="px-2 py-2 text-right">{row.defensive_yards_allowed.toFixed(1)}</td>
+                    <td className="px-2 py-2 text-right">{row.points_per_game.toFixed(1)}</td>
+                    <td className="px-2 py-2 text-right">{row.points_allowed_per_game.toFixed(1)}</td>
+                    <td className="px-2 py-2 text-right">{row.drives_per_game?.toFixed(1) || 'N/A'}</td>
+                    <td className="px-2 py-2 text-right">{(row.points_per_game / row.drives_per_game)?.toFixed(2) || 'N/A'}</td>
+                    <td className="px-2 py-2 text-right">{row.scoring_percentage?.toFixed(1) || 'N/A'}%</td>
                   </tr>
                 ))}
               </tbody>
