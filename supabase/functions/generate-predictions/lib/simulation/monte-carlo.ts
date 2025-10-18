@@ -137,8 +137,50 @@ function determineFavorite(homeMoneyline: number, awayMoneyline: number): {
   }
 }
 
+function calculateTotalCalibration(
+  rawAverageTotal: number,
+  bookmakersTotal: number
+): number {
+  const difference = rawAverageTotal - bookmakersTotal;
+  return difference;
+}
+
 /**
- * Run Monte Carlo simulation with increased variance
+ * Calculate calibration adjustment for spread predictions
+ * 
+ * Similar to total calibration - we assume bookmakers have the spread about right,
+ * and use our simulation's variance to find edges rather than trying to predict
+ * the exact margin of victory better than the market.
+ */
+function calculateSpreadCalibration(
+  rawAverageMargin: number,
+  bookmakersSpread: number
+): number {
+  const difference = rawAverageMargin - bookmakersSpread;
+  return difference;
+}
+
+/**
+ * Calculate the margin of victory for a given simulation iteration
+ * Positive margin means favorite won by more than the spread
+ */
+function calculateMarginForIteration(
+  homeScore: number,
+  awayScore: number,
+  favoriteIsHome: boolean
+): number {
+  if (favoriteIsHome) {
+    return homeScore - awayScore;
+  } else {
+    return awayScore - homeScore;
+  }
+}
+
+/**
+ * Run Monte Carlo simulation with market-calibrated over/under probabilities
+ * 
+ * Key insight: We don't try to predict absolute point totals better than bookmakers.
+ * Instead, we use simulation variance to find market inefficiencies.
  */
 export function runMonteCarloSimulation(
   homeStats: TeamStats,
@@ -154,8 +196,9 @@ export function runMonteCarloSimulation(
   let awayWins = 0;
   let ties = 0;
   let favoriteCovers = 0;
-  let overs = 0;
+  let rawOvers = 0;
 
+  // Run raw simulations first
   for (let iteration = 0; iteration < SIMULATION_ITERATIONS; iteration++) {
     const gameResult = simulateSingleGame(homeStats, awayStats, weather);
     
@@ -168,7 +211,7 @@ export function runMonteCarloSimulation(
     } else if (gameResult.awayScore > gameResult.homeScore) {
       awayWins++;
     } else {
-      ties++; // Track ties (rare but possible with variance)
+      ties++;
     }
 
     // Spread coverage
@@ -182,27 +225,80 @@ export function runMonteCarloSimulation(
       favoriteCovers++;
     }
 
-    // Over/Under
+    // Count raw overs (before calibration)
     const totalPoints = gameResult.homeScore + gameResult.awayScore;
-    if (totalPoints > total) overs++;
+    if (totalPoints > total) rawOvers++;
   }
 
-  const avgHomeScore = homeScores.reduce((acc, score) => acc + score, 0) / homeScores.length;
-  const avgAwayScore = awayScores.reduce((acc, score) => acc + score, 0) / awayScores.length;
+  const rawAverageHomeScore = homeScores.reduce((sum, score) => sum + score, 0) / homeScores.length;
+  const rawAverageAwayScore = awayScores.reduce((sum, score) => sum + score, 0) / awayScores.length;
+  const rawAverageTotal = rawAverageHomeScore + rawAverageAwayScore;
 
-  const favoriteCoverProb = (favoriteCovers / SIMULATION_ITERATIONS) * 100;
-  const underdogCoverProb = ((SIMULATION_ITERATIONS - favoriteCovers) / SIMULATION_ITERATIONS) * 100;
+  // === CRITICAL FIX: CALIBRATE TO MARKET ===
+  // Calculate how much our model differs from bookmaker's total
+  const totalCalibration = calculateTotalCalibration(rawAverageTotal, total);
+  
+  // Apply calibration to center our distribution on the bookmaker's line
+  const calibratedHomeScores = homeScores.map(score => score - (totalCalibration / 2));
+  const calibratedAwayScores = awayScores.map(score => score - (totalCalibration / 2));
+  
+  // Now count overs using calibrated scores
+  let calibratedOvers = 0;
+  for (let iteration = 0; iteration < SIMULATION_ITERATIONS; iteration++) {
+    const calibratedTotal = calibratedHomeScores[iteration] + calibratedAwayScores[iteration];
+    if (calibratedTotal > total) {
+      calibratedOvers++;
+    }
+  }
+
+  // Calculate final probabilities using calibrated results
+  const overProbability = (calibratedOvers / SIMULATION_ITERATIONS) * 100;
+  const underProbability = ((SIMULATION_ITERATIONS - calibratedOvers) / SIMULATION_ITERATIONS) * 100;
+
+  // SPREAD CALIBRATION
+  // Calculate the raw margin from our simulation
+  const rawAverageMargin = favoriteIsHome 
+    ? rawAverageHomeScore - rawAverageAwayScore
+    : rawAverageAwayScore - rawAverageHomeScore;
+  
+  const spreadValue = Math.abs(spread);
+  
+  // Calculate how much our predicted margin differs from the bookmaker's spread
+  const marginCalibration = calculateSpreadCalibration(rawAverageMargin, spreadValue);
+  
+  // Recalculate spread coverage with calibrated margins
+  let calibratedFavoriteCovers = 0;
+  for (let iteration = 0; iteration < SIMULATION_ITERATIONS; iteration++) {
+    const rawHomeScore = homeScores[iteration];
+    const rawAwayScore = awayScores[iteration];
+    
+    // Calculate margin and apply calibration
+    const rawMargin = calculateMarginForIteration(rawHomeScore, rawAwayScore, favoriteIsHome);
+    
+    const calibratedMargin = rawMargin - marginCalibration;
+    
+    // Check if favorite covers the spread with calibrated margin
+    if (calibratedMargin > spreadValue) {
+      calibratedFavoriteCovers++;
+    }
+  }
+  
+  const calibratedFavoriteCoverProbability = (calibratedFavoriteCovers / SIMULATION_ITERATIONS) * 100;
+  const calibratedUnderdogCoverProbability = 100 - calibratedFavoriteCoverProbability;
+
+  const favoriteCoverProbability = calibratedFavoriteCoverProbability;
+  const underdogCoverProbability = calibratedUnderdogCoverProbability;
 
   return {
     homeWinProbability: (homeWins / SIMULATION_ITERATIONS) * 100,
     awayWinProbability: (awayWins / SIMULATION_ITERATIONS) * 100,
-    predictedHomeScore: Math.round(avgHomeScore),
-    predictedAwayScore: Math.round(avgAwayScore),
-    spreadCoverProbability: favoriteCoverProb,
-    favoriteCoverProbability: favoriteCoverProb,
-    underdogCoverProbability: underdogCoverProb,
-    overProbability: (overs / SIMULATION_ITERATIONS) * 100,
-    underProbability: ((SIMULATION_ITERATIONS - overs) / SIMULATION_ITERATIONS) * 100,
+    predictedHomeScore: Math.round(rawAverageHomeScore),
+    predictedAwayScore: Math.round(rawAverageAwayScore),
+    spreadCoverProbability: favoriteCoverProbability,
+    favoriteCoverProbability: favoriteCoverProbability,
+    underdogCoverProbability: underdogCoverProbability,
+    overProbability: overProbability,
+    underProbability: underProbability,
     iterations: SIMULATION_ITERATIONS
   };
 }
