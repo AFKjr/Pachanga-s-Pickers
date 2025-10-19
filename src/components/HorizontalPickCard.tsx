@@ -141,7 +141,7 @@ const HorizontalPickCard: React.FC<HorizontalPickCardProps> = ({ pick }) => {
   
   return (
     <div 
-      className={`bg-[#1a1a1a] rounded-lg transition-all duration-200 min-h-[280px] max-w-none ${
+      className={`bg-[#1a1a1a] rounded-lg transition-all duration-200 min-h-[250px] min-w-[650px] max-w-none ${
         isHovered 
           ? 'transform -translate-y-1 shadow-2xl border border-lime-500' 
           : 'border border-[rgba(255,255,255,0.05)]'
@@ -150,7 +150,7 @@ const HorizontalPickCard: React.FC<HorizontalPickCardProps> = ({ pick }) => {
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Header */}
-      <div className="px-6 py-4 border-b border-[rgba(255,255,255,0.05)]">
+      <div className="px-8 py-5 border-b border-[rgba(255,255,255,0.05)]">
         <div className="flex items-center justify-between">
           <h3 className="text-white font-bold text-lg">
             {pick.game_info.away_team} @ {pick.game_info.home_team}
@@ -162,11 +162,11 @@ const HorizontalPickCard: React.FC<HorizontalPickCardProps> = ({ pick }) => {
       </div>
       
       {/* Bet Sections */}
-      <div className="px-6 py-4 flex flex-wrap gap-6 justify-start">
+      <div className="px-8 py-6 flex flex-wrap gap-8 justify-start">
         {/* Moneyline */}
         <BetSection
           title="MONEYLINE"
-          prediction={pick.prediction}
+          prediction={pick.prediction || 'No prediction'}
           line={`Line: ${pick.game_info.home_ml_odds || '-110'}/${pick.game_info.away_ml_odds || '+110'}`}
           yourEdge={formatEdge(pick.moneyline_edge)}
           oppEdge={calcOppEdge(pick.moneyline_edge)}
@@ -178,36 +178,32 @@ const HorizontalPickCard: React.FC<HorizontalPickCardProps> = ({ pick }) => {
         />
         
         {/* Spread */}
-        {pick.spread_prediction && (
-          <BetSection
-            title="SPREAD"
-            prediction={pick.spread_prediction}
-            line={`Line: ${pick.game_info.spread_odds || -110}/${pick.game_info.spread_odds || -110}`}
-            yourEdge={formatEdge(pick.spread_edge)}
-            oppEdge={calcOppEdge(pick.spread_edge)}
-            yourProb={pick.monte_carlo_results?.spread_probability || pick.confidence}
-            oppProb={100 - (pick.monte_carlo_results?.spread_probability || pick.confidence)}
-            confidence={pick.monte_carlo_results?.spread_probability || pick.confidence}
-            edgeValue={pick.spread_edge || 0}
-            result={pick.ats_result}
-          />
-        )}
+        <BetSection
+          title="SPREAD"
+          prediction={pick.spread_prediction || 'No spread prediction'}
+          line={`Line: ${pick.game_info.spread_odds || -110}/${pick.game_info.spread_odds || -110}`}
+          yourEdge={formatEdge(pick.spread_edge)}
+          oppEdge={calcOppEdge(pick.spread_edge)}
+          yourProb={pick.monte_carlo_results?.spread_probability || pick.confidence}
+          oppProb={100 - (pick.monte_carlo_results?.spread_probability || pick.confidence)}
+          confidence={pick.monte_carlo_results?.spread_probability || pick.confidence}
+          edgeValue={pick.spread_edge || 0}
+          result={pick.ats_result}
+        />
         
         {/* Total */}
-        {pick.ou_prediction && (
-          <BetSection
-            title="TOTAL"
-            prediction={pick.ou_prediction}
-            line={`Line: ${pick.game_info.over_odds || -110}`}
-            yourEdge={formatEdge(pick.ou_edge)}
-            oppEdge={calcOppEdge(pick.ou_edge)}
-            yourProb={pick.monte_carlo_results?.total_probability || pick.confidence}
-            oppProb={100 - (pick.monte_carlo_results?.total_probability || pick.confidence)}
-            confidence={pick.monte_carlo_results?.total_probability || pick.confidence}
-            edgeValue={pick.ou_edge || 0}
-            result={pick.ou_result}
-          />
-        )}
+        <BetSection
+          title="TOTAL"
+          prediction={pick.ou_prediction || 'No total prediction'}
+          line={`Line: ${pick.game_info.over_odds || -110}`}
+          yourEdge={formatEdge(pick.ou_edge)}
+          oppEdge={calcOppEdge(pick.ou_edge)}
+          yourProb={pick.monte_carlo_results?.total_probability || pick.confidence}
+          oppProb={100 - (pick.monte_carlo_results?.total_probability || pick.confidence)}
+          confidence={pick.monte_carlo_results?.total_probability || pick.confidence}
+          edgeValue={pick.ou_edge || 0}
+          result={pick.ou_result}
+        />
       </div>
     </div>
   );

@@ -3,10 +3,11 @@ import { picksApi } from '../lib/api';
 import { globalEvents } from '../lib/events';
 import type { Pick } from '../types';
 import { getPickWeek } from '../utils/nflWeeks';
-import BestBetsSection, { BestBetCard } from './BestBetsSection';
+import BestBetsSection from './BestBetsSection';
 import SegmentedWeekSelector from './SegmentedWeekSelector';
 import { calculatePickEdges } from '../utils/edgeCalculator';
 import { isBestBet } from '../utils/confidenceHelpers';
+import HorizontalPickCard from './HorizontalPickCard';
 
 interface PicksDisplayProps {
   showWeekFilter?: boolean;
@@ -151,9 +152,9 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
             </div>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 grid-cols-2">
             {filteredPicks.map((pick) => (
-              <BestBetCard key={pick.id} pick={pick} />
+              <HorizontalPickCard key={pick.id} pick={pick} />
             ))}
           </div>
         )}

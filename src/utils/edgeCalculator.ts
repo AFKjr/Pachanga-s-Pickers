@@ -199,9 +199,9 @@ export function calculatePickEdges(
   }
   
   return {
-    moneyline_edge: Number(moneylineEdge.toFixed(2)),
-    spread_edge: Number(spreadEdge.toFixed(2)),
-    ou_edge: Number(ouEdge.toFixed(2))
+    moneyline_edge: Number((moneylineEdge * 0.3).toFixed(2)), // Reduce moneyline edge by 30%
+    spread_edge: Number((spreadEdge * 0.3).toFixed(2)), // Reduce ATS edge by 30%
+    ou_edge: Number((ouEdge * 0.3).toFixed(2)) // Reduce OU edge by 30%
   };
 }
 
