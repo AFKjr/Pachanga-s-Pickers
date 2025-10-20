@@ -183,7 +183,115 @@ export async function fetchTeamStats(
       pointsPerDrive: dbStats.points_per_drive ?? 2.0,
       scoringPercentage: dbStats.scoring_percentage ?? 40.0,
       yardsPerDrive: dbStats.yards_per_drive ?? 30.0,
-      timePerDriveSeconds: dbStats.time_per_drive_seconds ?? 162
+      timePerDriveSeconds: dbStats.time_per_drive_seconds ?? 162,
+
+      // NEW: Enhanced stats from fusion script
+      // Situational offense
+      thirdDownAttempts: dbStats.third_down_attempts ?? 12.5,
+      thirdDownConversions: dbStats.third_down_conversions ?? 5.0,
+      fourthDownAttempts: dbStats.fourth_down_attempts ?? 1.2,
+      fourthDownConversions: dbStats.fourth_down_conversions ?? 0.5,
+      redZoneAttempts: dbStats.red_zone_attempts ?? 4.2,
+      redZoneTouchdowns: dbStats.red_zone_touchdowns ?? 2.3,
+      redZoneScoringPct: calculateRate(dbStats.red_zone_touchdowns, dbStats.red_zone_attempts, 55.0) * 100,
+
+      // Advanced passing
+      passFirstDowns: dbStats.pass_first_downs ?? 10.2,
+      rushFirstDowns: dbStats.rush_first_downs ?? 6.8,
+      penaltyFirstDowns: dbStats.penalty_first_downs ?? 2.6,
+      expectedPointsOffense: dbStats.expected_points_offense ?? 15.0,
+
+      // Special teams
+      fieldGoalAttempts: dbStats.field_goal_attempts ?? 1.8,
+      fieldGoalsMade: dbStats.field_goals_made ?? 1.5,
+      fieldGoalPct: dbStats.field_goal_pct ?? 83.3,
+      extraPointAttempts: dbStats.extra_point_attempts ?? 2.8,
+      extraPointsMade: dbStats.extra_points_made ?? 2.7,
+      kickoffs: dbStats.kickoffs ?? 4.2,
+      touchbacks: dbStats.touchbacks ?? 1.2,
+      touchbackPct: dbStats.touchback_pct ?? 28.6,
+
+      // Punting
+      punts: dbStats.punts ?? 4.5,
+      puntYards: dbStats.punt_yards ?? 202.5,
+      puntNetYards: dbStats.punt_net_yards ?? 180.0,
+      puntNetYardsPerPunt: dbStats.punt_net_yards_per_punt ?? 40.0,
+      puntsInside20: dbStats.punts_inside_20 ?? 1.8,
+      puntsBlocked: dbStats.punts_blocked ?? 0.1,
+
+      // Returns
+      kickReturns: dbStats.kick_returns ?? 2.8,
+      kickReturnYards: dbStats.kick_return_yards ?? 65.4,
+      kickReturnYardsPerReturn: dbStats.kick_return_yards_per_return ?? 23.4,
+      puntReturns: dbStats.punt_returns ?? 2.2,
+      puntReturnYards: dbStats.punt_return_yards ?? 18.6,
+      puntReturnYardsPerReturn: dbStats.punt_return_yards_per_return ?? 8.5,
+      allPurposeYards: dbStats.all_purpose_yards ?? 45.2,
+
+      // Scoring
+      rushingTds: dbStats.rushing_tds ?? 0.9, // Already mapped above
+      receivingTds: dbStats.receiving_tds ?? 1.2,
+      totalTds: dbStats.total_tds ?? 2.8,
+      twoPointConversions: dbStats.two_point_conversions ?? 0.1,
+      puntReturnTds: dbStats.punt_return_tds ?? 0.05,
+      kickReturnTds: dbStats.kick_return_tds ?? 0.02,
+
+      // Defensive situational
+      defThirdDownAttempts: dbStats.def_third_down_attempts ?? 12.5,
+      defThirdDownConversions: dbStats.def_third_down_conversions ?? 5.0,
+      defFourthDownAttempts: dbStats.def_fourth_down_attempts ?? 1.2,
+      defFourthDownConversions: dbStats.def_fourth_down_conversions ?? 0.5,
+      defRedZoneAttempts: dbStats.def_red_zone_attempts ?? 4.2,
+      defRedZoneTouchdowns: dbStats.def_red_zone_touchdowns ?? 2.3,
+      defRedZoneScoringPct: calculateRate(dbStats.def_red_zone_touchdowns, dbStats.def_red_zone_attempts, 55.0) * 100,
+
+      // Pass rush
+      qbHurries: dbStats.qb_hurries ?? 2.1,
+      qbHits: dbStats.qb_hits ?? 3.2,
+      blitzes: dbStats.blitzes ?? 8.5,
+      blitzPct: dbStats.blitz_pct ?? 32.1,
+
+      // Defensive special teams
+      defFieldGoalAttempts: dbStats.def_field_goal_attempts ?? 1.8,
+      defFieldGoalsMade: dbStats.def_field_goals_made ?? 1.5,
+      defFieldGoalPct: dbStats.def_field_goal_pct ?? 83.3,
+      defExtraPointAttempts: dbStats.def_extra_point_attempts ?? 2.8,
+      defExtraPointsMade: dbStats.def_extra_points_made ?? 2.7,
+
+      // Defensive punting
+      defPunts: dbStats.def_punts ?? 4.5,
+      defPuntYards: dbStats.def_punt_yards ?? 202.5,
+      defPuntsBlocked: dbStats.def_punts_blocked ?? 0.1,
+
+      // Defensive returns
+      defKickReturns: dbStats.def_kick_returns ?? 2.8,
+      defKickReturnYards: dbStats.def_kick_return_yards ?? 65.4,
+      defPuntReturns: dbStats.def_punt_returns ?? 2.2,
+      defPuntReturnYards: dbStats.def_punt_return_yards ?? 18.6,
+
+      // Defensive scoring
+      defRushingTds: dbStats.def_rushing_tds ?? 0.9,
+      defReceivingTds: dbStats.def_receiving_tds ?? 1.2,
+      defTotalTds: dbStats.def_total_tds ?? 2.8,
+      defTwoPointConversions: dbStats.def_two_point_conversions ?? 0.1,
+      defPuntReturnTds: dbStats.def_punt_return_tds ?? 0.05,
+      defKickReturnTds: dbStats.def_kick_return_tds ?? 0.02,
+
+      // Drive stats
+      totalDrives: dbStats.total_drives ?? 11.0,
+      driveScoringPct: dbStats.drive_scoring_pct ?? 40.0,
+      driveTurnoverPct: dbStats.drive_turnover_pct ?? 8.5,
+      driveStartAvg: dbStats.drive_start_avg ?? 25.0,
+      driveTimeAvg: dbStats.drive_time_avg ?? 162.0,
+      drivePointsAvg: dbStats.drive_points_avg ?? 2.0,
+
+      // Defensive drive stats
+      defTotalDrives: dbStats.def_total_drives ?? 11.0,
+      defDriveScoringPct: dbStats.def_drive_scoring_pct ?? 40.0,
+      defDriveTurnoverPct: dbStats.def_drive_turnover_pct ?? 8.5,
+      defDriveStartAvg: dbStats.def_drive_start_avg ?? 25.0,
+      defDriveTimeAvg: dbStats.def_drive_time_avg ?? 162.0,
+      defDrivePointsAvg: dbStats.def_drive_points_avg ?? 2.0
     };
   } catch (error) {
     console.error(`Error fetching stats for ${teamName}:`, error);

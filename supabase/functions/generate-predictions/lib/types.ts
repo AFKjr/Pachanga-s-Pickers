@@ -77,6 +77,111 @@ export interface TeamStats {
   scoringPercentage: number;
   yardsPerDrive: number;
   timePerDriveSeconds: number;
+
+  // NEW: Enhanced stats from fusion script
+  // Situational offense
+  thirdDownAttempts?: number;
+  thirdDownConversions?: number;
+  fourthDownAttempts?: number;
+  fourthDownConversions?: number;
+  redZoneAttempts?: number;
+  redZoneTouchdowns?: number;
+
+  // Advanced passing
+  passFirstDowns?: number;
+  rushFirstDowns?: number;
+  penaltyFirstDowns?: number;
+  expectedPointsOffense?: number;
+
+  // Special teams
+  fieldGoalAttempts?: number;
+  fieldGoalsMade?: number;
+  fieldGoalPct?: number;
+  extraPointAttempts?: number;
+  extraPointsMade?: number;
+  kickoffs?: number;
+  touchbacks?: number;
+  touchbackPct?: number;
+
+  // Punting
+  punts?: number;
+  puntYards?: number;
+  puntNetYards?: number;
+  puntNetYardsPerPunt?: number;
+  puntsInside20?: number;
+  puntsBlocked?: number;
+
+  // Returns
+  kickReturns?: number;
+  kickReturnYards?: number;
+  kickReturnYardsPerReturn?: number;
+  puntReturns?: number;
+  puntReturnYards?: number;
+  puntReturnYardsPerReturn?: number;
+  allPurposeYards?: number;
+
+  // Scoring
+  receivingTds?: number;
+  totalTds?: number;
+  twoPointConversions?: number;
+  puntReturnTds?: number;
+  kickReturnTds?: number;
+
+  // Defensive situational
+  defThirdDownAttempts?: number;
+  defThirdDownConversions?: number;
+  defFourthDownAttempts?: number;
+  defFourthDownConversions?: number;
+  defRedZoneAttempts?: number;
+  defRedZoneTouchdowns?: number;
+
+  // Pass rush
+  qbHurries?: number;
+  qbHits?: number;
+  blitzes?: number;
+  blitzPct?: number;
+
+  // Defensive special teams
+  defFieldGoalAttempts?: number;
+  defFieldGoalsMade?: number;
+  defFieldGoalPct?: number;
+  defExtraPointAttempts?: number;
+  defExtraPointsMade?: number;
+
+  // Defensive punting
+  defPunts?: number;
+  defPuntYards?: number;
+  defPuntsBlocked?: number;
+
+  // Defensive returns
+  defKickReturns?: number;
+  defKickReturnYards?: number;
+  defPuntReturns?: number;
+  defPuntReturnYards?: number;
+
+  // Defensive scoring
+  defRushingTds?: number;
+  defReceivingTds?: number;
+  defTotalTds?: number;
+  defTwoPointConversions?: number;
+  defPuntReturnTds?: number;
+  defKickReturnTds?: number;
+
+  // Drive stats
+  totalDrives?: number;
+  driveScoringPct?: number;
+  driveTurnoverPct?: number;
+  driveStartAvg?: number;
+  driveTimeAvg?: number;
+  drivePointsAvg?: number;
+
+  // Defensive drive stats
+  defTotalDrives?: number;
+  defDriveScoringPct?: number;
+  defDriveTurnoverPct?: number;
+  defDriveStartAvg?: number;
+  defDriveTimeAvg?: number;
+  defDrivePointsAvg?: number;
 }
 
 export interface OddsData {

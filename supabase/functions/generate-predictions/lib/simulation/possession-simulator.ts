@@ -9,90 +9,96 @@ import {
 
 /**
  * Simulate a single possession with multiple layers of variance
+ * Enhanced with fusion data for drive-level intelligence
  */
 export function simulatePossession(
   offenseStats: TeamStats,
   defenseStats: TeamStats,
   weatherAdjustment: WeatherAdjustmentResult | null
 ): number {
-  const offensiveStrength = weatherAdjustment 
-    ? weatherAdjustment.adjustedOffensiveStrength 
+  const offensiveStrength = weatherAdjustment
+    ? weatherAdjustment.adjustedOffensiveStrength
     : calculateOffensiveStrength(offenseStats);
-    
+
   const defensiveStrength = weatherAdjustment
     ? weatherAdjustment.adjustedDefensiveStrength
     : calculateDefensiveStrength(defenseStats);
-  
+
   // Base scoring probability (already regressed in calculateRelativeAdvantage)
   const baseScoring = calculateRelativeAdvantage(offensiveStrength, defensiveStrength);
-  
-  // === TURNOVER CHECK WITH VARIANCE ===
+
+  // === TURNOVER CHECK WITH ENHANCED VARIANCE ===
+  // Use fusion drive metrics for more accurate turnover modeling
   const baseTurnoverRate = (
-    (offenseStats.turnoversLost / offenseStats.totalPlays) +
-    (defenseStats.turnoversForced / defenseStats.defTotalPlays)
-  ) / 2;
-  
-  // Add turnover variance (some games have more, some less)
-  // INCREASED: ±40% variance on turnover rate (was ±30%)
+    (offenseStats.turnoversLost / Math.max(offenseStats.totalPlays, 1)) * 0.6 +
+    (defenseStats.turnoversForced / Math.max(defenseStats.defTotalPlays, 1)) * 0.4
+  );
+
+  // Add turnover variance (±40% variance on turnover rate)
   const turnoverVariance = 0.80 + (Math.random() * 0.40); // 0.80 to 1.20
   const adjustedTurnoverChance = baseTurnoverRate * turnoverVariance;
-  
+
   if (Math.random() < adjustedTurnoverChance) {
     return 0; // Turnover ends possession
   }
-  
-  // === EFFICIENCY MODIFIER WITH VARIANCE ===
-  const baseEfficiency = offenseStats.yardsPerPlay / 
-                        (offenseStats.yardsPerPlay + defenseStats.defYardsPerPlayAllowed);
-  
+
+  // === EFFICIENCY MODIFIER WITH FUSION DATA ===
+  // Enhanced with drive scoring percentage and third down efficiency
+  const baseEfficiency = (
+    offenseStats.driveScoringPct / 100 * 0.4 +           // Drive scoring success
+    (100 - offenseStats.thirdDownConversions) / 100 * 0.3 + // Third down efficiency
+    offenseStats.expectedPointsOffense / 3.0 * 0.3         // Expected points per drive
+  );
+
   // Add execution variance (±15%)
-  // Accounts for: play-calling, execution, momentum
   const efficiencyVariance = 0.90 + (Math.random() * 0.20); // 0.90 to 1.10
   const adjustedEfficiency = Math.min(0.85, baseEfficiency * efficiencyVariance);
-  
-  // Combine with MORE weight on variance
-  // This makes individual drives less predictable
-  const scoringProbability = (baseScoring * 0.65) + (adjustedEfficiency * 0.35);
-  
+
+  // Combine with MORE weight on variance for unpredictability
+  const scoringProbability = (baseScoring * 0.60) + (adjustedEfficiency * 0.40);
+
   // === SCORING ATTEMPT ===
   if (Math.random() > scoringProbability) {
     return 0; // Drive stalls
   }
-  
-  // === TD vs FG WITH INCREASED VARIANCE ===
-  const baseRedZone = offenseStats.redZoneEfficiency;
-  const seasonalTDRate = (offenseStats.passingTds + offenseStats.rushingTds) * 1.2;
-  
-  // Base TD probability
-  const baseTDProb = (baseRedZone * 0.8) + (seasonalTDRate * 0.2);
-  
+
+  // === TD vs FG WITH FUSION DATA ===
+  // Use red zone scoring percentage and field goal accuracy from fusion
+  const baseRedZone = (offenseStats.defRedZoneAttempts || 0) > 0 ?
+    ((offenseStats.defRedZoneTouchdowns || 0) / (offenseStats.defRedZoneAttempts || 1)) : 0.5;
+  const fieldGoalAccuracy = (offenseStats.defFieldGoalAttempts || 0) > 0 ?
+    ((offenseStats.defFieldGoalsMade || 0) / (offenseStats.defFieldGoalAttempts || 1)) : 0.8;
+
+  // Base TD probability weighted toward red zone success
+  const baseTDProb = (baseRedZone * 0.7) + (fieldGoalAccuracy * 0.3);
+
   // Add red zone variance (±20%)
-  // Some drives execute perfectly, others struggle
   const redZoneVariance = 0.85 + (Math.random() * 0.30); // 0.85 to 1.15
-  const adjustedTDProb = baseTDProb * redZoneVariance;
-  
+  const adjustedTDProb = Math.min(0.95, baseTDProb * redZoneVariance);
+
   const redZoneRoll = Math.random() * 100;
-  
-  // Touchdown
+
+  // Touchdown - use two-point conversion rate from fusion
   if (redZoneRoll < adjustedTDProb) {
-    // Small chance of 2-point conversion (2%) or missed XP (2%)
+    const twoPointRate = (offenseStats.twoPointConversions || 0) / Math.max((offenseStats.twoPointConversions || 0) + (offenseStats.totalTds || 1), 1);
     const specialEvents = Math.random();
-    if (specialEvents < 0.02) return 8;  // 2-pt conversion
-    if (specialEvents < 0.04) return 6;  // Missed XP
+    if (specialEvents < twoPointRate) return 8;  // 2-pt conversion
+    if (specialEvents < 0.04) return 6;  // Missed XP (conservative estimate)
     return 7;  // Normal TD
   }
-  
-  // Field Goal attempt
-  const fieldGoalRange = adjustedTDProb + 35;
-  
+
+  // Field Goal attempt - use actual field goal percentage
+  const fieldGoalRange = adjustedTDProb + (fieldGoalAccuracy * 35);
+
   if (redZoneRoll < fieldGoalRange) {
-    // Small chance of missed FG (8%) or blocked FG (2%)
+    // Use actual field goal miss rate from fusion data
+    const fgMissRate = 1 - fieldGoalAccuracy;
     const fgRoll = Math.random();
-    if (fgRoll < 0.08) return 0;  // Missed FG
-    if (fgRoll < 0.10) return 0;  // Blocked FG
+    if (fgRoll < fgMissRate) return 0;  // Missed FG
+    if (fgRoll < fgMissRate + 0.02) return 0;  // Blocked FG (small chance)
     return 3;  // Made FG
   }
-  
+
   // Drive reached scoring territory but failed
   return 0;
 }
@@ -112,63 +118,70 @@ export function simulatePossessionDetailed(
   defenseStats: TeamStats,
   weatherAdjustment: WeatherAdjustmentResult | null
 ): DriveOutcome {
-  const offensiveStrength = weatherAdjustment 
-    ? weatherAdjustment.adjustedOffensiveStrength 
+  const offensiveStrength = weatherAdjustment
+    ? weatherAdjustment.adjustedOffensiveStrength
     : calculateOffensiveStrength(offenseStats);
-    
+
   const defensiveStrength = weatherAdjustment
     ? weatherAdjustment.adjustedDefensiveStrength
     : calculateDefensiveStrength(defenseStats);
-  
+
   const baseScoring = calculateRelativeAdvantage(offensiveStrength, defensiveStrength);
-  
-  // Estimate yards with MORE variance
-  const baseYards = (offenseStats.yardsPerPlay * 10) * (baseScoring / 0.5);
-  const yardsVariance = Math.floor(Math.random() * 50) - 25; // ±25 yards (was ±15)
+
+  // Estimate yards with fusion data - use expected points and drive efficiency
+  const baseYards = (offenseStats.expectedPointsOffense * 8) + (offenseStats.driveScoringPct * 2);
+  const yardsVariance = Math.floor(Math.random() * 50) - 25; // ±25 yards
   const yards = Math.max(0, Math.round(baseYards + yardsVariance));
-  
-  // Turnover check with variance
+
+  // Turnover check with enhanced fusion metrics
   const baseTurnoverRate = (
-    (offenseStats.turnoversLost / offenseStats.totalPlays) +
-    (defenseStats.turnoversForced / defenseStats.defTotalPlays)
-  ) / 2;
-  
+    (offenseStats.turnoversLost / Math.max(offenseStats.totalPlays, 1)) * 0.6 +
+    (defenseStats.turnoversForced / Math.max(defenseStats.defTotalPlays, 1)) * 0.4
+  );
+
   const turnoverVariance = 0.85 + (Math.random() * 0.30);
   if (Math.random() < baseTurnoverRate * turnoverVariance) {
     return { points: 0, outcome: 'turnover', yards };
   }
-  
-  // Efficiency check with variance
-  const baseEfficiency = offenseStats.yardsPerPlay / 
-                        (offenseStats.yardsPerPlay + defenseStats.defYardsPerPlayAllowed);
+
+  // Efficiency check with fusion drive metrics
+  const baseEfficiency = (
+    offenseStats.driveScoringPct / 100 * 0.4 +
+    (100 - offenseStats.thirdDownConversions) / 100 * 0.3 +
+    offenseStats.expectedPointsOffense / 3.0 * 0.3
+  );
   const efficiencyVariance = 0.90 + (Math.random() * 0.20);
-  const scoringProbability = (baseScoring * 0.65) + (baseEfficiency * efficiencyVariance * 0.35);
-  
+  const scoringProbability = (baseScoring * 0.60) + (baseEfficiency * efficiencyVariance * 0.40);
+
   if (Math.random() > scoringProbability) {
     const outcome = yards > 40 ? 'downs' : 'punt';
     return { points: 0, outcome, yards };
   }
-  
-  // Red zone with variance
-  const baseRedZone = offenseStats.redZoneEfficiency;
-  const seasonalTDRate = (offenseStats.passingTds + offenseStats.rushingTds) * 1.2;
-  const baseTDProb = (baseRedZone * 0.8) + (seasonalTDRate * 0.2);
+
+  // Red zone with fusion data
+  const baseRedZone = (offenseStats.defRedZoneAttempts || 0) > 0 ?
+    ((offenseStats.defRedZoneTouchdowns || 0) / (offenseStats.defRedZoneAttempts || 1)) : 0.5;
+  const fieldGoalAccuracy = (offenseStats.defFieldGoalAttempts || 0) > 0 ?
+    ((offenseStats.defFieldGoalsMade || 0) / (offenseStats.defFieldGoalAttempts || 1)) : 0.8;
+  const baseTDProb = (baseRedZone * 0.7) + (fieldGoalAccuracy * 0.3);
   const redZoneVariance = 0.85 + (Math.random() * 0.30);
-  const adjustedTDProb = baseTDProb * redZoneVariance;
-  
+  const adjustedTDProb = Math.min(0.95, baseTDProb * redZoneVariance);
+
   const redZoneRoll = Math.random() * 100;
-  
+
   if (redZoneRoll < adjustedTDProb) {
-    const points = Math.random() < 0.02 ? 8 : Math.random() < 0.02 ? 6 : 7;
+    const twoPointRate = (offenseStats.twoPointConversions || 0) / Math.max((offenseStats.twoPointConversions || 0) + (offenseStats.totalTds || 1), 1);
+    const points = Math.random() < twoPointRate ? 8 :
+                  Math.random() < 0.02 ? 6 : 7;
     return { points, outcome: 'touchdown', yards: yards + 20 };
   }
-  
-  if (redZoneRoll < adjustedTDProb + 35) {
-    if (Math.random() < 0.10) {
+
+  if (redZoneRoll < adjustedTDProb + (fieldGoalAccuracy * 35)) {
+    if (Math.random() < (1 - fieldGoalAccuracy)) {
       return { points: 0, outcome: 'missed_fg', yards };
     }
     return { points: 3, outcome: 'fieldgoal', yards };
   }
-  
+
   return { points: 0, outcome: 'downs', yards };
 }

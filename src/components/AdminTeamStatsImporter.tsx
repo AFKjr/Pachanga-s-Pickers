@@ -105,7 +105,7 @@ const AdminTeamStatsImporter: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Import Team Statistics</h2>
+      <h2 className="text-2xl font-bold mb-6 text-gray-800">Import Team Statistics (Fusion)</h2>
 
       {/* Week and Season Selection */}
       <div className="grid grid-cols-2 gap-4 mb-6">
@@ -240,8 +240,9 @@ const AdminTeamStatsImporter: React.FC = () => {
           <li>Download offense and defense CSV files from Pro Football Reference</li>
           <li>Ensure files contain multi-section data (general, passing, rushing, downs, etc.)</li>
           <li>Select the appropriate week and season for the statistics</li>
-          <li>Click "Import Statistics" to load the data into the database</li>
-          <li>Critical stats like drives_per_game and third_down_attempts will be populated</li>
+          <li>The system will automatically fuse the data using advanced normalization</li>
+          <li>Click "Import Statistics" to process and load the fused data into the database</li>
+          <li>Fusion provides team name normalization, comprehensive stat categories, and data validation</li>
         </ul>
       </div>
     </div>
