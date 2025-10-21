@@ -12,16 +12,6 @@ const ManagePicksPage: React.FC = () => {
       </div>
 
       <AdminPickManager />
-
-      <div className="bg-lime-500/10 border border-lime-500/30 text-lime-300 px-4 py-3 rounded-lg">
-        <h4 className="font-semibold mb-2 text-lime-400">Pick Management Features:</h4>
-        <ul className="list-disc list-inside space-y-1 text-sm">
-          <li><strong>Revise Picks:</strong> Edit predictions, reasoning, and game details</li>
-          <li><strong>Search & Filter:</strong> Find picks by team, week, or prediction text</li>
-          <li><strong>Export Data:</strong> Copy pick information for external analysis</li>
-          <li><strong>Pin Important Picks:</strong> Highlight key predictions for users</li>
-        </ul>
-      </div>
     </div>
   );
 };
