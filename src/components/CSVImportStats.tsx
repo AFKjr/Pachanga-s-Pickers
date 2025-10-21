@@ -8,87 +8,42 @@ import { supabase } from '../lib/supabase';
 
 interface TeamStats {
   team_name: string;
+  
+  // CRITICAL stats for simulation (highlighted in UI)
+  yards_per_play: number;
+  yards_per_play_allowed: number;
+  drives_per_game: number;
+  points_allowed_per_game: number;
+  
+  // Supporting stats
+  offensive_yards_per_game: number;
+  defensive_yards_allowed: number;
+  points_per_game: number;
+  passing_yards: number;
+  passing_yards_per_game: number;
+  rushing_yards: number;
+  rushing_yards_per_game: number;
+  turnovers_lost: number;
+  turnovers_per_game: number;
+  turnover_differential: number;
+  def_interceptions: number;
+  takeaways: number;
+  total_plays: number;
+  plays_per_game: number;
+  scoring_percentage: number;
+  defensive_yards_per_game: number;
+  defensive_scoring_pct_allowed: number;
+  
+  // NEW: Third down and red zone efficiency
+  third_down_conversion_rate: number;
+  red_zone_efficiency: number;
+  third_down_conversion_rate_allowed: number;
+  red_zone_efficiency_allowed: number;
+  
+  // Metadata
   week: number;
   season_year: number;
   games_played: number;
-  
-  // Offensive stats
-  points_per_game: number;
-  offensive_yards_per_game: number;
-  total_plays: number;
-  yards_per_play: number;
-  turnovers_lost: number;
-  fumbles_lost: number;
-  first_downs: number;
-  turnover_differential: number;
-  
-  // Passing stats
-  pass_completions: number;
-  pass_attempts: number;
-  passing_yards: number;
-  passing_tds: number;
-  interceptions_thrown: number;
-  yards_per_pass_attempt: number;
-  pass_completion_pct: number;
-  
-  // Rushing stats
-  rushing_attempts: number;
-  rushing_yards: number;
-  rushing_tds: number;
-  yards_per_rush: number;
-  
-  // First downs breakdown
-  pass_first_downs: number;
-  rush_first_downs: number;
-  penalty_first_downs: number;
-  penalties: number;
-  penalty_yards: number;
-  
-  // Conversion stats
-  third_down_attempts: number;
-  third_down_conversions: number;
-  fourth_down_attempts: number;
-  fourth_down_conversions: number;
-  red_zone_attempts: number;
-  red_zone_touchdowns: number;
-  
-  // Drive stats
-  scoring_percentage: number;
-  turnover_percentage: number;
-  
-  // Special teams
-  field_goal_attempts: number;
-  field_goals_made: number;
-  extra_point_attempts: number;
-  extra_points_made: number;
-  
-  // Defensive stats
-  points_allowed_per_game: number;
-  defensive_yards_allowed: number;
-  def_total_plays: number;
-  def_yards_per_play_allowed: number;
-  turnovers_forced: number;
-  fumbles_forced: number;
-  def_first_downs_allowed: number;
-  
-  // Defensive passing
-  def_pass_completions_allowed: number;
-  def_pass_attempts: number;
-  def_passing_yards_allowed: number;
-  def_passing_tds_allowed: number;
-  def_interceptions: number;
-  
-  // Defensive rushing
-  def_rushing_attempts_allowed: number;
-  def_rushing_yards_allowed: number;
-  def_rushing_tds_allowed: number;
-  def_yards_per_rush_allowed: number;
-  
-  // Defensive efficiency
-  def_scoring_percentage: number;
-  def_turnover_percentage: number;
-  
-  // Metadata
   source: string;
   last_updated: string;
 }
@@ -97,13 +52,10 @@ type SectionName =
   | 'offense_total'
   | 'offense_passing'
   | 'offense_rushing'
-  | 'conversions'
+  | 'offense_conversions'
   | 'drives'
   | 'defense_total'
-  | 'defense_passing'
-  | 'defense_rushing'
-  | 'kicking'
-  | 'scoring'
+  | 'defense_conversions'
   | 'unknown';
 
 /**
@@ -127,9 +79,9 @@ function detectSection(headers: string[]): SectionName {
     return 'offense_rushing';
   }
   
-  // Conversions (3rd down, 4th down, red zone)
-  if (headerStr.includes('3datt,3dconv,3d%') && headerStr.includes('rzatt')) {
-    return 'conversions';
+  // Third down and red zone conversions (offensive/defensive)
+  if (headerStr.includes('3datt,3dconv,3d%') && headerStr.includes('rzatt,rztd,rzpct')) {
+    return 'offense_conversions';  // Will be determined by context in parseMultiSectionCSV
   }
   
   // Drive stats
@@ -140,26 +92,6 @@ function detectSection(headers: string[]): SectionName {
   // Defense total stats (PA = Points Against)
   if (headerStr.includes('rk,tm,g,pa') && headerStr.includes('ply') && headerStr.includes('y/p')) {
     return 'defense_total';
-  }
-  
-  // Defense passing stats (has Sk for sacks)
-  if (headerStr.includes('cmp,att') && headerStr.includes('sk,yds') && headerStr.includes('int')) {
-    return 'defense_passing';
-  }
-  
-  // Defense rushing stats (no Fmb column, defensive context)
-  if (headerStr.includes('att,yds,td') && headerStr.includes('y/a,y/g') && !headerStr.includes('fmb')) {
-    return 'defense_rushing';
-  }
-  
-  // Kicking stats
-  if (headerStr.includes('fga,fgm,fg%') && headerStr.includes('xpa,xpm')) {
-    return 'kicking';
-  }
-  
-  // Scoring detail
-  if (headerStr.includes('rshtd,rectd') || (headerStr.includes('fga') && headerStr.includes('safety'))) {
-    return 'scoring';
   }
   
   return 'unknown';
@@ -187,7 +119,7 @@ function parseNumeric(value: string): number {
 /**
  * Parse multi-section CSV file
  */
-function parseMultiSectionCSV(csvContent: string): Record<string, Record<string, any>> {
+function parseMultiSectionCSV(csvContent: string, isDefensive: boolean = false): Record<string, Record<string, any>> {
   const lines = csvContent.trim().split('\n');
   const allTeamData: Record<string, Record<string, any>> = {};
   
@@ -213,6 +145,12 @@ function parseMultiSectionCSV(csvContent: string): Record<string, Record<string,
       // Start new section
       currentHeaders = trimmedLine.split(',');
       currentSectionName = detectSection(currentHeaders);
+      
+      // Override conversions section based on CSV type
+      if (currentSectionName === 'offense_conversions' && isDefensive) {
+        currentSectionName = 'defense_conversions';
+      }
+      
       currentSection = [];
       
       console.log(`📊 Found section: ${currentSectionName}`);
@@ -285,92 +223,45 @@ function extractStatsForSection(
   
   switch (sectionName) {
     case 'offense_total':
+      teamData.yards_per_play = parseNumeric(getColumnValue('Y/P'));
       teamData.points_per_game = parseNumeric(getColumnValue('PF')) / teamData.games_played;
       teamData.offensive_yards_per_game = parseNumeric(getColumnValue('Yds')) / teamData.games_played;
       teamData.total_plays = parseNumeric(getColumnValue('Ply'));
-      teamData.yards_per_play = parseNumeric(getColumnValue('Y/P'));
       teamData.turnovers_lost = parseNumeric(getColumnValue('TO'));
-      teamData.fumbles_lost = parseNumeric(getColumnValue('FL'));
-      teamData.first_downs = parseNumeric(getColumnValue('1stD'));
-      
-      // Extract first down breakdowns (multiple 1stD columns)
-      const firstDIndices = headers.map((h, i) => h.toLowerCase() === '1std' ? i : -1).filter(i => i !== -1);
-      if (firstDIndices.length >= 3) {
-        teamData.pass_first_downs = parseNumeric(values[firstDIndices[1]]); // passing 1stD
-        teamData.rush_first_downs = parseNumeric(values[firstDIndices[2]]); // rushing 1stD
-      }
-      
-      // Extract penalty stats
-      const penIndex = headers.findIndex(h => h.toLowerCase() === 'pen');
-      if (penIndex !== -1 && penIndex + 2 < values.length) {
-        teamData.penalties = parseNumeric(values[penIndex]);
-        teamData.penalty_yards = parseNumeric(values[penIndex + 1]);
-        teamData.penalty_first_downs = parseNumeric(values[penIndex + 2]);
-      }
       break;
       
     case 'offense_passing':
-      teamData.pass_completions = parseNumeric(getColumnValue('Cmp'));
-      teamData.pass_attempts = parseNumeric(getColumnValue('Att'));
-      teamData.pass_completion_pct = parsePercentage(getColumnValue('Cmp%'));
       teamData.passing_yards = parseNumeric(getColumnValue('Yds'));
-      teamData.passing_tds = parseNumeric(getColumnValue('TD'));
-      teamData.interceptions_thrown = parseNumeric(getColumnValue('Int'));
-      teamData.yards_per_pass_attempt = parseNumeric(getColumnValue('Y/A'));
       break;
       
     case 'offense_rushing':
-      teamData.rushing_attempts = parseNumeric(getColumnValue('Att'));
       teamData.rushing_yards = parseNumeric(getColumnValue('Yds'));
-      teamData.rushing_tds = parseNumeric(getColumnValue('TD'));
-      teamData.yards_per_rush = parseNumeric(getColumnValue('Y/A'));
-      teamData.rush_first_downs = parseNumeric(getColumnValue('1stD'));
       break;
       
-    case 'conversions':
-      teamData.third_down_attempts = parseNumeric(getColumnValue('3DAtt'));
-      teamData.third_down_conversions = parseNumeric(getColumnValue('3DConv'));
-      teamData.fourth_down_attempts = parseNumeric(getColumnValue('4DAtt'));
-      teamData.fourth_down_conversions = parseNumeric(getColumnValue('4DConv'));
-      teamData.red_zone_attempts = parseNumeric(getColumnValue('RZAtt'));
-      teamData.red_zone_touchdowns = parseNumeric(getColumnValue('RZTD'));
+    case 'offense_conversions':
+      // Third down and red zone efficiency (offensive)
+      teamData.third_down_conversion_rate = parsePercentage(getColumnValue('3D%'));
+      teamData.red_zone_efficiency = parsePercentage(getColumnValue('RZPct'));
       break;
       
     case 'drives':
+      teamData.drives_per_game = parseNumeric(getColumnValue('#Dr')) / teamData.games_played;
       teamData.scoring_percentage = parsePercentage(getColumnValue('SC%'));
-      teamData.turnover_percentage = parsePercentage(getColumnValue('TO%'));
       break;
       
     case 'defense_total':
+      teamData.yards_per_play_allowed = parseNumeric(getColumnValue('Y/P'));
       teamData.points_allowed_per_game = parseNumeric(getColumnValue('PA')) / teamData.games_played;
       teamData.defensive_yards_allowed = parseNumeric(getColumnValue('Yds'));
-      teamData.def_total_plays = parseNumeric(getColumnValue('Ply'));
-      teamData.def_yards_per_play_allowed = parseNumeric(getColumnValue('Y/P'));
-      teamData.turnovers_forced = parseNumeric(getColumnValue('TO'));
-      teamData.fumbles_forced = parseNumeric(getColumnValue('FL'));
-      teamData.def_first_downs_allowed = parseNumeric(getColumnValue('1stD'));
-      break;
-      
-    case 'defense_passing':
-      teamData.def_pass_completions_allowed = parseNumeric(getColumnValue('Cmp'));
-      teamData.def_pass_attempts = parseNumeric(getColumnValue('Att'));
-      teamData.def_passing_yards_allowed = parseNumeric(getColumnValue('Yds'));
-      teamData.def_passing_tds_allowed = parseNumeric(getColumnValue('TD'));
       teamData.def_interceptions = parseNumeric(getColumnValue('Int'));
+      teamData.turnovers_forced = parseNumeric(getColumnValue('TO'));
+      teamData.takeaways = teamData.turnovers_forced;
       break;
       
-    case 'defense_rushing':
-      teamData.def_rushing_attempts_allowed = parseNumeric(getColumnValue('Att'));
-      teamData.def_rushing_yards_allowed = parseNumeric(getColumnValue('Yds'));
-      teamData.def_rushing_tds_allowed = parseNumeric(getColumnValue('TD'));
-      teamData.def_yards_per_rush_allowed = parseNumeric(getColumnValue('Y/A'));
-      break;
-      
-    case 'kicking':
-      teamData.field_goal_attempts = parseNumeric(getColumnValue('FGA'));
-      teamData.field_goals_made = parseNumeric(getColumnValue('FGM'));
-      teamData.extra_point_attempts = parseNumeric(getColumnValue('XPA'));
-      teamData.extra_points_made = parseNumeric(getColumnValue('XPM'));
+    case 'defense_conversions':
+      // Third down and red zone efficiency (defensive)
+      teamData.third_down_conversion_rate_allowed = parsePercentage(getColumnValue('3D%'));
+      teamData.red_zone_efficiency_allowed = parsePercentage(getColumnValue('RZPct'));
       break;
   }
 }
@@ -383,10 +274,10 @@ export function parseWeeklyTeamStats(
   defensiveCSV: string
 ): TeamStats[] {
   console.log('🔄 Parsing offensive CSV...');
-  const offensiveData = parseMultiSectionCSV(offensiveCSV);
+  const offensiveData = parseMultiSectionCSV(offensiveCSV, false);
   
   console.log('🔄 Parsing defensive CSV...');
-  const defensiveData = parseMultiSectionCSV(defensiveCSV);
+  const defensiveData = parseMultiSectionCSV(defensiveCSV, true);
   
   // Merge data for each team
   const allTeams = new Set([
@@ -400,87 +291,44 @@ export function parseWeeklyTeamStats(
     const offStats = offensiveData[teamName] || {};
     const defStats = defensiveData[teamName] || {};
     
+    const gamesPlayed = offStats.games_played || defStats.games_played || 0;
+    
     const teamStats: TeamStats = {
       team_name: teamName,
       week: 7, // Current week based on CSV files
       season_year: 2025, // Current season
-      games_played: offStats.games_played || defStats.games_played || 0,
+      games_played: gamesPlayed,
       
-      // Offensive stats
-      points_per_game: offStats.points_per_game || 0,
-      offensive_yards_per_game: offStats.offensive_yards_per_game || 0,
-      total_plays: offStats.total_plays || 0,
+      // CRITICAL stats
       yards_per_play: offStats.yards_per_play || 0,
-      turnovers_lost: offStats.turnovers_lost || 0,
-      fumbles_lost: offStats.fumbles_lost || 0,
-      first_downs: offStats.first_downs || 0,
-      turnover_differential: (defStats.turnovers_forced || 0) - (offStats.turnovers_lost || 0),
-      
-      // Passing stats
-      pass_completions: offStats.pass_completions || 0,
-      pass_attempts: offStats.pass_attempts || 0,
-      passing_yards: offStats.passing_yards || 0,
-      passing_tds: offStats.passing_tds || 0,
-      interceptions_thrown: offStats.interceptions_thrown || 0,
-      yards_per_pass_attempt: offStats.yards_per_pass_attempt || 0,
-      pass_completion_pct: offStats.pass_completion_pct || 0,
-      
-      // Rushing stats
-      rushing_attempts: offStats.rushing_attempts || 0,
-      rushing_yards: offStats.rushing_yards || 0,
-      rushing_tds: offStats.rushing_tds || 0,
-      yards_per_rush: offStats.yards_per_rush || 0,
-      
-      // First downs breakdown
-      pass_first_downs: offStats.pass_first_downs || 0,
-      rush_first_downs: offStats.rush_first_downs || 0,
-      penalty_first_downs: offStats.penalty_first_downs || 0,
-      penalties: offStats.penalties || 0,
-      penalty_yards: offStats.penalty_yards || 0,
-      
-      // Conversion stats
-      third_down_attempts: offStats.third_down_attempts || 0,
-      third_down_conversions: offStats.third_down_conversions || 0,
-      fourth_down_attempts: offStats.fourth_down_attempts || 0,
-      fourth_down_conversions: offStats.fourth_down_conversions || 0,
-      red_zone_attempts: offStats.red_zone_attempts || 0,
-      red_zone_touchdowns: offStats.red_zone_touchdowns || 0,
-      
-      // Drive stats
-      scoring_percentage: offStats.scoring_percentage || 0,
-      turnover_percentage: offStats.turnover_percentage || 0,
-      
-      // Special teams
-      field_goal_attempts: offStats.field_goal_attempts || 0,
-      field_goals_made: offStats.field_goals_made || 0,
-      extra_point_attempts: offStats.extra_point_attempts || 0,
-      extra_points_made: offStats.extra_points_made || 0,
-      
-      // Defensive stats
+      yards_per_play_allowed: defStats.yards_per_play_allowed || 0,
+      drives_per_game: offStats.drives_per_game || 0,
       points_allowed_per_game: defStats.points_allowed_per_game || 0,
+      
+      // Supporting stats
+      offensive_yards_per_game: offStats.offensive_yards_per_game || 0,
       defensive_yards_allowed: defStats.defensive_yards_allowed || 0,
-      def_total_plays: defStats.def_total_plays || 0,
-      def_yards_per_play_allowed: defStats.def_yards_per_play_allowed || 0,
-      turnovers_forced: defStats.turnovers_forced || 0,
-      fumbles_forced: defStats.fumbles_forced || 0,
-      def_first_downs_allowed: defStats.def_first_downs_allowed || 0,
-      
-      // Defensive passing
-      def_pass_completions_allowed: defStats.def_pass_completions_allowed || 0,
-      def_pass_attempts: defStats.def_pass_attempts || 0,
-      def_passing_yards_allowed: defStats.def_passing_yards_allowed || 0,
-      def_passing_tds_allowed: defStats.def_passing_tds_allowed || 0,
+      points_per_game: offStats.points_per_game || 0,
+      passing_yards: offStats.passing_yards || 0,
+      passing_yards_per_game: (offStats.passing_yards || 0) / gamesPlayed || 0,
+      rushing_yards: offStats.rushing_yards || 0,
+      rushing_yards_per_game: (offStats.rushing_yards || 0) / gamesPlayed || 0,
+      turnovers_lost: offStats.turnovers_lost || 0,
+      turnovers_per_game: (offStats.turnovers_lost || 0) / gamesPlayed || 0,
+      turnover_differential: (defStats.turnovers_forced || 0) - (offStats.turnovers_lost || 0),
       def_interceptions: defStats.def_interceptions || 0,
+      takeaways: defStats.takeaways || 0,
+      total_plays: offStats.total_plays || 0,
+      plays_per_game: (offStats.total_plays || 0) / gamesPlayed || 0,
+      scoring_percentage: offStats.scoring_percentage || 0,
+      defensive_yards_per_game: (defStats.defensive_yards_allowed || 0) / gamesPlayed || 0,
+      defensive_scoring_pct_allowed: 0, // Not available in CSV
       
-      // Defensive rushing
-      def_rushing_attempts_allowed: defStats.def_rushing_attempts_allowed || 0,
-      def_rushing_yards_allowed: defStats.def_rushing_yards_allowed || 0,
-      def_rushing_tds_allowed: defStats.def_rushing_tds_allowed || 0,
-      def_yards_per_rush_allowed: defStats.def_yards_per_rush_allowed || 0,
-      
-      // Defensive efficiency
-      def_scoring_percentage: defStats.def_scoring_percentage || 0,
-      def_turnover_percentage: defStats.def_turnover_percentage || 0,
+      // Third down and red zone efficiency
+      third_down_conversion_rate: offStats.third_down_conversion_rate || 0,
+      red_zone_efficiency: offStats.red_zone_efficiency || 0,
+      third_down_conversion_rate_allowed: defStats.third_down_conversion_rate_allowed || 0,
+      red_zone_efficiency_allowed: defStats.red_zone_efficiency_allowed || 0,
       
       // Metadata
       source: 'csv',

@@ -228,19 +228,13 @@ export async function generateLivePredictions(
   }
   // ========== END SIMPLIFIED FILTERING ==========
 
-  const predictions = [];
-  const errors = [];
+  // ========== PARALLEL GAME PROCESSING FOR PERFORMANCE ==========
+  console.log(`🚀 Processing ${gamesToProcess.length} games in parallel...`);
 
-  for (let gameIndex = 0; gameIndex < gamesToProcess.length; gameIndex++) {
-    const game = gamesToProcess[gameIndex];
-
+  // Create a function to process a single game
+  const processGame = async (game: OddsData, gameIndex: number) => {
     try {
       console.log(`\n🏈 [${gameIndex + 1}/${gamesToProcess.length}] Processing: ${game.away_team} @ ${game.home_team}`);
-
-      // Call progress callback if provided
-      if (onProgress) {
-        onProgress(gameIndex + 1, gamesToProcess.length);
-      }
 
       // Fetch team stats (latest available)
       const homeStats = await fetchTeamStatsWithFallback(game.home_team, supabaseUrl, supabaseKey, rapidApiKey);
@@ -274,6 +268,7 @@ export async function generateLivePredictions(
       }
 
       // Extract raw odds from API response
+      console.log(`📊 Game has ${game.bookmakers?.length || 0} bookmakers`);
       const rawOdds = extractOddsFromGame(game);
       
       // Validate odds and apply fallbacks (FIX FOR BUG #1 & #2)
@@ -310,9 +305,6 @@ export async function generateLivePredictions(
         sum: simResult.homeWinProbability + simResult.awayWinProbability
       });
 
-      // If sum ≈ 1.0, probabilities are in decimal format (need to multiply by 100)
-      // If sum ≈ 100, probabilities are in percentage format (correct)
-
       // Calculate picks and probabilities
       const moneylineProb = Math.max(simResult.homeWinProbability, simResult.awayWinProbability);
       const moneylineConfidence = getConfidenceLevel(moneylineProb);
@@ -338,7 +330,7 @@ export async function generateLivePredictions(
 
       console.log(`✅ Prediction complete: ${moneylinePick} to win (${moneylineProb.toFixed(1)}%)`);
 
-      predictions.push({
+      return {
         game_info: {
           home_team: game.home_team,
           away_team: game.away_team,
@@ -396,26 +388,35 @@ export async function generateLivePredictions(
           description: gameWeather.description
         } : null,
         weather_impact: weatherImpact
-      });
-
+      };
     } catch (gameError) {
       const errorMessage = gameError instanceof Error ? gameError.message : String(gameError);
-      const errorStack = gameError instanceof Error ? gameError.stack : 'No stack trace';
-      console.error(`❌ Error processing ${game.away_team} @ ${game.home_team}:`);
-      console.error(`   Error: ${errorMessage}`);
-      console.error(`   Stack: ${errorStack}`);
-      console.error(`   Game data:`, JSON.stringify({
-        home: game.home_team,
-        away: game.away_team,
-        commence_time: game.commence_time,
-        bookmakers: game.bookmakers?.length || 0
-      }));
+      console.error(`❌ Error processing ${game.away_team} @ ${game.home_team}: ${errorMessage}`);
+      throw gameError; // Re-throw to be caught by Promise.all
+    }
+  };
+
+  // Process all games in parallel
+  const gamePromises = gamesToProcess.map((game, index) => processGame(game, index));
+  const results = await Promise.allSettled(gamePromises);
+
+  // Separate successful predictions and errors
+  const predictions: any[] = [];
+  const errors: any[] = [];
+
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      predictions.push(result.value);
+    } else {
+      const game = gamesToProcess[index];
+      const errorMessage = result.reason instanceof Error ? result.reason.message : String(result.reason);
+      console.error(`❌ Error processing ${game.away_team} @ ${game.home_team}: ${errorMessage}`);
       errors.push({
         game: `${game.away_team} @ ${game.home_team}`,
         error: errorMessage
       });
     }
-  }
+  });
 
   const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(2);
   console.log(`\n🎉 Generated ${predictions.length} live predictions in ${elapsedSeconds}s`);

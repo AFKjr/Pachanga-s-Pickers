@@ -1,5 +1,5 @@
 // supabase/functions/generate-predictions/lib/constants.ts
-export const SIMULATION_ITERATIONS = 10000;
+export const SIMULATION_ITERATIONS = 500;
 
 export const WEATHER_CONSTANTS = {
   FORECAST_HOURS_THRESHOLD: 120,

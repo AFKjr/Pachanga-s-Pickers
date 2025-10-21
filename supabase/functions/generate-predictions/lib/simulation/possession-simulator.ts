@@ -16,6 +16,9 @@ export function simulatePossession(
   defenseStats: TeamStats,
   weatherAdjustment: WeatherAdjustmentResult | null
 ): number {
+  // Remove expensive debug logging in production
+  // console.log('🔍 RED ZONE DEBUG:', { ... });
+
   const offensiveStrength = weatherAdjustment
     ? weatherAdjustment.adjustedOffensiveStrength
     : calculateOffensiveStrength(offenseStats);
@@ -27,67 +30,49 @@ export function simulatePossession(
   // Base scoring probability (already regressed in calculateRelativeAdvantage)
   const baseScoring = calculateRelativeAdvantage(offensiveStrength, defensiveStrength);
 
-  // === TURNOVER CHECK WITH ENHANCED VARIANCE ===
-  // Use fusion drive metrics for more accurate turnover modeling
-  const baseTurnoverRate = (
+  // === TURNOVER CHECK WITH SIMPLIFIED VARIANCE ===
+  // Simplified turnover calculation to reduce computation
+  const baseTurnoverRate = Math.min(0.15, Math.max(0.05,
     (offenseStats.turnoversLost / Math.max(offenseStats.totalPlays, 1)) * 0.6 +
     (defenseStats.turnoversForced / Math.max(defenseStats.defTotalPlays, 1)) * 0.4
-  );
+  ));
 
-  // Add turnover variance (±40% variance on turnover rate)
-  const turnoverVariance = 0.80 + (Math.random() * 0.40); // 0.80 to 1.20
-  const adjustedTurnoverChance = baseTurnoverRate * turnoverVariance;
-
-  if (Math.random() < adjustedTurnoverChance) {
+  // Single random call for turnover check with simplified variance
+  if (Math.random() < baseTurnoverRate * (0.8 + Math.random() * 0.4)) {
     return 0; // Turnover ends possession
   }
 
-  // === EFFICIENCY MODIFIER WITH FUSION DATA ===
-  // Enhanced with drive scoring percentage and third down efficiency
-  const baseEfficiency = (
-    offenseStats.driveScoringPct / 100 * 0.4 +           // Drive scoring success
-    (100 - offenseStats.thirdDownConversions) / 100 * 0.3 + // Third down efficiency
-    offenseStats.expectedPointsOffense / 3.0 * 0.3         // Expected points per drive
+  // === SIMPLIFIED EFFICIENCY MODIFIER ===
+  // Combine multiple factors into single calculation
+  const efficiencyScore = (
+    (offenseStats.driveScoringPct || 40) / 100 * 0.4 +
+    (offenseStats.thirdDownConversionRate || 40) / 100 * 0.3 +
+    Math.min(1.0, (offenseStats.expectedPointsOffense || 15) / 20) * 0.3
   );
 
-  // Add execution variance (±15%)
-  const efficiencyVariance = 0.90 + (Math.random() * 0.20); // 0.90 to 1.10
-  const adjustedEfficiency = Math.min(0.85, baseEfficiency * efficiencyVariance);
-
-  // Combine with MORE weight on variance for unpredictability
-  const scoringProbability = (baseScoring * 0.60) + (adjustedEfficiency * 0.40);
+  // Simplified scoring probability with reduced variance
+  const scoringProbability = Math.min(0.85, (baseScoring * 0.6) + (efficiencyScore * 0.4));
 
   // === SCORING ATTEMPT ===
   if (Math.random() > scoringProbability) {
     return 0; // Drive stalls
   }
 
-  // === TD vs FG WITH FUSION DATA ===
-  // Use red zone scoring percentage and field goal accuracy from fusion
-  const baseRedZone = (offenseStats.defRedZoneAttempts || 0) > 0 ?
-    ((offenseStats.defRedZoneTouchdowns || 0) / (offenseStats.defRedZoneAttempts || 1)) : 0.5;
-  const fieldGoalAccuracy = (offenseStats.defFieldGoalAttempts || 0) > 0 ?
-    ((offenseStats.defFieldGoalsMade || 0) / (offenseStats.defFieldGoalAttempts || 1)) : 0.8;
+  // === TD vs FG WITH SIMPLIFIED CALCULATION ===
+  const redZoneEfficiency = offenseStats.redZoneEfficiency || 55;
+  const fieldGoalAccuracy = offenseStats.fieldGoalPct || 83;
 
-  // Base TD probability weighted toward red zone success
-  const baseTDProb = (baseRedZone * 0.7) + (fieldGoalAccuracy * 0.3);
+  // Simplified TD probability
+  const tdProbability = Math.min(0.9, (redZoneEfficiency / 100 * 0.7) + (fieldGoalAccuracy / 100 * 0.3));
 
-  // Add red zone variance (±20%)
-  const redZoneVariance = 0.85 + (Math.random() * 0.30); // 0.85 to 1.15
-  const adjustedTDProb = Math.min(0.95, baseTDProb * redZoneVariance);
-
-  const redZoneRoll = Math.random() * 100;
-
-  // Touchdown - use two-point conversion rate from fusion
-  if (redZoneRoll < adjustedTDProb) {
-    const twoPointRate = (offenseStats.twoPointConversions || 0) / Math.max((offenseStats.twoPointConversions || 0) + (offenseStats.totalTds || 1), 1);
-    const specialEvents = Math.random();
-    if (specialEvents < twoPointRate) return 8;  // 2-pt conversion
-    if (specialEvents < 0.04) return 6;  // Missed XP (conservative estimate)
-    return 7;  // Normal TD
+  // Single random roll for scoring type
+  if (Math.random() < tdProbability) {
+    // Touchdown - simplified extra point logic
+    return Math.random() < 0.03 ? 6 : 7;  // 3% chance of missed XP
   }
 
-  // Field Goal attempt - use actual field goal percentage
+  // Field Goal - simplified accuracy
+  return Math.random() < (fieldGoalAccuracy / 100) ? 3 : 0;
   const fieldGoalRange = adjustedTDProb + (fieldGoalAccuracy * 35);
 
   if (redZoneRoll < fieldGoalRange) {
@@ -159,15 +144,16 @@ export function simulatePossessionDetailed(
   }
 
   // Red zone with fusion data
-  const baseRedZone = (offenseStats.defRedZoneAttempts || 0) > 0 ?
-    ((offenseStats.defRedZoneTouchdowns || 0) / (offenseStats.defRedZoneAttempts || 1)) : 0.5;
+  const baseRedZone = offenseStats.redZoneEfficiency 
+    ? offenseStats.redZoneEfficiency / 100  // Convert percentage to decimal
+    : 0.50;  // Fallback if missing
   const fieldGoalAccuracy = (offenseStats.defFieldGoalAttempts || 0) > 0 ?
     ((offenseStats.defFieldGoalsMade || 0) / (offenseStats.defFieldGoalAttempts || 1)) : 0.8;
   const baseTDProb = (baseRedZone * 0.7) + (fieldGoalAccuracy * 0.3);
   const redZoneVariance = 0.85 + (Math.random() * 0.30);
   const adjustedTDProb = Math.min(0.95, baseTDProb * redZoneVariance);
 
-  const redZoneRoll = Math.random() * 100;
+  const redZoneRoll = Math.random();  // ✅ 0-1 decimal
 
   if (redZoneRoll < adjustedTDProb) {
     const twoPointRate = (offenseStats.twoPointConversions || 0) / Math.max((offenseStats.twoPointConversions || 0) + (offenseStats.totalTds || 1), 1);

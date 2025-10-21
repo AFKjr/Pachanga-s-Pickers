@@ -10,6 +10,7 @@ import { calculateAllResultsFromScores } from '../utils/atsCalculator';
 import { updatePickWithScores } from '../services/pickManagement';
 import { globalEvents } from '../lib/events';
 import ErrorNotification from './ErrorNotification';
+import ManualGameEntry from './ManualGameEntry';
 
 const AdminPickResults: React.FC = () => {
   const [selectedWeek, setSelectedWeek] = useState<NFLWeek | null>(null);
@@ -284,6 +285,10 @@ const AdminPickResults: React.FC = () => {
       <div className='flex items-center justify-between mb-4'>
         <h2 className='text-xl font-semibold text-white'>Update Pick Results</h2>
         <div className='flex space-x-2'>
+          <ManualGameEntry 
+            defaultWeek={selectedWeek || undefined} 
+            onSuccess={loadPicks}
+          />
           {hasPendingChanges() && (
             <>
               <button

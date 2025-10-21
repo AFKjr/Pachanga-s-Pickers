@@ -5,6 +5,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { generateHistoricalPredictions } from './lib/generators/historical-predictions.ts';
 import { generateLivePredictions } from './lib/generators/live-predictions.ts';
 import { fetchNFLOdds } from './lib/odds/fetch-odds.ts';
+import { getNFLWeekFromDate } from './lib/utils/nfl-utils.ts';
 
 // ============================================================================
 // MAIN HANDLER
@@ -119,8 +120,45 @@ serve(async (req) => {
     let oddsData;
     try {
       oddsData = await fetchNFLOdds();
-      console.log(`✅ Found ${oddsData.length} games with odds`);
+      console.log(`✅ Found ${oddsData.length} total games from Odds API`);
       logMemory(`Loaded ${oddsData.length} games`);
+      
+      // Detailed logging to diagnose missing games
+      console.log('🔍 DEBUG: Games from Odds API:');
+      
+      let gamesWithBookmakers = 0;
+      let gamesWithoutBookmakers = 0;
+      let gamesWithDraftKings = 0;
+      
+      oddsData.forEach((game, index) => {
+        const gameDate = new Date(game.commence_time);
+        const gameWeek = getNFLWeekFromDate(gameDate);
+        const hasBookmakers = game.bookmakers && game.bookmakers.length > 0;
+        const hasDraftKings = game.bookmakers?.find(bm => bm.key === 'draftkings');
+        
+        if (hasBookmakers) {
+          gamesWithBookmakers++;
+          if (hasDraftKings) gamesWithDraftKings++;
+        } else {
+          gamesWithoutBookmakers++;
+        }
+        
+        console.log(`  Game ${index + 1}: ${game.away_team} @ ${game.home_team} (Week ${gameWeek})`);
+        console.log(`    Date: ${gameDate.toISOString()}`);
+        console.log(`    Bookmakers: ${game.bookmakers?.length || 0} | DraftKings: ${hasDraftKings ? 'YES' : 'NO'}`);
+        
+        if (!hasBookmakers) {
+          console.warn(`    ⚠️  NO BOOKMAKER DATA - will use fallback odds`);
+        } else if (!hasDraftKings) {
+          console.warn(`    ⚠️  No DraftKings - using ${game.bookmakers[0]?.key || 'unknown'}`);
+        }
+      });
+      
+      console.log(`\n� Odds API Summary:`);
+      console.log(`   Total games: ${oddsData.length}`);
+      console.log(`   With bookmakers: ${gamesWithBookmakers}`);
+      console.log(`   With DraftKings: ${gamesWithDraftKings}`);
+      console.log(`   Without bookmakers: ${gamesWithoutBookmakers} (will use fallbacks)`);
     } catch (oddsError) {
       const errorMessage = oddsError instanceof Error ? oddsError.message : String(oddsError);
       console.error('❌ Failed to fetch odds:', errorMessage);

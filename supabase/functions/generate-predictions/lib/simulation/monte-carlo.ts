@@ -25,7 +25,16 @@ function applyGameDayVariance(baseStrength: number): number {
 function simulateSingleGame(
   homeStats: TeamStats,
   awayStats: TeamStats,
-  weather: GameWeather | null
+  weather: GameWeather | null,
+  cached: {
+    baseHomeOffense: number;
+    baseAwayOffense: number;
+    baseHomeDefense: number;
+    baseAwayDefense: number;
+    homeWeatherAdj: any;
+    awayWeatherAdj: any;
+    HOME_FIELD_BOOST: number;
+  }
 ): { homeScore: number; awayScore: number } {
   let homeScore = 0;
   let awayScore = 0;
@@ -43,57 +52,40 @@ function simulateSingleGame(
   
   const finalPossessions = Math.max(8, Math.min(15, possessionsPerTeam));
 
-  // === APPLY GAME-DAY VARIANCE TO TEAM STRENGTHS ===
+  // === USE CACHED GAME-DAY VARIANCE TO TEAM STRENGTHS ===
   // Teams don't play at exactly their season average every game
-  const baseHomeOffense = calculateOffensiveStrength(homeStats);
-  const baseAwayOffense = calculateOffensiveStrength(awayStats);
-  const baseHomeDefense = calculateDefensiveStrength(homeStats);
-  const baseAwayDefense = calculateDefensiveStrength(awayStats);
-  
-  // Simulate "showing up" variance
-  const gameHomeOffense = applyGameDayVariance(baseHomeOffense);
-  const gameAwayOffense = applyGameDayVariance(baseAwayOffense);
-  const gameHomeDefense = applyGameDayVariance(baseHomeDefense);
-  const gameAwayDefense = applyGameDayVariance(baseAwayDefense);
+  const gameHomeOffense = applyGameDayVariance(cached.baseHomeOffense);
+  const gameAwayOffense = applyGameDayVariance(cached.baseAwayOffense);
+  const gameHomeDefense = applyGameDayVariance(cached.baseHomeDefense);
+  const gameAwayDefense = applyGameDayVariance(cached.baseAwayDefense);
 
-  // === WEATHER ADJUSTMENTS (applied to game-day strength) ===
-  const homeWeatherAdj = weather ? applyWeatherAdjustments(
-    weather,
-    gameHomeOffense,
-    gameAwayDefense,
-    {
-      passingYards: homeStats.passingYards,
-      rushingYards: homeStats.rushingYards,
-      yardsPerPlay: homeStats.yardsPerPlay
-    }
-  ) : null;
-
-  const awayWeatherAdj = weather ? applyWeatherAdjustments(
-    weather,
-    gameAwayOffense,
-    gameHomeDefense,
-    {
-      passingYards: awayStats.passingYards,
-      rushingYards: awayStats.rushingYards,
-      yardsPerPlay: awayStats.yardsPerPlay
-    }
-  ) : null;
-
-  // === HOME FIELD ADVANTAGE WITH VARIANCE ===
-  // Home field advantage isn't always exactly 3%
-  // Sometimes crowd is louder, sometimes it's quiet
-  const BASE_HOME_ADVANTAGE = 1.03;
-  const homeFieldVariance = 0.97 + (Math.random() * 0.06); // 0.97 to 1.03 (±3%)
-  const HOME_FIELD_BOOST = BASE_HOME_ADVANTAGE * homeFieldVariance;
+  console.log('=== STRENGTH CALCULATIONS ===');
+  console.log('Base home offense:', cached.baseHomeOffense);
+  console.log('Base away offense:', cached.baseAwayOffense);
+  console.log('Base home defense:', cached.baseHomeDefense);
+  console.log('Base away defense:', cached.baseAwayDefense);
+  console.log('Game home offense (with variance):', gameHomeOffense);
+  console.log('Game away offense (with variance):', gameAwayOffense);
 
   // === SIMULATE POSSESSIONS ===
   for (let possession = 0; possession < finalPossessions; possession++) {
-    const homePoints = simulatePossession(homeStats, awayStats, homeWeatherAdj);
-    homeScore += homePoints * HOME_FIELD_BOOST;
+    const homePoints = simulatePossession(homeStats, awayStats, cached.homeWeatherAdj);
+    homeScore += homePoints * cached.HOME_FIELD_BOOST;
+    
+    if (possession === 0) {
+      console.log('=== FIRST POSSESSION DEBUG ===');
+      console.log('Home possession result:', homePoints);
+      console.log('Final possessions per team:', finalPossessions);
+    }
   }
   
   for (let possession = 0; possession < finalPossessions; possession++) {
-    awayScore += simulatePossession(awayStats, homeStats, awayWeatherAdj);
+    const awayPoints = simulatePossession(awayStats, homeStats, cached.awayWeatherAdj);
+    awayScore += awayPoints;
+    
+    if (possession === 0) {
+      console.log('Away possession result:', awayPoints);
+    }
   }
 
   // === ADD "CHAOS" VARIANCE ===
@@ -107,6 +99,10 @@ function simulateSingleGame(
       awayScore += chaosPoints;
     }
   }
+
+  console.log('=== SINGLE GAME RESULT ===');
+  console.log('Home score:', Math.round(homeScore));
+  console.log('Away score:', Math.round(awayScore));
 
   return { 
     homeScore: Math.round(homeScore), 
@@ -190,6 +186,56 @@ export function runMonteCarloSimulation(
   weather: GameWeather | null,
   favoriteIsHome: boolean
 ): SimulationResult {
+  console.log('=== TEAM STATS DEBUG ===');
+  console.log('Home team stats:', {
+    drivesPerGame: homeStats.drivesPerGame,
+    passingYards: homeStats.passingYards,
+    rushingYards: homeStats.rushingYards,
+    yardsPerPlay: homeStats.yardsPerPlay,
+    pointsPerGame: homeStats.pointsPerGame
+  });
+  console.log('Away team stats:', {
+    drivesPerGame: awayStats.drivesPerGame,
+    passingYards: awayStats.passingYards,
+    rushingYards: awayStats.rushingYards,
+    yardsPerPlay: awayStats.yardsPerPlay,
+    pointsPerGame: awayStats.pointsPerGame
+  });
+
+  // === CACHE EXPENSIVE CALCULATIONS OUTSIDE THE LOOP ===
+  const baseHomeOffense = calculateOffensiveStrength(homeStats);
+  const baseAwayOffense = calculateOffensiveStrength(awayStats);
+  const baseHomeDefense = calculateDefensiveStrength(homeStats);
+  const baseAwayDefense = calculateDefensiveStrength(awayStats);
+
+  // Cache weather adjustments
+  const homeWeatherAdj = weather ? applyWeatherAdjustments(
+    weather,
+    baseHomeOffense,
+    baseAwayDefense,
+    {
+      passingYards: homeStats.passingYards,
+      rushingYards: homeStats.rushingYards,
+      yardsPerPlay: homeStats.yardsPerPlay
+    }
+  ) : null;
+
+  const awayWeatherAdj = weather ? applyWeatherAdjustments(
+    weather,
+    baseAwayOffense,
+    baseHomeDefense,
+    {
+      passingYards: awayStats.passingYards,
+      rushingYards: awayStats.rushingYards,
+      yardsPerPlay: awayStats.yardsPerPlay
+    }
+  ) : null;
+
+  // Cache home field advantage calculation
+  const BASE_HOME_ADVANTAGE = 1.03;
+  const homeFieldVariance = 0.97 + (Math.random() * 0.06); // 0.97 to 1.03 (±3%)
+  const HOME_FIELD_BOOST = BASE_HOME_ADVANTAGE * homeFieldVariance;
+
   const homeScores: number[] = [];
   const awayScores: number[] = [];
   let homeWins = 0;
@@ -200,7 +246,15 @@ export function runMonteCarloSimulation(
 
   // Run raw simulations first
   for (let iteration = 0; iteration < SIMULATION_ITERATIONS; iteration++) {
-    const gameResult = simulateSingleGame(homeStats, awayStats, weather);
+    const gameResult = simulateSingleGame(homeStats, awayStats, weather, {
+      baseHomeOffense,
+      baseAwayOffense,
+      baseHomeDefense,
+      baseAwayDefense,
+      homeWeatherAdj,
+      awayWeatherAdj,
+      HOME_FIELD_BOOST
+    });
     
     homeScores.push(gameResult.homeScore);
     awayScores.push(gameResult.awayScore);

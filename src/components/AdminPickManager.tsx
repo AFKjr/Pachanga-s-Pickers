@@ -15,6 +15,7 @@ import React, { useState, useEffect } from 'react';
 import { NFLWeek } from '../types';
 import AdminPickRevision from './AdminPickRevision';
 import AdminPickResults from './AdminPickResults';
+import ManualGameEntry from './ManualGameEntry';
 import { usePickManager, useDuplicateDetection } from '../hooks';
 import ErrorNotification from './ErrorNotification';
 import { globalEvents } from '../lib/events';
@@ -158,6 +159,10 @@ const AdminPickManagerRefactored: React.FC = () => {
       <div className='flex items-center justify-between mb-6'>
         <h2 className='text-xl font-semibold text-white'>Pick Management</h2>
         <div className="flex space-x-2">
+          <ManualGameEntry 
+            defaultWeek={selectedWeek || undefined} 
+            onSuccess={loadPicks}
+          />
           {hasDuplicates && (
             <button
               onClick={handleCleanDuplicates}
