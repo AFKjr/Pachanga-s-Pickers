@@ -49,6 +49,7 @@ const createTeamStats = (teamName: string, overrides: Partial<TeamStats>): TeamS
     playsPerDrive: 6.8,
     pointsPerDrive: 1.9,
     scoringPercentage: 0.33,
+    turnoverPercentage: 8.5,
     yardsPerDrive: 28,
     timePerDriveSeconds: 165,
     ...overrides

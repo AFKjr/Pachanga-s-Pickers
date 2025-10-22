@@ -30,15 +30,19 @@ export function simulatePossession(
   // Base scoring probability (already regressed in calculateRelativeAdvantage)
   const baseScoring = calculateRelativeAdvantage(offensiveStrength, defensiveStrength);
 
-  // === TURNOVER CHECK WITH SIMPLIFIED VARIANCE ===
-  // Simplified turnover calculation to reduce computation
+  // === TURNOVER CHECK WITH TEAM'S ACTUAL TURNOVER RATE ===
+  // Use the team's actual TO% from drives that end in turnovers
+  const teamTurnoverRate = offenseStats.turnoverPercentage / 100; // Convert percentage to decimal
   const baseTurnoverRate = Math.min(0.15, Math.max(0.05,
     (offenseStats.turnoversLost / Math.max(offenseStats.totalPlays, 1)) * 0.6 +
     (defenseStats.turnoversForced / Math.max(defenseStats.defTotalPlays, 1)) * 0.4
   ));
 
-  // Single random call for turnover check with simplified variance
-  if (Math.random() < baseTurnoverRate * (0.9 + Math.random() * 0.3)) {
+  // Blend team's actual drive turnover rate with calculated rate
+  const blendedTurnoverRate = (teamTurnoverRate * 0.7) + (baseTurnoverRate * 0.3);
+
+  // Single random call for turnover check with moderate variance
+  if (Math.random() < blendedTurnoverRate * (0.9 + Math.random() * 0.3)) {
     return 0; // Turnover ends possession
   }
 
@@ -50,8 +54,15 @@ export function simulatePossession(
     Math.min(1.0, (offenseStats.expectedPointsOffense || 15) / 20) * 0.3
   );
 
-  // Simplified scoring probability with reduced variance
-    const scoringProbability = Math.min(0.68, (baseScoring * 0.6) + (efficiencyScore * 0.4));  // === SCORING ATTEMPT ===
+  // === SCORING PROBABILITY USING TEAM'S ACTUAL SC% ===
+  // Use the team's actual Sc% (percentage of drives ending in scores)
+  const teamScoringRate = offenseStats.scoringPercentage / 100; // Convert percentage to decimal
+
+  // Blend team's actual drive scoring rate with calculated efficiency
+  const blendedScoringRate = (teamScoringRate * 0.6) + (baseScoring * 0.4);
+  const scoringProbability = Math.min(0.68, (blendedScoringRate * 0.7) + (efficiencyScore * 0.3));
+
+  // === SCORING ATTEMPT ===
   if (Math.random() > scoringProbability) {
     return 0; // Drive stalls
   }

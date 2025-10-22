@@ -75,6 +75,7 @@ export interface TeamStats {
   playsPerDrive: number;
   pointsPerDrive: number;
   scoringPercentage: number;
+  turnoverPercentage: number;
   yardsPerDrive: number;
   timePerDriveSeconds: number;
 

@@ -51,6 +51,7 @@ function createMockTeamStats(overrides: Partial<TeamStats> = {}): TeamStats {
     playsPerDrive: 5.2,
     pointsPerDrive: 2.0,
     scoringPercentage: 35,
+    turnoverPercentage: 8,
     yardsPerDrive: 32,
     timePerDriveSeconds: 150,
     ...overrides

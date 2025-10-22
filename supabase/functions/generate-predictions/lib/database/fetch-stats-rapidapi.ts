@@ -504,6 +504,7 @@ function convertDbStatsToTeamStats(dbStats: any, teamName: string): TeamStats {
     playsPerDrive: dbStats.plays_per_drive ?? 5.5,
     pointsPerDrive: dbStats.points_per_drive ?? 2,
     scoringPercentage: dbStats.scoring_percentage ?? 40,
+    turnoverPercentage: dbStats.turnover_percentage ?? 8,
     yardsPerDrive: dbStats.yards_per_drive ?? 30,
     timePerDriveSeconds: dbStats.time_per_drive_seconds ?? 162
   };

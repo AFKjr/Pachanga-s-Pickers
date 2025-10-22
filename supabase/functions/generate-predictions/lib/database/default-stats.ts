@@ -47,6 +47,7 @@ export function getDefaultTeamStats(teamName: string): TeamStats {
     playsPerDrive: 5.5,
     pointsPerDrive: 2.0,
     scoringPercentage: 40.0,
+    turnoverPercentage: 8.0,
     yardsPerDrive: 30.0,
     timePerDriveSeconds: 162
   };

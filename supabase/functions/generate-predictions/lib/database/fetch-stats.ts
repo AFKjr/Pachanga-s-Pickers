@@ -182,6 +182,7 @@ export async function fetchTeamStats(
       playsPerDrive: dbStats.plays_per_drive ?? 5.5,
       pointsPerDrive: dbStats.points_per_drive ?? 2.0,
       scoringPercentage: dbStats.scoring_percentage ?? 40.0,
+      turnoverPercentage: dbStats.turnover_percentage ?? 8.0,
       yardsPerDrive: dbStats.yards_per_drive ?? 30.0,
       timePerDriveSeconds: dbStats.time_per_drive_seconds ?? 162,
 

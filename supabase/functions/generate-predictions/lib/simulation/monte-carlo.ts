@@ -33,17 +33,19 @@ function simulateSingleGame(
     baseAwayDefense: number;
     homeWeatherAdj: any;
     awayWeatherAdj: any;
-    HOME_FIELD_BOOST: number;
+    // HOME_FIELD_BOOST: number; // Removed - now using flat 3-point boost
   }
 ): { homeScore: number; awayScore: number } {
   let homeScore = 0;
   let awayScore = 0;
 
-  // === POSSESSION CALCULATION WITH VARIANCE ===
-  const homePaceRaw = homeStats.drivesPerGame;
-  const awayPaceRaw = awayStats.drivesPerGame;
-  
-  const averagePossessions = ((homePaceRaw * 0.55 + awayPaceRaw * 0.45) * 0.82); // Reduced by 18% to lower scores
+  // === POSSESSION CALCULATION BASED ON OFFENSIVE DRIVES ===
+  // Use each team's actual offensive drives per game as base
+  const homeOffensiveDrives = homeStats.drivesPerGame;
+  const awayOffensiveDrives = awayStats.drivesPerGame;
+
+  // Average possessions based on both teams' offensive drive pace
+  const averagePossessions = (homeOffensiveDrives + awayOffensiveDrives) / 2;
   
   // INCREASED variance: ±2 possessions instead of ±1
   // This accounts for: turnovers, big plays, clock management differences
@@ -70,7 +72,12 @@ function simulateSingleGame(
   // === SIMULATE POSSESSIONS ===
   for (let possession = 0; possession < finalPossessions; possession++) {
     const homePoints = simulatePossession(homeStats, awayStats, cached.homeWeatherAdj);
-    homeScore += homePoints * cached.HOME_FIELD_BOOST;
+    homeScore += homePoints;
+    
+    // Add 3-point home field advantage
+    if (possession === finalPossessions - 1) { // Add at the end to avoid double-counting
+      homeScore += 3;
+    }
     
     if (possession === 0) {
       console.log('=== FIRST POSSESSION DEBUG ===');
@@ -231,10 +238,10 @@ export function runMonteCarloSimulation(
     }
   ) : null;
 
-  // Cache home field advantage calculation
-  const BASE_HOME_ADVANTAGE = 1.015; // Reduced from 1.03 to lower average scores
-  const homeFieldVariance = 0.97 + (Math.random() * 0.06); // 0.97 to 1.03 (±3%)
-  const HOME_FIELD_BOOST = BASE_HOME_ADVANTAGE * homeFieldVariance;
+  // Cache home field advantage calculation (no longer used - now 3-point flat boost)
+  // const BASE_HOME_ADVANTAGE = 1.015; // Reduced from 1.03 to lower average scores
+  // const homeFieldVariance = 0.97 + (Math.random() * 0.06); // 0.97 to 1.03 (±3%)
+  // const HOME_FIELD_BOOST = BASE_HOME_ADVANTAGE * homeFieldVariance;
 
   const homeScores: number[] = [];
   const awayScores: number[] = [];
@@ -252,8 +259,8 @@ export function runMonteCarloSimulation(
       baseHomeDefense,
       baseAwayDefense,
       homeWeatherAdj,
-      awayWeatherAdj,
-      HOME_FIELD_BOOST
+      awayWeatherAdj
+      // HOME_FIELD_BOOST removed - now using flat 3-point boost
     });
     
     homeScores.push(gameResult.homeScore);
