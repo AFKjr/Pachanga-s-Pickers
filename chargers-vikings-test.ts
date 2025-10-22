@@ -120,15 +120,24 @@ function runMonteCarloSimulation(
     (finalHomeScore + spreadValue > finalAwayScore ? 60 : 40) :
     (finalAwayScore + spreadValue > finalHomeScore ? 60 : 40);
 
-  // Total calculations
-  const totalScore = finalHomeScore + finalAwayScore;
-  const overProb = totalScore > total ? 55 : 45;
+  // Total calculations - CALIBRATED VERSION
+  const rawTotal = finalHomeScore + finalAwayScore;
+  const totalCalibration = rawTotal - total; // Difference from bookmaker's line
+  const calibratedTotal = rawTotal - totalCalibration; // Center around bookmaker's line
+
+  console.log(`\n=== CALIBRATION DEBUG ===`);
+  console.log(`Raw total: ${rawTotal}`);
+  console.log(`Bookmaker total: ${total}`);
+  console.log(`Calibration: ${totalCalibration}`);
+  console.log(`Calibrated total: ${calibratedTotal}`);
+
+  const overProb = calibratedTotal > total ? 55 : 45;
 
   return {
     homeWinProbability: homeWinProb,
     awayWinProbability: awayWinProb,
-    predictedHomeScore: finalHomeScore,
-    predictedAwayScore: finalAwayScore,
+    predictedHomeScore: Math.round(finalHomeScore - (totalCalibration / 2)), // Calibrated!
+    predictedAwayScore: Math.round(finalAwayScore - (totalCalibration / 2)), // Calibrated!
     spreadCoverProbability: favoriteCovers,
     favoriteCoverProbability: favoriteCovers,
     underdogCoverProbability: 100 - favoriteCovers,
