@@ -350,11 +350,15 @@ export function runMonteCarloSimulation(
   const favoriteCoverProbability = calibratedFavoriteCoverProbability;
   const underdogCoverProbability = calibratedUnderdogCoverProbability;
 
+  // Calculate calibrated averages for consistent predictions
+  const calibratedAverageHomeScore = rawAverageHomeScore - (totalCalibration / 2);
+  const calibratedAverageAwayScore = rawAverageAwayScore - (totalCalibration / 2);
+
   return {
     homeWinProbability: (homeWins / SIMULATION_ITERATIONS) * 100,
     awayWinProbability: (awayWins / SIMULATION_ITERATIONS) * 100,
-    predictedHomeScore: Math.round(rawAverageHomeScore),
-    predictedAwayScore: Math.round(rawAverageAwayScore),
+    predictedHomeScore: Math.round(calibratedAverageHomeScore),
+    predictedAwayScore: Math.round(calibratedAverageAwayScore),
     spreadCoverProbability: favoriteCoverProbability,
     favoriteCoverProbability: favoriteCoverProbability,
     underdogCoverProbability: underdogCoverProbability,
