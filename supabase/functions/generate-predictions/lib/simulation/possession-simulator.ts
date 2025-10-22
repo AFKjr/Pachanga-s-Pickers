@@ -51,7 +51,7 @@ export function simulatePossession(
   );
 
   // Simplified scoring probability with reduced variance
-  const scoringProbability = Math.min(0.85, (baseScoring * 0.6) + (efficiencyScore * 0.4));
+  const scoringProbability = Math.min(0.75, (baseScoring * 0.6) + (efficiencyScore * 0.4));
 
   // === SCORING ATTEMPT ===
   if (Math.random() > scoringProbability) {
@@ -62,8 +62,8 @@ export function simulatePossession(
   const redZoneEfficiency = offenseStats.redZoneEfficiency || 55;
   const fieldGoalAccuracy = offenseStats.fieldGoalPct || 83;
 
-  // Simplified TD probability
-  const tdProbability = Math.min(0.9, (redZoneEfficiency / 100 * 0.7) + (fieldGoalAccuracy / 100 * 0.3));
+  // Simplified TD probability - adjusted to favor more FGs for lower scores
+  const tdProbability = Math.min(0.85, (redZoneEfficiency / 100 * 0.6) + (fieldGoalAccuracy / 100 * 0.4));
 
   // Single random roll for scoring type
   if (Math.random() < tdProbability) {

@@ -43,7 +43,7 @@ function simulateSingleGame(
   const homePaceRaw = homeStats.drivesPerGame;
   const awayPaceRaw = awayStats.drivesPerGame;
   
-  const averagePossessions = (homePaceRaw * 0.55 + awayPaceRaw * 0.45);
+  const averagePossessions = ((homePaceRaw * 0.55 + awayPaceRaw * 0.45) * 0.85); // Reduced by 15% to lower scores
   
   // INCREASED variance: ±2 possessions instead of ±1
   // This accounts for: turnovers, big plays, clock management differences
@@ -232,7 +232,7 @@ export function runMonteCarloSimulation(
   ) : null;
 
   // Cache home field advantage calculation
-  const BASE_HOME_ADVANTAGE = 1.03;
+  const BASE_HOME_ADVANTAGE = 1.015; // Reduced from 1.03 to lower average scores
   const homeFieldVariance = 0.97 + (Math.random() * 0.06); // 0.97 to 1.03 (±3%)
   const HOME_FIELD_BOOST = BASE_HOME_ADVANTAGE * homeFieldVariance;
 

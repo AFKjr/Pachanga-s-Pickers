@@ -93,7 +93,7 @@ function simulatePossession(offenseStats, defenseStats) {
   const efficiencyVariance = 0.90 + (Math.random() * 0.20);
   const adjustedEfficiency = Math.min(0.85, baseEfficiency * efficiencyVariance);
 
-  const scoringProbability = (baseScoring * 0.65) + (adjustedEfficiency * 0.35);
+  const scoringProbability = (baseScoring * 0.50) + (adjustedEfficiency * 0.30);
 
   if (Math.random() > scoringProbability) {
     return 0; // Drive stalls
@@ -103,7 +103,7 @@ function simulatePossession(offenseStats, defenseStats) {
   const baseRedZone = offenseStats.redZoneEfficiency;
   const seasonalTDRate = (offenseStats.passingTds + offenseStats.rushingTds) * 1.2;
 
-  const baseTDProb = (baseRedZone * 0.8) + (seasonalTDRate * 0.2);
+  const baseTDProb = (baseRedZone * 0.7) + (seasonalTDRate * 0.3);
 
   const redZoneVariance = 0.925 + (Math.random() * 0.15);
   const adjustedTDProb = baseTDProb * redZoneVariance;
