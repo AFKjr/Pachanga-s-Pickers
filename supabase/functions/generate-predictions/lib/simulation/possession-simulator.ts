@@ -51,7 +51,7 @@ export function simulatePossession(
   );
 
   // Simplified scoring probability with reduced variance
-  const scoringProbability = Math.min(0.75, (baseScoring * 0.6) + (efficiencyScore * 0.4));
+  const scoringProbability = Math.min(0.65, (baseScoring * 0.6) + (efficiencyScore * 0.4));
 
   // === SCORING ATTEMPT ===
   if (Math.random() > scoringProbability) {
