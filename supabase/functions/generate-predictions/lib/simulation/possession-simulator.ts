@@ -38,7 +38,7 @@ export function simulatePossession(
   ));
 
   // Single random call for turnover check with simplified variance
-  if (Math.random() < baseTurnoverRate * (0.8 + Math.random() * 0.4)) {
+  if (Math.random() < baseTurnoverRate * (0.9 + Math.random() * 0.3)) {
     return 0; // Turnover ends possession
   }
 
@@ -51,7 +51,7 @@ export function simulatePossession(
   );
 
   // Simplified scoring probability with reduced variance
-    const scoringProbability = Math.min(0.25, (baseScoring * 0.6) + (efficiencyScore * 0.4));  // === SCORING ATTEMPT ===
+    const scoringProbability = Math.min(0.68, (baseScoring * 0.6) + (efficiencyScore * 0.4));  // === SCORING ATTEMPT ===
   if (Math.random() > scoringProbability) {
     return 0; // Drive stalls
   }
@@ -61,7 +61,7 @@ export function simulatePossession(
   const fieldGoalAccuracy = offenseStats.fieldGoalPct || 83;
 
   // Simplified TD probability - adjusted to favor more FGs for lower scores
-  const tdProbability = Math.min(0.85, (redZoneEfficiency / 100 * 0.6) + (fieldGoalAccuracy / 100 * 0.4));
+  const tdProbability = Math.min(0.80, (redZoneEfficiency / 100 * 0.55) + (fieldGoalAccuracy / 100 * 0.35));
 
   // Single random roll for scoring type
   if (Math.random() < tdProbability) {

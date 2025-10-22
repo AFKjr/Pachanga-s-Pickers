@@ -43,7 +43,7 @@ function simulateSingleGame(
   const homePaceRaw = homeStats.drivesPerGame;
   const awayPaceRaw = awayStats.drivesPerGame;
   
-  const averagePossessions = ((homePaceRaw * 0.55 + awayPaceRaw * 0.45) * 0.85); // Reduced by 15% to lower scores
+  const averagePossessions = ((homePaceRaw * 0.55 + awayPaceRaw * 0.45) * 0.82); // Reduced by 18% to lower scores
   
   // INCREASED variance: ±2 possessions instead of ±1
   // This accounts for: turnovers, big plays, clock management differences
