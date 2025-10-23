@@ -300,14 +300,11 @@ export async function fetchTeamStats(
   }
 }
 
-// Sports Radar API functionality DISABLED - using database-only approach
-// import { fetchTeamStatsWithCache } from './fetch-stats-rapidapi.ts';
-
 export async function fetchTeamStatsWithFallback(
   teamName: string,
   supabaseUrl: string,
   supabaseKey: string,
-  rapidApiKey?: string,
+
   week?: number
 ): Promise<TeamStats> {
   console.log(`📊 Fetching stats for ${teamName} from database (Sports Radar API disabled)...`);
@@ -419,7 +416,7 @@ export async function fetchTeamStatsWithQuality(
   teamName: string,
   supabaseUrl: string,
   supabaseKey: string,
-  rapidApiKey?: string,
+  // rapidApiKey?: string, // RapidAPI support removed
   week?: number
 ): Promise<TeamStatsWithMetadata> {
   console.log(`📊 Fetching stats with quality check for ${teamName}...`);

@@ -169,7 +169,7 @@ export async function generateLivePredictions(
   supabaseUrl: string,
   supabaseKey: string,
   weatherApiKey: string | undefined,
-  rapidApiKey: string | undefined,
+  // rapidApiKey: string | undefined, // RapidAPI support removed
   targetWeek?: number,
   onProgress?: (current: number, total: number) => void
 ): Promise<LivePredictionsResult> {
@@ -237,8 +237,8 @@ export async function generateLivePredictions(
       console.log(`\n🏈 [${gameIndex + 1}/${gamesToProcess.length}] Processing: ${game.away_team} @ ${game.home_team}`);
 
       // Fetch team stats (latest available)
-      const homeStats = await fetchTeamStatsWithFallback(game.home_team, supabaseUrl, supabaseKey, rapidApiKey);
-      const awayStats = await fetchTeamStatsWithFallback(game.away_team, supabaseUrl, supabaseKey, rapidApiKey);
+  const homeStats = await fetchTeamStatsWithFallback(game.home_team, supabaseUrl, supabaseKey);
+  const awayStats = await fetchTeamStatsWithFallback(game.away_team, supabaseUrl, supabaseKey);
 
       // Warn if using default stats (FIX FOR BUG #7)
       if (homeStats.team !== game.home_team) {
@@ -360,6 +360,7 @@ export async function generateLivePredictions(
           simResult,
           moneylinePick,
           spreadPick,
+          spreadProb,
           `${totalPick} ${validatedOdds.total}`,
           gameWeather?.impactRating !== 'none' ? weatherImpact : undefined
         ),

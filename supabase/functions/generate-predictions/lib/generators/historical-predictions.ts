@@ -13,14 +13,14 @@ export interface HistoricalPredictionsResult {
   predictions: any[];
   errors: any[];
   metadata: {
-    generated_at: string;
-    mode: string;
-    target_week: number;
-    games_attempted: number;
-    games_processed: number;
-    games_failed: number;
-    simulation_iterations: number;
-    execution_time_seconds: string;
+     // generated_at: string;
+     // mode: string;
+     // target_week: number;
+     // games_attempted: number;
+     // games_processed: number;
+     // games_failed: number;
+     // simulation_iterations: number;
+     // execution_time_seconds: string;
   };
 }
 
@@ -29,16 +29,16 @@ export async function generateHistoricalPredictions(
   supabaseUrl: string,
   supabaseKey: string,
   weatherApiKey: string | undefined,
-  rapidApiKey: string | undefined
+  // rapidApiKey: string | undefined // RapidAPI support removed
 ): Promise<HistoricalPredictionsResult> {
-  const startTime = Date.now();
+    // const startTime = Date.now();
 
   console.log(`\n🕰️  HISTORICAL MODE: Generating predictions for Week ${targetWeek}`);
   console.log(`📊 Will use Week ${targetWeek} team stats + stored odds\n`);
 
-  const historicalGames = await fetchHistoricalGames(targetWeek, supabaseUrl, supabaseKey);
+    // const historicalGames = await fetchHistoricalGames(targetWeek, supabaseUrl, supabaseKey);
 
-  if (!historicalGames || historicalGames.length === 0) {
+    // if (!historicalGames || historicalGames.length === 0) {
     return {
       predictions: [],
       errors: [{
@@ -71,7 +71,7 @@ export async function generateHistoricalPredictions(
         game.home_team,
         supabaseUrl,
         supabaseKey,
-        rapidApiKey,
+  // rapidApiKey, // RapidAPI support removed
         targetWeek
       );
 
@@ -79,7 +79,7 @@ export async function generateHistoricalPredictions(
         game.away_team,
         supabaseUrl,
         supabaseKey,
-        rapidApiKey,
+  // rapidApiKey, // RapidAPI support removed
         targetWeek
       );
 
@@ -124,10 +124,28 @@ export async function generateHistoricalPredictions(
         ? game.home_team 
         : game.away_team;
 
-      const spreadPick = simResult.spreadCoverProbability > 50
-        ? `${game.home_team} ${game.spread > 0 ? '+' : ''}${game.spread}`
-        : `${game.away_team} ${-game.spread > 0 ? '+' : ''}${-game.spread}`;
-      const spreadProb = Math.max(simResult.spreadCoverProbability, 100 - simResult.spreadCoverProbability);
+      // Determine spread pick based on which cover probability is higher
+      const favoriteCoversMore = simResult.favoriteCoverProbability > simResult.underdogCoverProbability;
+      let spreadPick: string;
+      let spreadProb: number;
+      
+      if (favoriteCoversMore) {
+        // Pick the favorite to cover
+        spreadProb = simResult.favoriteCoverProbability;
+        if (favoriteInfo.favoriteIsHome) {
+          spreadPick = `${game.home_team} ${game.spread > 0 ? '+' : ''}${game.spread}`;
+        } else {
+          spreadPick = `${game.away_team} ${-game.spread > 0 ? '+' : ''}${-game.spread}`;
+        }
+      } else {
+        // Pick the underdog to cover
+        spreadProb = simResult.underdogCoverProbability;
+        if (favoriteInfo.favoriteIsHome) {
+          spreadPick = `${game.away_team} ${-game.spread > 0 ? '+' : ''}${-game.spread}`;
+        } else {
+          spreadPick = `${game.home_team} ${game.spread > 0 ? '+' : ''}${game.spread}`;
+        }
+      }
 
       const totalPick = simResult.overProbability > 50 ? 'Over' : 'Under';
       const totalProb = Math.max(simResult.overProbability, simResult.underProbability);
@@ -160,6 +178,7 @@ export async function generateHistoricalPredictions(
           simResult,
           moneylinePick,
           spreadPick,
+          spreadProb,
           `${totalPick} ${game.over_under}`,
           gameWeather?.impactRating !== 'none' ? weatherImpact : undefined
         ),
@@ -215,3 +234,6 @@ export async function generateHistoricalPredictions(
     }
   };
 }
+  /*
+  // ...existing code...
+  */

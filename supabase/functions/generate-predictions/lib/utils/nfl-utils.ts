@@ -1,3 +1,21 @@
+/**
+ * Converts a UTC date to US Eastern Time (EST/EDT)
+ * Returns a new Date object in EST/EDT
+ */
+export function toEasternTime(date: Date): Date {
+  // EST is UTC-5, EDT is UTC-4 (Daylight Saving)
+  // NFL season is mostly in EDT (until early November), then EST
+  // We'll use US rules: first Sunday in November is DST end
+  const year = date.getUTCFullYear();
+  // DST ends first Sunday in November
+  const dstEnd = new Date(Date.UTC(year, 10, 1, 7, 0, 0)); // Nov 1, 7am UTC
+  while (dstEnd.getUTCDay() !== 0) dstEnd.setUTCDate(dstEnd.getUTCDate() + 1);
+  const isDST = date < dstEnd;
+  const offset = isDST ? -4 : -5; // EDT: UTC-4, EST: UTC-5
+  // Create new Date in EST/EDT
+  const estDate = new Date(date.getTime() + offset * 60 * 60 * 1000);
+  return estDate;
+}
 // supabase/functions/generate-predictions/lib/utils/nfl-utils.ts
 
 // NFL 2025 Season Week Mapping (Tuesday to Monday)
@@ -26,7 +44,9 @@ const NFL_2025_SCHEDULE: Record<number, { start: string; end: string }> = {
  * Get NFL week from a date
  */
 export function getNFLWeekFromDate(gameDate: Date | string): number | null {
-  const date = typeof gameDate === 'string' ? new Date(gameDate) : gameDate;
+  // Always convert to EST before week calculation
+  const rawDate = typeof gameDate === 'string' ? new Date(gameDate) : gameDate;
+  const date = toEasternTime(rawDate);
 
   for (const [weekStr, range] of Object.entries(NFL_2025_SCHEDULE)) {
     const week = parseInt(weekStr);

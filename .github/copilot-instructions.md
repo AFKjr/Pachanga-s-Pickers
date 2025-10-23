@@ -7,7 +7,6 @@
 **Core Components**:
 - **Frontend**: Single-page React app with React Router (routes: `/`, `/admin/*`)
 - **Backend**: Supabase (PostgreSQL + Auth + Real-time subscriptions) + Supabase Edge Functions (Deno)
-- **AI Layer**: Monte Carlo simulation-based NFL prediction system (10,000 iterations per game)
 - **External APIs**: The Odds API (DraftKings lines) for real-time betting odds
 - **Data Flow**: Admin triggers Monte Carlo sim → Edge Function generates predictions → Supabase storage → React components with real-time updates
 
@@ -93,11 +92,10 @@ npm run preview  # Preview production build
 - `/admin/results` - Enter game scores and calculate results
 - `/admin/team-stats` - Import/manage team statistics via CSV
 
+
 ### Monte Carlo Prediction Generation
 1. Access `/admin/generate` route (requires `is_admin: true`)
-2. Choose mode:
-   - **Live Mode**: Fetches current odds + latest stats (for upcoming games)
-   - **Historical Mode**: Uses stored odds + week-specific stats (for past weeks)
+2. Only **Live Mode** is supported (fetches current odds + latest stats for upcoming games)
 3. Click "Generate Monte Carlo Predictions" button
 4. Edge Function runs 10,000 iterations per game
 5. Saves to `picks` table with:
@@ -115,6 +113,14 @@ npm run preview  # Preview production build
    - ATS result (win/loss/push based on spread)
    - O/U result (over/under/push based on total)
 4. Statistics dashboard updates in real-time
+
+### Spread & Push Handling (Current Spec)
+- Spread coverage logic now tracks three outcomes per simulation:
+  - Favorite covers: margin > spread
+  - Underdog covers: margin < spread
+  - Push: margin == spread (split 50/50 in probability calculations)
+- Display logic always matches the pick (favorite or underdog) to the correct probability
+- No historical predictions are generated; all code for historical mode is commented out and deprecated
 
 ```
 

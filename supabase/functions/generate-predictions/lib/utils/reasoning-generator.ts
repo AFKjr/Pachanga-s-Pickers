@@ -7,6 +7,7 @@ export function generateReasoning(
   simResult: SimulationResult,
   _moneylinePick: string,
   spreadPick: string,
+  spreadProbability: number,
   totalPick: string,
   weatherExplanation?: string
 ): string {
@@ -21,10 +22,8 @@ export function generateReasoning(
   const winProb = Math.max(simResult.homeWinProbability, simResult.awayWinProbability);
   factors.push(`${winningTeam} wins ${winProb.toFixed(1)}% of simulations`);
 
-  const spreadCoverProb = simResult.spreadCoverProbability > 50 
-    ? simResult.spreadCoverProbability 
-    : 100 - simResult.spreadCoverProbability;
-  factors.push(`${spreadPick} covers ${spreadCoverProb.toFixed(1)}% of simulations`);
+  // Use the actual spread probability that was calculated (not recalculated)
+  factors.push(`${spreadPick} covers ${spreadProbability.toFixed(1)}% of simulations`);
   
   const totalPoints = simResult.predictedHomeScore + simResult.predictedAwayScore;
   const totalProb = simResult.overProbability > 50 ? simResult.overProbability : simResult.underProbability;

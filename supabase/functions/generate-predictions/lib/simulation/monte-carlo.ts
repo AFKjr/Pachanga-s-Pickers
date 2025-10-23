@@ -238,17 +238,14 @@ export function runMonteCarloSimulation(
     }
   ) : null;
 
-  // Cache home field advantage calculation (no longer used - now 3-point flat boost)
-  // const BASE_HOME_ADVANTAGE = 1.015; // Reduced from 1.03 to lower average scores
-  // const homeFieldVariance = 0.97 + (Math.random() * 0.06); // 0.97 to 1.03 (±3%)
-  // const HOME_FIELD_BOOST = BASE_HOME_ADVANTAGE * homeFieldVariance;
-
   const homeScores: number[] = [];
   const awayScores: number[] = [];
   let homeWins = 0;
   let awayWins = 0;
   let ties = 0;
   let favoriteCovers = 0;
+  let underdogCovers = 0;
+  let spreadPushes = 0;
   let rawOvers = 0;
 
   // Run raw simulations first
@@ -260,7 +257,7 @@ export function runMonteCarloSimulation(
       baseAwayDefense,
       homeWeatherAdj,
       awayWeatherAdj
-      // HOME_FIELD_BOOST removed - now using flat 3-point boost
+      
     });
     
     homeScores.push(gameResult.homeScore);
@@ -275,7 +272,7 @@ export function runMonteCarloSimulation(
       ties++;
     }
 
-    // Spread coverage
+    
     const favoriteScore = favoriteIsHome ? gameResult.homeScore : gameResult.awayScore;
     const underdogScore = favoriteIsHome ? gameResult.awayScore : gameResult.homeScore;
     
@@ -284,6 +281,11 @@ export function runMonteCarloSimulation(
     
     if (margin > spreadValue) {
       favoriteCovers++;
+    } else if (margin < spreadValue) {
+      underdogCovers++;
+    } else {
+      // Exactly equals spread = push
+      spreadPushes++;
     }
 
     // Count raw overs (before calibration)
@@ -329,6 +331,9 @@ export function runMonteCarloSimulation(
   
   // Recalculate spread coverage with calibrated margins
   let calibratedFavoriteCovers = 0;
+  let calibratedUnderdogCovers = 0;
+  let calibratedSpreadPushes = 0;
+  
   for (let iteration = 0; iteration < SIMULATION_ITERATIONS; iteration++) {
     const rawHomeScore = homeScores[iteration];
     const rawAwayScore = awayScores[iteration];
@@ -338,14 +343,20 @@ export function runMonteCarloSimulation(
     
     const calibratedMargin = rawMargin - marginCalibration;
     
-    // Check if favorite covers the spread with calibrated margin
+    // Check spread coverage with calibrated margin
     if (calibratedMargin > spreadValue) {
       calibratedFavoriteCovers++;
+    } else if (calibratedMargin < spreadValue) {
+      calibratedUnderdogCovers++;
+    } else {
+      // Exactly equals spread = push
+      calibratedSpreadPushes++;
     }
   }
   
-  const calibratedFavoriteCoverProbability = (calibratedFavoriteCovers / SIMULATION_ITERATIONS) * 100;
-  const calibratedUnderdogCoverProbability = 100 - calibratedFavoriteCoverProbability;
+  // Calculate probabilities: split pushes 50/50 between favorite and underdog
+  const calibratedFavoriteCoverProbability = ((calibratedFavoriteCovers + calibratedSpreadPushes / 2) / SIMULATION_ITERATIONS) * 100;
+  const calibratedUnderdogCoverProbability = ((calibratedUnderdogCovers + calibratedSpreadPushes / 2) / SIMULATION_ITERATIONS) * 100;
 
   const favoriteCoverProbability = calibratedFavoriteCoverProbability;
   const underdogCoverProbability = calibratedUnderdogCoverProbability;

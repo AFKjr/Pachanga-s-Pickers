@@ -65,7 +65,7 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get('VITE_SUPABASE_URL') || Deno.env.get('SUPABASE_URL');
     const SUPABASE_KEY = Deno.env.get('VITE_SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_ANON_KEY');
     const WEATHER_API_KEY = Deno.env.get('OPENWEATHER_API_KEY');
-    const RAPIDAPI_KEY = undefined; // Sports Radar API DISABLED - using database stats only
+  // const RAPIDAPI_KEY = undefined; // RapidAPI support removed
 
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return new Response(
@@ -94,7 +94,7 @@ serve(async (req) => {
         SUPABASE_URL,
         SUPABASE_KEY,
         WEATHER_API_KEY,
-        RAPIDAPI_KEY
+  // RAPIDAPI_KEY // RapidAPI support removed
       );
 
       logMemory('Historical predictions complete');
@@ -205,7 +205,7 @@ serve(async (req) => {
       SUPABASE_URL,
       SUPABASE_KEY,
       WEATHER_API_KEY,
-      RAPIDAPI_KEY,
+  // RAPIDAPI_KEY, // RapidAPI support removed
       targetWeek
     );
 
