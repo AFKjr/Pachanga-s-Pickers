@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { picksApi } from '../lib/api';
 import { globalEvents } from '../lib/events';
-import { Pick } from '../types/index';
+import { Pick, NFLWeek } from '../types/index';
 import { useSecureConfirmation } from './SecureConfirmationModal';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { validatePickData } from '../utils/inputValidation';
@@ -128,7 +128,7 @@ const AdminPickRevision: React.FC<PickRevisionProps> = ({
       confidence: validation.sanitizedData.confidence,
       reasoning: validation.sanitizedData.reasoning,
       result: formData.result as 'win' | 'loss' | 'push' | 'pending',
-      week: validation.sanitizedData.week,
+      week: validation.sanitizedData.week as NFLWeek,
       is_pinned: formData.isPinned,
       game_info: {
         home_team: validation.sanitizedData.homeTeam,

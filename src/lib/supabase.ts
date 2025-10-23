@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { NFLWeek, ConfidenceLevel } from '../types/index';
+import { NFLWeek } from '../types/index';
 // TODO: After running `npm run types:generate`, uncomment this line:
 // import type { Database } from '../types/database.types';
 
@@ -21,7 +21,7 @@ export type Database = {
     Tables: {
       picks: {
         Row: {
-          id: string;
+          id?: string;
           game_info: {
             home_team: string;
             away_team: string;
@@ -33,7 +33,7 @@ export type Database = {
           prediction: string;
           spread_prediction?: string;
           ou_prediction?: string;
-          confidence: ConfidenceLevel;
+          confidence: number;
           reasoning: string;
           result?: 'win' | 'loss' | 'push' | 'pending';
           created_at: string;
@@ -53,7 +53,7 @@ export type Database = {
           prediction: string;
           spread_prediction?: string;
           ou_prediction?: string;
-          confidence: ConfidenceLevel;
+          confidence: number;
           reasoning: string;
           result?: 'win' | 'loss' | 'push' | 'pending';
           created_at?: string;
@@ -73,7 +73,7 @@ export type Database = {
           prediction?: string;
           spread_prediction?: string;
           ou_prediction?: string;
-          confidence?: ConfidenceLevel;
+          confidence?: number;
           reasoning?: string;
           result?: 'win' | 'loss' | 'push' | 'pending';
           created_at?: string;

@@ -7,9 +7,9 @@ import { safeDateFormat } from '../utils/dateValidation';
 interface BetType {
   type: 'moneyline' | 'spread' | 'total';
   prediction: string;
-  edge: number;
+  edge: number | null;
   confidence: number;
-  result?: 'win' | 'loss' | 'push' | 'pending';
+  result?: 'win' | 'loss' | 'push' | 'pending' | null;
 }
 
 const getAllBets = (pick: Pick): BetType[] => {
@@ -45,7 +45,7 @@ const getAllBets = (pick: Pick): BetType[] => {
     });
   }
 
-  return bets.sort((a, b) => b.edge - a.edge);
+  return bets.sort((a, b) => (b.edge || 0) - (a.edge || 0));
 };
 
 const getBestBet = (pick: Pick): BetType | null => {
@@ -59,7 +59,7 @@ interface BetRowProps {
 }
 
 const BetRow: React.FC<BetRowProps> = ({ bet, isBest }) => {
-  const badge = getConfidenceBadge(bet.edge, bet.confidence);
+  const badge = getConfidenceBadge(bet.edge || 0, bet.confidence);
 
   const getResultBadge = () => {
     if (!bet.result || bet.result === 'pending') return null;
@@ -101,7 +101,7 @@ const BetRow: React.FC<BetRowProps> = ({ bet, isBest }) => {
           <span className={`font-medium text-sm truncate ${isBest ? 'text-lime-400' : 'text-white'}`}>
             {bet.prediction}
           </span>
-          <span className={`text-sm font-bold ${getEdgeTextColorClass(bet.edge)}`}>
+          <span className={`text-sm font-bold ${getEdgeTextColorClass(bet.edge || 0)}`}>
             {formatEdge(bet.edge)}
           </span>
         </div>
@@ -109,7 +109,7 @@ const BetRow: React.FC<BetRowProps> = ({ bet, isBest }) => {
         <div className="flex items-center gap-2 mt-1">
           <div className="flex-1 bg-gray-700 rounded-full h-1.5 overflow-hidden">
             <div
-              className={`h-full transition-all duration-300 ${getEdgeBarColorClass(bet.edge)}`}
+              className={`h-full transition-all duration-300 ${getEdgeBarColorClass(bet.edge || 0)}`}
               style={{ width: `${Math.min(bet.confidence, 100)}%` }}
             />
           </div>

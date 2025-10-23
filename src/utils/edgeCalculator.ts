@@ -125,6 +125,186 @@ export function isPickingFavorite(spreadPrediction: string, favoriteTeam: string
   });
 }
 
+// ============================================================================
+// HELPER FUNCTIONS - Encapsulated Conditional Logic
+// ============================================================================
+
+/**
+ * Check if odds value is valid and usable
+ * 
+ * @param odds - The odds value to check
+ * @returns true if odds can be used for edge calculation
+ */
+function isValidOdds(odds: number | null | undefined): boolean {
+  return odds !== null && odds !== undefined && odds !== 0;
+}
+
+/**
+ * Determine which team was picked in moneyline prediction
+ * 
+ * @param prediction - The prediction string (e.g., "Chiefs win")
+ * @param homeTeam - Home team name
+ * @param awayTeam - Away team name
+ * @returns 'home' | 'away' | null
+ */
+function determineMoneylineTeam(
+  prediction: string,
+  homeTeam: string,
+  awayTeam: string
+): 'home' | 'away' | null {
+  const predictionLower = prediction.toLowerCase();
+  const homeLower = homeTeam.toLowerCase();
+  const awayLower = awayTeam.toLowerCase();
+  
+  const includesHome = predictionLower.includes(homeLower);
+  const includesAway = predictionLower.includes(awayLower);
+  
+  if (includesHome && !includesAway) return 'home';
+  if (includesAway && !includesHome) return 'away';
+  
+  return null; // Ambiguous or no match
+}
+
+/**
+ * Get moneyline odds for the picked team
+ * 
+ * @param pickedTeam - Which team was picked ('home' | 'away' | null)
+ * @param gameInfo - Game information containing odds
+ * @returns The odds for the picked team, or null if unavailable
+ */
+function getMoneylineOddsForPick(
+  pickedTeam: 'home' | 'away' | null,
+  gameInfo: GameInfo
+): number | null {
+  if (pickedTeam === 'home' && isValidOdds(gameInfo.home_ml_odds)) {
+    return gameInfo.home_ml_odds!;
+  }
+  
+  if (pickedTeam === 'away' && isValidOdds(gameInfo.away_ml_odds)) {
+    return gameInfo.away_ml_odds!;
+  }
+  
+  return null;
+}
+
+/**
+ * Get moneyline win probability for the picked team
+ * 
+ * @param pickedTeam - Which team was picked ('home' | 'away' | null)
+ * @param monteCarloResults - Monte Carlo simulation results
+ * @returns Win probability for the picked team
+ */
+function getMoneylineProbability(
+  pickedTeam: 'home' | 'away' | null,
+  monteCarloResults: MonteCarloResults
+): number {
+  if (pickedTeam === 'home') {
+    return monteCarloResults.home_win_probability;
+  }
+  
+  if (pickedTeam === 'away') {
+    return monteCarloResults.away_win_probability;
+  }
+  
+  // Fallback to generic moneyline probability
+  return monteCarloResults.moneyline_probability;
+}
+
+/**
+ * Determine the correct spread probability based on which side was picked
+ * 
+ * Uses favorite/underdog probabilities when available, with fallbacks.
+ * 
+ * @param pickedFavorite - Whether the favorite was picked
+ * @param monteCarloResults - Monte Carlo simulation results
+ * @returns The appropriate spread cover probability
+ */
+function determineSpreadProbability(
+  pickedFavorite: boolean,
+  monteCarloResults: MonteCarloResults
+): number {
+  if (pickedFavorite) {
+    // Picked favorite - use favorite_cover_probability with fallbacks
+    return monteCarloResults.favorite_cover_probability || 
+           monteCarloResults.spread_cover_probability ||
+           monteCarloResults.spread_probability;
+  } else {
+    // Picked underdog - use underdog_cover_probability with fallback calculation
+    return monteCarloResults.underdog_cover_probability ||
+           (100 - (monteCarloResults.favorite_cover_probability || 
+                   monteCarloResults.spread_cover_probability ||
+                   monteCarloResults.spread_probability));
+  }
+}
+
+/**
+ * Determine if the Over was picked in O/U prediction
+ * 
+ * @param ouPrediction - The O/U prediction string
+ * @returns true if Over was picked, false if Under
+ */
+function isOverPicked(ouPrediction: string): boolean {
+  return ouPrediction.toLowerCase().includes('over');
+}
+
+/**
+ * Get the appropriate odds for the O/U pick
+ * 
+ * @param pickedOver - Whether Over was picked
+ * @param gameInfo - Game information containing odds
+ * @returns The odds for the picked side, or null if unavailable
+ */
+function determineOverUnderOdds(
+  pickedOver: boolean,
+  gameInfo: GameInfo
+): number | null {
+  if (pickedOver && isValidOdds(gameInfo.over_odds)) {
+    return gameInfo.over_odds!;
+  }
+  
+  if (!pickedOver && isValidOdds(gameInfo.under_odds)) {
+    return gameInfo.under_odds!;
+  }
+  
+  return null;
+}
+
+/**
+ * Get the appropriate probability for the O/U pick
+ * 
+ * @param pickedOver - Whether Over was picked
+ * @param monteCarloResults - Monte Carlo simulation results
+ * @returns The probability for the picked side
+ */
+function getOverUnderProbability(
+  pickedOver: boolean,
+  monteCarloResults: MonteCarloResults
+): number {
+  return pickedOver 
+    ? monteCarloResults.over_probability 
+    : monteCarloResults.under_probability;
+}
+
+// ============================================================================
+// MAIN EDGE CALCULATION FUNCTION
+// ============================================================================
+
+/**
+ * Calculate betting edges for all three bet types
+ * 
+ * This function is now much more readable due to extracted helper functions.
+ * Each bet type calculation follows a clear pattern:
+ * 1. Check if prediction exists
+ * 2. Determine what was picked
+ * 3. Get appropriate odds
+ * 4. Get appropriate probability
+ * 5. Calculate edge
+ * 
+ * @param pick - The pick containing predictions
+ * @param monteCarloResults - Simulation results with probabilities
+ * @param gameInfo - Game information with odds
+ * @returns Object with edges for moneyline, spread, and O/U
+ */
 export function calculatePickEdges(
   pick: Pick,
   monteCarloResults: MonteCarloResults,
@@ -134,76 +314,63 @@ export function calculatePickEdges(
   spread_edge: number;
   ou_edge: number;
 } {
+  const EDGE_REDUCTION_FACTOR = 0.3;
+  
   // ===== MONEYLINE EDGE =====
   let moneylineEdge = 0;
-  if (monteCarloResults.moneyline_probability) {
-    const predictedHome = pick.prediction.toLowerCase().includes(gameInfo.home_team.toLowerCase());
-    const predictedAway = pick.prediction.toLowerCase().includes(gameInfo.away_team.toLowerCase());
-
-    // Require stored odds - no fallbacks to hard-coded values
-    if (predictedHome && (gameInfo.home_ml_odds || gameInfo.home_ml_odds === 0)) {
-      moneylineEdge = calculateEdge(monteCarloResults.home_win_probability, gameInfo.home_ml_odds);
-    } else if (predictedAway && (gameInfo.away_ml_odds || gameInfo.away_ml_odds === 0)) {
-      moneylineEdge = calculateEdge(monteCarloResults.away_win_probability, gameInfo.away_ml_odds);
-    } else if (monteCarloResults.moneyline_probability) {
-      // Skip edge calculation if no odds available
-      moneylineEdge = 0;
+  
+  if (monteCarloResults.moneyline_probability && pick.prediction) {
+    const pickedTeam = determineMoneylineTeam(
+      pick.prediction,
+      gameInfo.home_team,
+      gameInfo.away_team
+    );
+    
+    const odds = getMoneylineOddsForPick(pickedTeam, gameInfo);
+    
+    if (odds !== null) {
+      const probability = getMoneylineProbability(pickedTeam, monteCarloResults);
+      moneylineEdge = calculateEdge(probability, odds);
     }
   }
 
-  // ===== SPREAD EDGE (BOOKMAKER STYLE) =====
+  // ===== SPREAD EDGE =====
   let spreadEdge = 0;
-  if (pick.spread_prediction && (gameInfo.spread_odds || gameInfo.spread_odds === 0)) {
-    // Determine which side was picked using favorite team information
+  
+  if (pick.spread_prediction && isValidOdds(gameInfo.spread_odds)) {
     const pickedFavorite = isPickingFavorite(
       pick.spread_prediction,
       gameInfo.favorite_team || ''
     );
     
-    // Use correct probability based on which side was picked
-    let probability: number;
-    if (pickedFavorite) {
-      // Picked favorite - use favorite_cover_probability (or fallback to spread_cover_probability)
-      probability = monteCarloResults.favorite_cover_probability || 
-                    monteCarloResults.spread_cover_probability ||
-                    monteCarloResults.spread_probability;
-    } else {
-      // Picked underdog - use underdog_cover_probability (or calculate from favorite)
-      probability = monteCarloResults.underdog_cover_probability ||
-                    (100 - (monteCarloResults.favorite_cover_probability || 
-                            monteCarloResults.spread_cover_probability ||
-                            monteCarloResults.spread_probability));
-    }
-    
-    spreadEdge = calculateEdge(probability, gameInfo.spread_odds);
+    const probability = determineSpreadProbability(pickedFavorite, monteCarloResults);
+    spreadEdge = calculateEdge(probability, gameInfo.spread_odds!);
   }
 
   // ===== OVER/UNDER EDGE =====
   let ouEdge = 0;
+  
   if (monteCarloResults.total_probability && pick.ou_prediction) {
-    const pickedOver = pick.ou_prediction.toLowerCase().includes('over');
-
-    // Require stored O/U odds - no fallbacks
-    let ouOdds: number | null = null;
-    if (pickedOver && (gameInfo.over_odds || gameInfo.over_odds === 0)) {
-      ouOdds = gameInfo.over_odds;
-    } else if (!pickedOver && (gameInfo.under_odds || gameInfo.under_odds === 0)) {
-      ouOdds = gameInfo.under_odds;
+    const pickedOver = isOverPicked(pick.ou_prediction);
+    const odds = determineOverUnderOdds(pickedOver, gameInfo);
+    
+    if (odds !== null) {
+      const probability = getOverUnderProbability(pickedOver, monteCarloResults);
+      ouEdge = calculateEdge(probability, odds);
     }
-
-    if (ouOdds !== null) {
-      const prob = pickedOver ? monteCarloResults.over_probability : monteCarloResults.under_probability;
-      ouEdge = calculateEdge(prob, ouOdds);
-    }
-    // Skip if no odds available
   }
   
+  // Apply reduction factor and return
   return {
-    moneyline_edge: Number((moneylineEdge * 0.3).toFixed(2)), // Reduce moneyline edge by 30%
-    spread_edge: Number((spreadEdge * 0.3).toFixed(2)), // Reduce ATS edge by 30%
-    ou_edge: Number((ouEdge * 0.3).toFixed(2)) // Reduce OU edge by 30%
+    moneyline_edge: Number((moneylineEdge * EDGE_REDUCTION_FACTOR).toFixed(2)),
+    spread_edge: Number((spreadEdge * EDGE_REDUCTION_FACTOR).toFixed(2)),
+    ou_edge: Number((ouEdge * EDGE_REDUCTION_FACTOR).toFixed(2))
   };
 }
+
+// ============================================================================
+// DISPLAY UTILITIES (unchanged from original)
+// ============================================================================
 
 /**
  * Calculate edge for BOTH sides of a bet (for display purposes)
@@ -249,18 +416,25 @@ export function getConfidenceBarColor(
   confidence: number,
   edge: number
 ): 'lime' | 'yellow' | 'red' {
+  const NEGATIVE_EDGE = 0;
+  const STRONG_EDGE_THRESHOLD = 5;
+  const GOOD_EDGE_THRESHOLD = 3;
+  const MARGINAL_EDGE_THRESHOLD = 1;
+  const STRONG_CONFIDENCE_THRESHOLD = 65;
+  const GOOD_CONFIDENCE_THRESHOLD = 60;
+  const MARGINAL_CONFIDENCE_THRESHOLD = 70;
   
   // Negative edge = avoid (red)
-  if (edge < 0) return 'red';
+  if (edge < NEGATIVE_EDGE) return 'red';
   
   // Strong bet: high edge + solid confidence
-  if (edge >= 5 && confidence >= 65) return 'lime';
+  if (edge >= STRONG_EDGE_THRESHOLD && confidence >= STRONG_CONFIDENCE_THRESHOLD) return 'lime';
   
   // Good bet: decent edge + okay confidence
-  if (edge >= 3 && confidence >= 60) return 'lime';
+  if (edge >= GOOD_EDGE_THRESHOLD && confidence >= GOOD_CONFIDENCE_THRESHOLD) return 'lime';
   
   // Marginal: low edge or lower confidence
-  if (edge >= 1 || confidence >= 70) return 'yellow';
+  if (edge >= MARGINAL_EDGE_THRESHOLD || confidence >= MARGINAL_CONFIDENCE_THRESHOLD) return 'yellow';
   
   // Weak: very low edge and low confidence
   return 'yellow';
@@ -270,7 +444,8 @@ export function getConfidenceBarColor(
  * Get CSS color class for edge-based confidence bar
  */
 export function getEdgeColorClass(edge: number): string {
-  const color = getConfidenceBarColor(70, edge); // Use 70 as baseline confidence
+  const BASELINE_CONFIDENCE = 70;
+  const color = getConfidenceBarColor(BASELINE_CONFIDENCE, edge);
   
   switch (color) {
     case 'lime':
@@ -288,16 +463,20 @@ export function getEdgeColorClass(edge: number): string {
  * Get text color class for edge display
  */
 export function getEdgeTextColor(edge: number): string {
-  if (edge >= 5) return 'text-lime-400';
-  if (edge >= 3) return 'text-yellow-400';
-  if (edge >= 0) return 'text-gray-400';
+  const HIGH_EDGE_THRESHOLD = 5;
+  const MEDIUM_EDGE_THRESHOLD = 3;
+  const BREAK_EVEN = 0;
+  
+  if (edge >= HIGH_EDGE_THRESHOLD) return 'text-lime-400';
+  if (edge >= MEDIUM_EDGE_THRESHOLD) return 'text-yellow-400';
+  if (edge >= BREAK_EVEN) return 'text-gray-400';
   return 'text-red-400';
 }
 
 /**
  * Format edge value for display
  */
-export function formatEdge(edge?: number): string {
+export function formatEdge(edge?: number | null): string {
   if (edge === undefined || edge === null) return '+0.0%';
   const sign = edge >= 0 ? '+' : '';
   return `${sign}${edge.toFixed(1)}%`;

@@ -42,7 +42,7 @@ interface BetSectionProps {
   oppProb: number;
   confidence: number;
   edgeValue: number;
-  result?: 'win' | 'loss' | 'push' | 'pending';
+  result?: 'win' | 'loss' | 'push' | 'pending' | null;
 }
 
 const BetSection: React.FC<BetSectionProps> = ({ 
@@ -134,8 +134,8 @@ const HorizontalPickCard: React.FC<HorizontalPickCardProps> = ({ pick }) => {
   };
 
   // Calculate opponent edge (simplified - this would be more complex in reality)
-  const calcOppEdge = (edge?: number): string => {
-    if (!edge) return '-0.0';
+  const calcOppEdge = (edge?: number | null): string => {
+    if (!edge && edge !== 0) return '-0.0';
     return formatEdge(-edge - 1.5); // Rough approximation
   };
   

@@ -1,92 +1,79 @@
-// Database Types
-export interface Pick {
-  id: string;
-  prediction: string;
-  spread_prediction?: string;
-  ou_prediction?: string;
-  confidence: number;
-  reasoning: string;
-  result: 'win' | 'loss' | 'push' | 'pending';
-  ats_result?: 'win' | 'loss' | 'push' | 'pending';
-  ou_result?: 'win' | 'loss' | 'push' | 'pending';
-  created_at: string;
-  updated_at: string;
-  week: number;
-  schedule_id: string | null;
-  game_info: GameInfo;
-  monte_carlo_results?: MonteCarloResults;
-  
-  // Edge values for each bet type
-  moneyline_edge?: number;
-  spread_edge?: number;
-  ou_edge?: number;
-  
-  weather?: {
-    temperature: number;
-    wind_speed: number;
-    condition: string;
-    impact_rating: 'none' | 'low' | 'medium' | 'high' | 'extreme';
-    description: string;
-  } | null;
-  weather_impact?: string;
-  // UI/Display fields (optional)
-  is_pinned?: boolean;
-  user_id?: string;
-  author_username?: string;
-  comments_count?: number;
-}
+// Pick-related types with strong type safety
+import type { BettingPick } from './picks.types';
+export type {
+  BettingPick,
+  PickInsert,
+  PickUpdate,
+  PickWithMonteCarlo,
+  CompletedPick,
+  GameInfo,
+  MonteCarloResults,
+  WeatherInfo,
+  ConfidenceScore,
+  NFLWeek,
+  BetResult,
+  WeatherImpact,
+  BetType,
+  ResultStatus
+} from './picks.types';
 
-export interface MonteCarloResults {
-  moneyline_probability: number;
-  spread_probability: number;
-  total_probability: number;
-  home_win_probability: number;
-  away_win_probability: number;
-  spread_cover_probability: number;  // DEPRECATED: Use favorite_cover_probability
-  favorite_cover_probability: number;  // NEW: Probability favorite covers spread
-  underdog_cover_probability: number;  // NEW: Probability underdog covers spread
-  over_probability: number;
-  under_probability: number;
-  predicted_home_score: number;
-  predicted_away_score: number;
-}
+// Define our Pick type to avoid conflicts with TypeScript's built-in Pick
+export type { BettingPick as Pick } from './picks.types';
 
-export interface GameInfo {
-  home_team: string;
-  away_team: string;
-  league: string;
-  game_date: string;
-  spread?: number;
-  over_under?: number;
-  home_score?: number | null;
-  away_score?: number | null;
+// Type guards and branded type creators
+export {
+  isValidNFLWeek,
+  isValidConfidence,
+  isValidBetResult,
+  isValidWeatherImpact,
+  createConfidenceScore,
+  createNFLWeek,
+  hasMonteCarloResults,
+  isCompletedPick
+} from './picks.types';
 
-  // Odds at time of prediction (American format)
-  home_ml_odds?: number;
-  away_ml_odds?: number;
-  spread_odds?: number;
-  over_odds?: number;
-  under_odds?: number;
+// Constants
+export {
+  BET_TYPES,
+  RESULT_STATUS,
+  WEATHER_IMPACT_LEVELS,
+  NFL_WEEKS
+} from './picks.types';
 
-  // NEW: Favorite/Underdog information (for bookmaker-style spread tracking)
-  favorite_team?: string;      // e.g., "Kansas City Chiefs"
-  underdog_team?: string;       // e.g., "Las Vegas Raiders"
-  favorite_is_home?: boolean;   // true if home team is favored
-}
+// API response types and utilities
+export type {
+  ApiResponse,
+  SuccessResponse,
+  ErrorResponse
+} from './api.types';
 
-// Strict Union Types
-export type NFLWeek = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18;
-export type ConfidenceLevel = number; // Float between 0.00 and 100.00, rounded to nearest hundredth
+// API utility functions
+export {
+  isSuccess,
+  isError,
+  unwrapResponse,
+  getDataOrDefault,
+  getDataOrNull,
+  mapResponse,
+  chainResponse,
+  combineResponses,
+  collectResponses,
+  retryApiCall,
+  withTimeout
+} from './api.types';
 
-// UI Component Props
+// Legacy type aliases for backward compatibility
+// TODO: Gradually migrate away from these
+
+// UI Component Props (keeping these for now)
 export interface PickCardProps {
-  pick: Pick;
+  pick: import('./picks.types').BettingPick;
   showComments?: boolean;
   onCommentClick?: () => void;
 }
 
 // Mock Data Types
-export interface MockPick extends Pick {
+export type MockPick = BettingPick & {
   comments_count?: number;
   is_pinned?: boolean;
-}
+};

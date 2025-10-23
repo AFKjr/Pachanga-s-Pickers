@@ -402,21 +402,19 @@ export const publicStatsApi = {
     try {
       // Import dynamically to avoid circular dependencies
       const { getCurrentNFLWeek } = await import('../utils/nflWeeks');
+      const { calculatePickStatistics, createEmptyStats } = await import('../services/statsCalculator');
+
       const currentWeek = getCurrentNFLWeek();
-      
+
+      // Return empty stats if no current week
       if (!currentWeek) {
-        return { 
-          data: { 
-            week: null,
-            moneyline: { wins: 0, losses: 0, pushes: 0, total: 0, winRate: 0 },
-            ats: { wins: 0, losses: 0, pushes: 0, total: 0, winRate: 0 },
-            overUnder: { wins: 0, losses: 0, pushes: 0, total: 0, winRate: 0 }
-          }, 
-          error: null 
+        return {
+          data: createEmptyStats(null),
+          error: null
         };
       }
 
-      // Fetch completed picks for current week (with scores for calculation fallback)
+      // Fetch completed picks for current week
       const { data: picks, error } = await supabase
         .from('picks')
         .select('result, ats_result, ou_result, game_info, prediction, spread_prediction, ou_prediction')
@@ -431,74 +429,10 @@ export const publicStatsApi = {
         return { data: null, error: appError };
       }
 
-      // Import calculation function for fallback
-      const { calculateAllResultsFromScores } = await import('../utils/calculations');
+      // Calculate statistics using service
+      const stats = await calculatePickStatistics(picks as Pick[] || [], currentWeek);
 
-      // Initialize counters for all three bet types
-      let mlWins = 0, mlLosses = 0, mlPushes = 0;
-      let atsWins = 0, atsLosses = 0, atsPushes = 0;
-      let ouWins = 0, ouLosses = 0, ouPushes = 0;
-
-      // Count results - use stored values OR calculate from scores
-      picks?.forEach(pick => {
-        // Moneyline (always use stored result)
-        if (pick.result === 'win') mlWins++;
-        else if (pick.result === 'loss') mlLosses++;
-        else if (pick.result === 'push') mlPushes++;
-        
-        // For ATS/OU: Use stored value if available, otherwise calculate
-        let atsResult = pick.ats_result;
-        let ouResult = pick.ou_result;
-        
-        // If stored values are null/pending, calculate from scores
-        if (!atsResult || atsResult === 'pending' || !ouResult || ouResult === 'pending') {
-          const calculated = calculateAllResultsFromScores(pick as Pick);
-          if (!atsResult || atsResult === 'pending') atsResult = calculated.ats;
-          if (!ouResult || ouResult === 'pending') ouResult = calculated.overUnder;
-        }
-        
-        // ATS
-        if (atsResult === 'win') atsWins++;
-        else if (atsResult === 'loss') atsLosses++;
-        else if (atsResult === 'push') atsPushes++;
-        
-        // O/U
-        if (ouResult === 'win') ouWins++;
-        else if (ouResult === 'loss') ouLosses++;
-        else if (ouResult === 'push') ouPushes++;
-      });
-
-      const mlTotal = mlWins + mlLosses + mlPushes;
-      const atsTotal = atsWins + atsLosses + atsPushes;
-      const ouTotal = ouWins + ouLosses + ouPushes;
-
-      return {
-        data: {
-          week: currentWeek,
-          moneyline: {
-            wins: mlWins,
-            losses: mlLosses,
-            pushes: mlPushes,
-            total: mlTotal,
-            winRate: mlTotal > 0 ? Math.round((mlWins / (mlWins + mlLosses)) * 100) : 0
-          },
-          ats: {
-            wins: atsWins,
-            losses: atsLosses,
-            pushes: atsPushes,
-            total: atsTotal,
-            winRate: atsTotal > 0 ? Math.round((atsWins / (atsWins + atsLosses)) * 100) : 0
-          },
-          overUnder: {
-            wins: ouWins,
-            losses: ouLosses,
-            pushes: ouPushes,
-            total: ouTotal,
-            winRate: ouTotal > 0 ? Math.round((ouWins / (ouWins + ouLosses)) * 100) : 0
-          }
-        },
-        error: null
-      };
+      return { data: stats, error: null };
     } catch (error) {
       const appError = createAppError(error, {
         operation: 'getCurrentWeekStats',
@@ -510,7 +444,10 @@ export const publicStatsApi = {
 
   getAllTimeStats: async () => {
     try {
-      // Fetch ALL completed picks (with scores for calculation fallback)
+      // Import service functions
+      const { calculatePickStatistics } = await import('../services/statsCalculator');
+
+      // Fetch ALL completed picks
       const { data: picks, error } = await supabase
         .from('picks')
         .select('result, ats_result, ou_result, game_info, prediction, spread_prediction, ou_prediction')
@@ -524,73 +461,10 @@ export const publicStatsApi = {
         return { data: null, error: appError };
       }
 
-      // Import calculation function for fallback
-      const { calculateAllResultsFromScores } = await import('../utils/calculations');
+      // Calculate statistics using service (no week parameter for all-time)
+      const stats = await calculatePickStatistics(picks as Pick[] || []);
 
-      // Initialize counters for all three bet types
-      let mlWins = 0, mlLosses = 0, mlPushes = 0;
-      let atsWins = 0, atsLosses = 0, atsPushes = 0;
-      let ouWins = 0, ouLosses = 0, ouPushes = 0;
-
-      // Count results - use stored values OR calculate from scores
-      picks?.forEach(pick => {
-        // Moneyline (always use stored result)
-        if (pick.result === 'win') mlWins++;
-        else if (pick.result === 'loss') mlLosses++;
-        else if (pick.result === 'push') mlPushes++;
-        
-        // For ATS/OU: Use stored value if available, otherwise calculate
-        let atsResult = pick.ats_result;
-        let ouResult = pick.ou_result;
-        
-        // If stored values are null/pending, calculate from scores
-        if (!atsResult || atsResult === 'pending' || !ouResult || ouResult === 'pending') {
-          const calculated = calculateAllResultsFromScores(pick as Pick);
-          if (!atsResult || atsResult === 'pending') atsResult = calculated.ats;
-          if (!ouResult || ouResult === 'pending') ouResult = calculated.overUnder;
-        }
-        
-        // ATS
-        if (atsResult === 'win') atsWins++;
-        else if (atsResult === 'loss') atsLosses++;
-        else if (atsResult === 'push') atsPushes++;
-        
-        // O/U
-        if (ouResult === 'win') ouWins++;
-        else if (ouResult === 'loss') ouLosses++;
-        else if (ouResult === 'push') ouPushes++;
-      });
-
-      const mlTotal = mlWins + mlLosses + mlPushes;
-      const atsTotal = atsWins + atsLosses + atsPushes;
-      const ouTotal = ouWins + ouLosses + ouPushes;
-
-      return {
-        data: {
-          moneyline: {
-            wins: mlWins,
-            losses: mlLosses,
-            pushes: mlPushes,
-            total: mlTotal,
-            winRate: mlTotal > 0 ? Math.round((mlWins / (mlWins + mlLosses)) * 100) : 0
-          },
-          ats: {
-            wins: atsWins,
-            losses: atsLosses,
-            pushes: atsPushes,
-            total: atsTotal,
-            winRate: atsTotal > 0 ? Math.round((atsWins / (atsWins + atsLosses)) * 100) : 0
-          },
-          overUnder: {
-            wins: ouWins,
-            losses: ouLosses,
-            pushes: ouPushes,
-            total: ouTotal,
-            winRate: ouTotal > 0 ? Math.round((ouWins / (ouWins + ouLosses)) * 100) : 0
-          }
-        },
-        error: null
-      };
+      return { data: stats, error: null };
     } catch (error) {
       const appError = createAppError(error, {
         operation: 'getAllTimeStats',
