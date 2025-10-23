@@ -17,6 +17,22 @@ export type {
   ResultStatus
 } from './picks.types';
 
+// Team stats types
+export type {
+  TeamStats
+} from './teamStats.types';
+
+export {
+  parseStatNumber,
+  getOffensiveStats,
+  getDefensiveStats,
+  hasStrongOffense,
+  hasStrongDefense,
+  getOffensiveRankTier,
+  getDefensiveRankTier,
+  normalizeTeamName
+} from './teamStats.types';
+
 // Define our Pick type to avoid conflicts with TypeScript's built-in Pick
 export type { BettingPick as Pick } from './picks.types';
 

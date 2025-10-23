@@ -1,13 +1,13 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { picksApi } from '../lib/api';
 import { globalEvents } from '../lib/events';
-import type { Pick } from '../types';
+import type { BettingPick } from '../types/picks.types';
 import { getPickWeek } from '../utils/nflWeeks';
 import BestBetsSection from './BestBetsSection';
 import SegmentedWeekSelector from './SegmentedWeekSelector';
 import { calculatePickEdges } from '../utils/edgeCalculator';
 import { isBestBet } from '../utils/confidenceHelpers';
-import HorizontalPickCard from './HorizontalPickCard';
+import SimplifiedPickCard from './SimplifiedPickCard';
 
 interface PicksDisplayProps {
   showWeekFilter?: boolean;
@@ -15,15 +15,54 @@ interface PicksDisplayProps {
   bestBetsThreshold?: number;
 }
 
+/**
+ * Confidence Legend Component
+ */
+const ConfidenceLegend: React.FC = () => {
+  return (
+    <div className="bg-[#1a1a1a] rounded-lg p-4 mb-6 border border-[rgba(255,255,255,0.05)]">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-white mb-0">
+          Understanding Our Picks:
+        </h3>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🟢</span>
+            <div className="text-xs">
+              <div className="text-white font-medium">Strong Bet</div>
+              <div className="text-gray-500">&gt;5% edge</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🟡</span>
+            <div className="text-xs">
+              <div className="text-white font-medium">Moderate Bet</div>
+              <div className="text-gray-500">2-5% edge</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🔴</span>
+            <div className="text-xs">
+              <div className="text-white font-medium">Skip</div>
+              <div className="text-gray-500">&lt;2% edge</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PicksDisplay: React.FC<PicksDisplayProps> = ({ 
   showWeekFilter = true,
   showBestBets = true,
   bestBetsThreshold = 7
 }) => {
-  const [picks, setPicks] = useState<Pick[]>([]);
+  const [picks, setPicks] = useState<BettingPick[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
+  const [showLegend, setShowLegend] = useState(true);
 
   useEffect(() => {
     loadPicks();
@@ -111,6 +150,20 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
 
   return (
     <div className="space-y-8">
+      {/* Confidence Legend */}
+      {showLegend && (
+        <div className="relative">
+          <ConfidenceLegend />
+          <button
+            onClick={() => setShowLegend(false)}
+            className="absolute top-2 right-2 text-gray-500 hover:text-white text-xs"
+            title="Hide legend"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Best Bets Section */}
       {showBestBets && bestBets.length > 0 && (
         <BestBetsSection
@@ -152,13 +205,24 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
             </div>
           </div>
         ) : (
-          <div className="grid gap-4 grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
             {filteredPicks.map((pick) => (
-              <HorizontalPickCard key={pick.id} pick={pick} />
+              <SimplifiedPickCard key={pick.id} pick={pick} />
             ))}
           </div>
         )}
       </div>
+
+      {/* Show Legend Toggle (if hidden) */}
+      {!showLegend && (
+        <button
+          onClick={() => setShowLegend(true)}
+          className="fixed bottom-6 right-6 bg-lime-500 hover:bg-lime-600 text-black px-4 py-2 rounded-lg shadow-lg text-sm font-bold flex items-center gap-2"
+        >
+          <span>?</span>
+          <span>Show Legend</span>
+        </button>
+      )}
     </div>
   );
 };

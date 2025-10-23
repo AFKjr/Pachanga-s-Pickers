@@ -6,7 +6,7 @@ import { fetchGameWeather } from '../weather/weather-fetcher.ts';
 import { formatWeatherForDisplay } from '../weather/weather-calculator.ts';
 import { runMonteCarloSimulation, determineFavorite } from '../simulation/monte-carlo.ts';
 import { getConfidenceLevel, mapConfidenceToNumber, getNFLWeekFromDate } from '../utils/nfl-utils.ts';
-import { generateReasoning } from '../utils/reasoning-generator.ts';
+import { generateReasoningForPick } from '../utils/reasoning-generator.ts';
 import { extractOddsFromGame, type ExtractedOdds } from '../odds/fetch-odds.ts';
 import { validateMoneylineWithFallback } from '../utils/odds-converter.ts';
 
@@ -354,15 +354,56 @@ export async function generateLivePredictions(
         spread_prediction: spreadPick,
         ou_prediction: `${totalPick} ${validatedOdds.total}`,
         confidence: mapConfidenceToNumber(moneylineConfidence),
-        reasoning: generateReasoning(
-          game.home_team,
-          game.away_team,
-          simResult,
-          moneylinePick,
-          spreadPick,
-          spreadProb,
-          `${totalPick} ${validatedOdds.total}`,
-          gameWeather?.impactRating !== 'none' ? weatherImpact : undefined
+        reasoning: generateReasoningForPick(
+          {
+            id: '',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            week: getNFLWeekFromDate(new Date(game.commence_time)) ?? 1,
+            schedule_id: null,
+            game_info: {
+              home_team: game.home_team,
+              away_team: game.away_team,
+              league: 'NFL',
+              game_date: game.commence_time,
+              spread: validatedOdds.spread,
+              over_under: validatedOdds.total,
+              home_ml_odds: validatedOdds.homeMLOdds,
+              away_ml_odds: validatedOdds.awayMLOdds,
+              spread_odds: validatedOdds.spreadOdds,
+              over_odds: validatedOdds.overOdds,
+              under_odds: validatedOdds.underOdds
+            },
+            prediction: `${moneylinePick} to win`,
+            spread_prediction: spreadPick,
+            ou_prediction: `${totalPick} ${validatedOdds.total}`,
+            confidence: mapConfidenceToNumber(moneylineConfidence),
+            reasoning: '', // Will be filled by the function
+            result: 'pending',
+            moneyline_edge: moneylineEdge,
+            spread_edge: spreadEdge,
+            ou_edge: ouEdge,
+            monte_carlo_results: {
+              moneyline_probability: simResult.homeWinProbability > simResult.awayWinProbability ? simResult.homeWinProbability : simResult.awayWinProbability,
+              home_win_probability: simResult.homeWinProbability,
+              away_win_probability: simResult.awayWinProbability,
+              spread_probability: spreadProb,
+              favorite_cover_probability: favoriteInfo.favoriteIsHome ? simResult.homeWinProbability : simResult.awayWinProbability,
+              underdog_cover_probability: favoriteInfo.favoriteIsHome ? simResult.awayWinProbability : simResult.homeWinProbability,
+              over_probability: simResult.overProbability,
+              under_probability: simResult.underProbability,
+              predicted_home_score: simResult.predictedHomeScore,
+              predicted_away_score: simResult.predictedAwayScore
+            },
+            weather: gameWeather ? {
+              temperature: gameWeather.temperature,
+              wind_speed: gameWeather.windSpeed,
+              condition: gameWeather.condition,
+              impact_rating: gameWeather.impactRating,
+              description: gameWeather.description
+            } : undefined
+          } as any, // Partial pick object for reasoning generation
+          'moneyline' // Generate reasoning for the moneyline bet
         ),
         result: 'pending',
         // BUG FIX #5: Use consistent week calculation method
