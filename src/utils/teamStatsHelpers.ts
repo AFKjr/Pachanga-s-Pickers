@@ -16,7 +16,8 @@ import {
 /**
  * Fetch team stats from the team_stats_cache table
  */
-export async function fetchTeamStats(teamName: string): Promise<TeamStats | null> {
+export async function fetchTeamStats(teamName: string): Promise<TeamStats | null>
+{
   const normalizedName = normalizeTeamName(teamName);
 
   const { data, error } = await supabase

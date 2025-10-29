@@ -1,16 +1,3 @@
-/**
- * AdminPickManager - REFACTORED VERSION
- * 
- * This is a clean, "dumb" component that uses hooks for all business logic.
- * Compare with the original AdminPickManager.tsx to see the improvements.
- * 
- * Key changes:
- * - All business logic moved to services/hooks
- * - Component focused on presentation only
- * - Reduced from 463 lines to ~150 lines
- * - Much easier to test and maintain
- */
-
 import React, { useState, useEffect } from 'react';
 import { NFLWeek } from '../types';
 import AdminPickRevision from './AdminPickRevision';
@@ -23,9 +10,10 @@ import { getPickWeek } from '../utils/nflWeeks';
 
 type ViewMode = 'list' | 'results' | 'revision';
 
-const AdminPickManagerRefactored: React.FC = () => {
-  // Use custom hooks for all business logic
-  const {
+const AdminPickManagerRefactored: React.FC = () => 
+{
+  const 
+  {
     picks,
     loading,
     error: pickError,
@@ -34,7 +22,8 @@ const AdminPickManagerRefactored: React.FC = () => {
     clearError: clearPickError
   } = usePickManager();
 
-  const {
+  const 
+  {
     duplicateCount,
     hasDuplicates,
     cleaning,
@@ -43,70 +32,72 @@ const AdminPickManagerRefactored: React.FC = () => {
     clearError: clearDuplicateError
   } = useDuplicateDetection(picks);
 
-  // Local UI state only
   const [selectedWeek, setSelectedWeek] = useState<NFLWeek | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedPick, setSelectedPick] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Get available weeks from picks using proper week calculation
   const availableWeeks = [...new Set(picks.map(pick => getPickWeek(pick) as NFLWeek))].sort((a, b) => b - a);
 
-  // Set default week on load
-  useEffect(() => {
-    if (!selectedWeek && availableWeeks.length > 0) {
+  useEffect(() => 
+  {
+    if (!selectedWeek && availableWeeks.length > 0) 
+    {
       setSelectedWeek(availableWeeks[0]);
     }
   }, [availableWeeks, selectedWeek]);
 
-  // Load picks on mount
-  useEffect(() => {
+  useEffect(() => 
+  {
     loadPicks();
   }, [loadPicks]);
 
-  // Filter picks using the service
   const filteredPicks = filterPicks({ week: selectedWeek, searchTerm });
 
-  // Handle duplicate cleanup
-  const handleCleanDuplicates = async () => {
-    if (!confirm(`Remove ${duplicateCount} duplicate picks? The oldest pick for each game will be kept.`)) {
+  const handleCleanDuplicates = async () => 
+  {
+    if (!confirm(`Remove ${duplicateCount} duplicate picks? The oldest pick for each game will be kept.`)) 
+    {
       return;
     }
 
     const result = await cleanDuplicates();
 
-    if (result.success) {
+    if (result.success) 
+    {
       alert(`Successfully removed ${result.deletedCount} duplicate picks!`);
       await loadPicks();
       globalEvents.emit('refreshStats');
       globalEvents.emit('refreshPicks');
-    } else {
+    } 
+    else 
+    {
       alert(`Partially successful: ${result.deletedCount} deleted, ${result.failedCount} failed.`);
     }
   };
 
-  // Handle revision completion
-  const handleRevisionComplete = () => {
+  const handleRevisionComplete = () => 
+  {
     setViewMode('list');
     setSelectedPick(null);
     globalEvents.emit('refreshStats');
     globalEvents.emit('refreshPicks');
   };
 
-  // Handle revision cancellation
-  const cancelRevision = () => {
+  const cancelRevision = () => 
+  {
     setViewMode('list');
     setSelectedPick(null);
   };
 
-  // Handle pick revision start
-  const startRevision = (pick: any) => {
+  const startRevision = (pick: any) => 
+  {
     setSelectedPick(pick);
     setViewMode('revision');
   };
 
-  // Render loading state
-  if (loading) {
+  if (loading) 
+  {
     return (
       <div className='bg-gray-800 rounded-lg p-6 mb-6'>
         <div className='text-center py-8'>
@@ -116,8 +107,8 @@ const AdminPickManagerRefactored: React.FC = () => {
     );
   }
 
-  // Render revision view
-  if (viewMode === 'revision' && selectedPick) {
+  if (viewMode === 'revision' && selectedPick) 
+  {
     return (
       <AdminPickRevision
         pick={selectedPick}
@@ -127,8 +118,8 @@ const AdminPickManagerRefactored: React.FC = () => {
     );
   }
 
-  // Render results view
-  if (viewMode === 'results') {
+  if (viewMode === 'results') 
+  {
     return (
       <div>
         <div className="mb-4">
@@ -144,7 +135,6 @@ const AdminPickManagerRefactored: React.FC = () => {
     );
   }
 
-  // Render main list view
   return (
     <div className='bg-gray-800 rounded-lg p-6 mb-6'>
       {/* Error notifications */}

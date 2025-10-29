@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Header from './components/Header';
 import HomePage from './components/HomePage';
 import LandingPage from './components/LandingPage';
+import TeamRecordsPage from './pages/TeamRecordsPage';
 import AdminLayout from './layouts/AdminLayout';
 
 // Lazy load all admin pages
@@ -38,7 +39,8 @@ function AppRoutes() {
           path="/"
           element={user ? <HomePage /> : <LandingPage />}
         />
-        
+        <Route path="/records" element={<TeamRecordsPage />} />
+
         {/* Admin Routes with Layout */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />

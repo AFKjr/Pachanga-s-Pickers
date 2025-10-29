@@ -15,11 +15,11 @@ export default function APIPredictionsGenerator() {
   return (
     <div className='bg-gray-800 rounded-lg p-6 mb-6'>
       <h2 className='text-xl font-semibold text-white mb-4'>
-        Generate Monte Carlo Predictions
+        Generate Predictions
       </h2>
 
       <p className='text-gray-300 text-sm mb-4'>
-        Generates live predictions using 10,000 Monte Carlo simulations per game with current odds, imported team stats, and weather data.
+        Generates predictions using 500 Monte Carlo simulations per game with current odds, imported team stats, and weather data.
       </p>
 
       <div className='mb-4'>
@@ -41,7 +41,7 @@ export default function APIPredictionsGenerator() {
       <button
         onClick={generatePredictions}
         disabled={loading}
-        className='px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md text-white font-medium transition-colors'
+        className='px-6 py-3 bg-lime-600 hover:bg-lime-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md text-white font-medium transition-colors'
       >
         {loading ? 'Generating...' : 'Generate Predictions'}
       </button>

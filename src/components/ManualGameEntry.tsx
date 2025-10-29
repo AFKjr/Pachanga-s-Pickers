@@ -29,7 +29,7 @@ const ManualGameEntry: React.FC<ManualGameEntryProps> = ({ defaultWeek, onSucces
     prediction: '',
     spreadPrediction: '',
     ouPrediction: '',
-    reasoning: 'Manually entered game',
+    reasoning: "",
     confidence: 50
   });
 
@@ -149,7 +149,7 @@ const ManualGameEntry: React.FC<ManualGameEntryProps> = ({ defaultWeek, onSucces
         prediction: '',
         spreadPrediction: '',
         ouPrediction: '',
-        reasoning: 'Manually entered game',
+        reasoning: "",
         confidence: 50
       });
 

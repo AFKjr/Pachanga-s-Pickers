@@ -12,7 +12,7 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('❌ Missing Supabase environment variables');
+  console.error('Missing Supabase environment variables');
   console.error('Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
   process.exit(1);
 }
@@ -33,17 +33,17 @@ async function backfillEdges() {
     .is('moneyline_edge', null);
   
   if (error) {
-    console.error('❌ Failed to fetch picks:', error);
+    console.error('Failed to fetch picks:', error);
     return;
   }
   
   if (!picks || picks.length === 0) {
-    console.log('✅ No picks need edge backfill');
+    console.log('No picks need edge backfill');
     return;
   }
-  
-  console.log(`📊 Found ${picks.length} picks to backfill`);
-  
+
+  console.log(`Found ${picks.length} picks to backfill`);
+
   let successCount = 0;
   let skipCount = 0;
   let errorCount = 0;
@@ -52,7 +52,7 @@ async function backfillEdges() {
     try {
       // Skip if missing required data
       if (!pick.monte_carlo_results || !pick.game_info) {
-        console.log(`⏭️  Skipping pick ${pick.id} - missing monte carlo or game info`);
+        console.log(`Skipping pick ${pick.id} - missing monte carlo or game info`);
         skipCount++;
         continue;
       }
@@ -75,34 +75,34 @@ async function backfillEdges() {
         .eq('id', pick.id);
       
       if (updateError) {
-        console.error(`❌ Failed to update pick ${pick.id}:`, updateError);
+        console.error(`Failed to update pick ${pick.id}:`, updateError);
         errorCount++;
       } else {
         successCount++;
-        console.log(`✅ Updated pick ${pick.id}: ML ${edges.moneyline_edge}%, ATS ${edges.spread_edge}%, O/U ${edges.ou_edge}%`);
+        console.log(`Updated pick ${pick.id}: ML ${edges.moneyline_edge}%, ATS ${edges.spread_edge}%, O/U ${edges.ou_edge}%`);
       }
       
     } catch (err) {
-      console.error(`❌ Error processing pick ${pick.id}:`, err);
+      console.error(`Error processing pick ${pick.id}:`, err);
       errorCount++;
     }
   }
   
-  console.log('\n📊 Backfill Summary:');
-  console.log(`✅ Successfully updated: ${successCount}`);
-  console.log(`⏭️  Skipped: ${skipCount}`);
-  console.log(`❌ Errors: ${errorCount}`);
-  console.log(`📝 Total processed: ${picks.length}`);
+  console.log('\nBackfill Summary:');
+  console.log(`Successfully updated: ${successCount}`);
+  console.log(`Skipped: ${skipCount}`);
+  console.log(`Errors: ${errorCount}`);
+  console.log(`Total processed: ${picks.length}`);
 }
 
 // Run the backfill
 backfillEdges()
   .then(() => {
-    console.log('✨ Backfill complete');
+    console.log('Backfill complete');
     process.exit(0);
   })
   .catch((err) => {
-    console.error('💥 Backfill failed:', err);
+    console.error('Backfill failed:', err);
     process.exit(1);
   });
 

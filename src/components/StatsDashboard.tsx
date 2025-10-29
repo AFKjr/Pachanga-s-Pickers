@@ -4,6 +4,11 @@ import { globalEvents } from '../lib/events';
 import { ATSCalculator } from '../utils/atsCalculator';
 import { getPickWeek } from '../utils/nflWeeks';
 import SegmentedWeekSelector from './SegmentedWeekSelector';
+import { TeamRecordsTable } from './TeamRecordsTable';
+
+interface StatsDashboardProps {
+  onLoadComplete?: () => void;
+}
 
 interface BetTypeStats {
   wins: number;
@@ -296,6 +301,14 @@ const AllTimeDashboard: React.FC<{ stats: AllTimeStats; isExpanded: boolean; onT
               units={stats.overUnder.units}
             />
           </div>
+
+          {/* Team Records Section */}
+          <div className="mt-6">
+            <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
+              Team Performance vs. Vegas
+            </h4>
+            <TeamRecordsTable />
+          </div>
         </div>
       )}
     </div>
@@ -303,9 +316,8 @@ const AllTimeDashboard: React.FC<{ stats: AllTimeStats; isExpanded: boolean; onT
 };
 
 // Main Stats Dashboard Component
-const StatsDashboard: React.FC = () => {
+const StatsDashboard: React.FC<StatsDashboardProps> = ({ onLoadComplete }) => {
   const [allTimeExpanded, setAllTimeExpanded] = React.useState(false);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [weekStats, setWeekStats] = useState<WeekStats | null>(null);
   const [allTimeStats, setAllTimeStats] = useState<AllTimeStats | null>(null);
@@ -329,7 +341,6 @@ const StatsDashboard: React.FC = () => {
   }, [selectedWeek]);
 
   const loadStats = async () => {
-    setLoading(true);
     setError('');
 
     try {
@@ -451,19 +462,9 @@ const StatsDashboard: React.FC = () => {
       setError(err.message);
       console.error('Error loading stats:', err);
     } finally {
-      setLoading(false);
+      onLoadComplete?.();  // Notify parent that loading is complete
     }
   };
-
-  if (loading) {
-    return (
-      <div className="bg-[#1a1a1a] rounded-lg p-6 border border-[rgba(255,255,255,0.05)]">
-        <div className="text-center py-8">
-          <div className="text-gray-400">Loading statistics...</div>
-        </div>
-      </div>
-    );
-  }
 
   if (error || !allTimeStats) {
     return (

@@ -307,17 +307,20 @@ const DEFENSIVE_TABLE_DEFINITIONS: TableDefinition[] = [
 // UTILITY FUNCTIONS
 // ============================================================================
 
-function normalizeTeamName(teamName: string): string {
+function normalizeTeamName(teamName: string): string 
+{
   if (!teamName) return '';
   
   const cleaned = teamName.trim().toLowerCase();
   return TEAM_NAME_MAPPINGS[cleaned] || teamName.trim();
 }
 
-function detectTableType(
+function detectTableType
+(
   headers: string[],
   tableDefinitions: TableDefinition[]
-): TableDefinition | null {
+): TableDefinition | null 
+{
   const headerSet = new Set(headers.map(h => h.toLowerCase()));
   
   for (const tableDef of tableDefinitions) {
@@ -327,7 +330,7 @@ function detectTableType(
     
     const matchPercentage = matchCount / tableDef.identifierColumns.length;
     
-    if (matchPercentage >= 0.6) {
+    if (matchPercentage >= 0.6){
       return tableDef;
     }
   }

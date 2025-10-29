@@ -97,93 +97,34 @@ npm run preview  # Preview production build
 1. Access `/admin/generate` route (requires `is_admin: true`)
 2. Only **Live Mode** is supported (fetches current odds + latest stats for upcoming games)
 3. Click "Generate Monte Carlo Predictions" button
-4. Edge Function runs 10,000 iterations per game
-5. Saves to `picks` table with:
-   - Game analysis (moneyline, spread, O/U predictions)
-   - Confidence scores (0-100%)
-   - Edge calculations for each bet type
    - Monte Carlo results (probabilities, predicted scores)
    - Weather impact (if available)
-
-### Results Entry & Tracking
-1. Navigate to `/admin/results`
-2. Input final scores for completed games
-3. System automatically calculates:
-   - Moneyline result (win/loss)
    - ATS result (win/loss/push based on spread)
    - O/U result (over/under/push based on total)
 4. Statistics dashboard updates in real-time
 
-### Spread & Push Handling (Current Spec)
-- Spread coverage logic now tracks three outcomes per simulation:
-  - Favorite covers: margin > spread
-  - Underdog covers: margin < spread
-  - Push: margin == spread (split 50/50 in probability calculations)
 - Display logic always matches the pick (favorite or underdog) to the correct probability
 - No historical predictions are generated; all code for historical mode is commented out and deprecated
-
-```
-
-## Component Architecture Patterns
-
 ### Data Fetching
 ```typescript
-// Always destructure { data, error } from API calls
-const { data: picks, error } = await picksApi.getAll();
-if (error) console.error('Failed to fetch picks:', error);
-```
-
 ### State Management
 - **Local State**: `useState` for component-specific state
-- **Auth State**: `useAuth()` context hook
-- **Real-time Updates**: Supabase subscriptions for live data
-
-### Error Boundaries
-- **API Errors**: Display user-friendly messages for failed requests
 - **Auth Errors**: Redirect to sign-in for unauthorized access
 - **Network Errors**: Graceful fallbacks for offline scenarios
-
-## File Organization Guidelines
-
 ### `src/lib/`
 - `api.ts`: All Supabase CRUD operations
 - `supabase.ts`: Client configuration and initialization
 - `atomicOperations.ts`: Database atomic operations
-- `events.ts`: Event handling utilities
-- `api/`: API-related utilities (currently empty)
-
 ### `src/components/`
 - `HomePage.tsx`: Main user-facing homepage with stats dashboard and picks display
-- `HorizontalPickCard.tsx`: Pick card component showing edge, predictions, and results
-- `StatsDashboard.tsx`: Weekly and all-time performance metrics
-- `PicksDisplay.tsx`: Filterable list of picks with week selector
-- `AuthModal.tsx`: Sign-in/sign-up forms with OWASP-compliant validation
 - `APIPredictionsGenerator.tsx`: Monte Carlo prediction generation interface
 - `AdminPickManager.tsx`: Pick editing and management interface
-- `AdminPickResults.tsx`: Results entry for completed games
-- `AdminTeamStats.tsx`: CSV import and team stats management
-- `LandingPage.tsx`: Marketing page for unauthenticated users
-- `ProtectedContent.tsx`: Route guard requiring authentication
 
 ### `src/pages/admin/`
-- `DashboardPage.tsx`: Admin dashboard with statistics overview
-- `GeneratePicksPage.tsx`: Monte Carlo prediction generation page
-- `ManagePicksPage.tsx`: Pick management and editing page
-- `UpdateResultsPage.tsx`: Game results entry page
 - `TeamStatsPage.tsx`: Team statistics import/management page
 
-### Database & Edge Functions
-- `supabase/config.toml`: Supabase project configuration
-- `supabase/functions/generate-predictions/`: Deno edge function for Monte Carlo simulations
-  - `index.ts`: Main handler with live/historical mode routing
-  - `lib/generators/`: Live and historical prediction generators
   - `lib/odds/`: The Odds API integration
   - `lib/database/`: Team stats fetching and validation
-
-## Common Pitfalls to Avoid
-
-### Authentication
-- Never assume user is authenticated - always check `user` from `useAuth()`
 - Admin routes require both authentication AND `is_admin` check
 - Profile data loads asynchronously - handle loading states
 
@@ -191,7 +132,6 @@ if (error) console.error('Failed to fetch picks:', error);
 - Always include error handling for Supabase calls
 - Use proper TypeScript types from `src/types/index.ts`
 - Respect RLS policies - don't bypass with service keys
-
 ### Edge Calculation
 - Never hardcode odds values - always use stored odds from database
 - Edge calculation requires both Monte Carlo probabilities AND odds data

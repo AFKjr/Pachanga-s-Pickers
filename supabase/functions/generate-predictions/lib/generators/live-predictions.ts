@@ -1,4 +1,3 @@
-// supabase/functions/generate-predictions/lib/generators/live-predictions.ts
 import { SIMULATION_ITERATIONS } from '../constants.ts';
 import type { OddsData, GameWeather, FavoriteInfo } from '../types.ts';
 import { fetchTeamStatsWithFallback } from '../database/fetch-stats.ts';
@@ -23,11 +22,14 @@ export interface LivePredictionsResult {
   };
 }
 
-/**
- * Validates odds data and provides fallbacks for missing values
- * Ensures all critical odds are available before running simulation
- * FIX FOR BUG #1 & #2: Prevents undefined moneyline odds and missing spread/total
- */
+function americanOddsToImpliedProbability(odds: number): number {
+  if (odds > 0) {
+    return 100 / (odds + 100) * 100;
+  } else {
+    return Math.abs(odds) / (Math.abs(odds) + 100) * 100;
+  }
+}
+
 function validateGameOdds(
   odds: ExtractedOdds,
   game: OddsData
@@ -37,7 +39,6 @@ function validateGameOdds(
 } {
   const warnings: string[] = [];
   
-  // Validate and fallback for moneyline odds (CRITICAL for favorite determination)
   const moneylineValidation = validateMoneylineWithFallback(
     odds.homeMLOdds,
     odds.awayMLOdds,
@@ -53,7 +54,6 @@ function validateGameOdds(
     );
   }
   
-  // Validate spread (use 0 if missing - indicates pick'em)
   const homeSpread = odds.homeSpread ?? 0;
   const awaySpread = odds.awaySpread ?? -homeSpread;
   
@@ -64,7 +64,6 @@ function validateGameOdds(
     );
   }
   
-  // Validate total (use NFL average if missing)
   const NFL_AVERAGE_TOTAL = 45;
   const total = odds.total ?? NFL_AVERAGE_TOTAL;
   
@@ -75,7 +74,6 @@ function validateGameOdds(
     );
   }
   
-  // Validate spread odds (use standard -110 if missing)
   const STANDARD_SPREAD_ODDS = -110;
   const homeSpreadOdds = odds.homeSpreadOdds ?? STANDARD_SPREAD_ODDS;
   const awaySpreadOdds = odds.awaySpreadOdds ?? STANDARD_SPREAD_ODDS;
@@ -87,7 +85,6 @@ function validateGameOdds(
     );
   }
   
-  // Validate over/under odds
   const overOdds = odds.overOdds ?? STANDARD_SPREAD_ODDS;
   const underOdds = odds.underOdds ?? STANDARD_SPREAD_ODDS;
   
@@ -107,10 +104,6 @@ function validateGameOdds(
   };
 }
 
-/**
- * Determines the correct spread pick based on favorite cover probability
- * FIX FOR BUG #3: Fixes inverted spread pick logic for road favorites
- */
 function determineSpreadPick(
   simResult: any,
   favoriteInfo: FavoriteInfo,
@@ -119,19 +112,16 @@ function determineSpreadPick(
 ): { pick: string; probability: number } {
   const CONFIDENCE_THRESHOLD = 50;
   
-  // Determine if we're picking the favorite or underdog to cover
+  
   const pickingFavorite = simResult.favoriteCoverProbability > CONFIDENCE_THRESHOLD;
   
-  // Build spread pick string based on who the favorite is
   let spreadPick: string;
   let spreadProbability: number;
   
   if (pickingFavorite) {
-    // Picking favorite to cover
     spreadProbability = simResult.favoriteCoverProbability;
     
     if (favoriteInfo.favoriteIsHome) {
-      // Home team is favorite
       const spreadValue = homeSpread;
       const spreadSign = spreadValue > 0 ? '+' : '';
       spreadPick = `${game.home_team} ${spreadSign}${spreadValue}`;
@@ -325,6 +315,26 @@ export async function generateLivePredictions(
       const totalPick = simResult.overProbability > 50 ? 'Over' : 'Under';
       const totalProb = Math.max(simResult.overProbability, simResult.underProbability);
 
+      // Calculate edge values by comparing model probability to implied odds probability
+      // Calculate moneyline edge
+      const pickedTeamOdds = moneylinePick === game.home_team 
+        ? validatedOdds.homeMLOdds 
+        : validatedOdds.awayMLOdds;
+      const impliedMoneylineProbability = americanOddsToImpliedProbability(pickedTeamOdds);
+      const moneylineEdge = moneylineProb - impliedMoneylineProbability;
+
+      // Calculate spread edge
+      const spreadOdds = spreadPick.includes(game.home_team)
+        ? validatedOdds.homeSpreadOdds
+        : validatedOdds.awaySpreadOdds;
+      const impliedSpreadProbability = americanOddsToImpliedProbability(spreadOdds);
+      const spreadEdge = spreadProb - impliedSpreadProbability;
+
+      // Calculate over/under edge
+      const ouOdds = totalPick === 'Over' ? validatedOdds.overOdds : validatedOdds.underOdds;
+      const impliedOUProbability = americanOddsToImpliedProbability(ouOdds);
+      const ouEdge = totalProb - impliedOUProbability;
+
       // Store UTC date directly (FIX FOR BUG #6)
       const formattedDate = game.commence_time.split('T')[0];
 
@@ -354,6 +364,9 @@ export async function generateLivePredictions(
         spread_prediction: spreadPick,
         ou_prediction: `${totalPick} ${validatedOdds.total}`,
         confidence: mapConfidenceToNumber(moneylineConfidence),
+        moneyline_edge: moneylineEdge,
+        spread_edge: spreadEdge,
+        ou_edge: ouEdge,
         reasoning: generateReasoningForPick(
           {
             id: '',
@@ -378,7 +391,38 @@ export async function generateLivePredictions(
             spread_prediction: spreadPick,
             ou_prediction: `${totalPick} ${validatedOdds.total}`,
             confidence: mapConfidenceToNumber(moneylineConfidence),
-            reasoning: '', // Will be filled by the function
+            reasoning: generateReasoningForPick(
+              {
+                prediction: `${moneylinePick} to win`,
+                spread_prediction: spreadPick,
+                ou_prediction: `${totalPick} ${validatedOdds.total}`,
+                confidence: mapConfidenceToNumber(moneylineConfidence),
+                monte_carlo_results: {
+                  moneyline_probability: simResult.homeWinProbability > simResult.awayWinProbability ? simResult.homeWinProbability : simResult.awayWinProbability,
+                  spread_probability: spreadProb,
+                  total_probability: totalProb,
+                  predicted_home_score: simResult.predictedHomeScore,
+                  predicted_away_score: simResult.predictedAwayScore,
+                  over_probability: simResult.overProbability,
+                  under_probability: simResult.underProbability
+                },
+                game_info: {
+                  home_team: game.home_team,
+                  away_team: game.away_team,
+                  spread: validatedOdds.homeSpread,
+                  over_under: validatedOdds.total
+                },
+                weather: gameWeather ? {
+                  temperature: gameWeather.temperature,
+                  wind_speed: gameWeather.windSpeed,
+                  impact_rating: gameWeather.impactRating
+                } : undefined,
+                moneyline_edge: moneylineEdge,
+                spread_edge: spreadEdge,
+                ou_edge: ouEdge
+              },
+              'moneyline'
+            ),
             result: 'pending',
             moneyline_edge: moneylineEdge,
             spread_edge: spreadEdge,

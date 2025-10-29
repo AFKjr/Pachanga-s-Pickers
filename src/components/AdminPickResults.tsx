@@ -80,21 +80,8 @@ const AdminPickResults: React.FC = () => {
     optimisticUpdate(pickId, updatePayload, pick);
   };
 
-  // Queue score update
-  const queueScoreUpdate = (
-    pickId: string, 
-    awayScore: number | null | undefined, 
-    homeScore: number | null | undefined
-  ) => {
-    const pick = allPicks.find(p => p.id === pickId);
-    if (!pick) return;
-
-    const { updatePayload } = updatePickWithScores(pick, awayScore, homeScore);
-    optimisticUpdate(pickId, updatePayload, pick);
-  };
-
   // Save scores for a specific pick
-  const saveScoresForPick = (pickId: string) => {
+  const saveScoresForPick = async (pickId: string) => {
     const editedScores = editingScores[pickId];
     if (!editedScores) return;
 
@@ -107,8 +94,28 @@ const AdminPickResults: React.FC = () => {
     if (awayScore !== null && (awayScore < 0 || awayScore > 99)) return;
     if (homeScore !== null && (homeScore < 0 || homeScore > 99)) return;
 
-    // Queue the score update
-    queueScoreUpdate(pickId, awayScore, homeScore);
+    // Immediately save the scores (not just queue them)
+    const pick = allPicks.find(p => p.id === pickId);
+    if (!pick) return;
+
+    await executeWithErrorHandling(async () => {
+      const { updatePayload } = updatePickWithScores(pick, awayScore, homeScore);
+      const { error } = await picksApi.update(pickId, updatePayload);
+      if (error) throw error;
+
+      // Update local state immediately
+      optimisticUpdate(pickId, updatePayload, pick);
+      // Commit this single operation
+      await commitOperations(async () => ({
+        success: true,
+        successfulOperations: [{ type: 'update', id: pickId, payload: updatePayload }],
+        failedOperations: [],
+        error: null
+      }));
+
+      globalEvents.emit('refreshStats');
+      return true;
+    }, { operation: 'saveScores', component: 'AdminPickResults' });
 
     // Clear editing state for this pick
     setEditingScores(prev => {

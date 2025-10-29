@@ -24,7 +24,7 @@ export const WeekSelector: React.FC<WeekSelectorProps> = ({
         className="bg-gray-900 border border-gray-600 rounded-md px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
         aria-describedby="week-help"
       >
-        <option value="">Use AI-detected week (or Week 1 if none found)</option>
+        <option value="">Use current week (or Week 1 if none found)</option>
         {Array.from({ length: 18 }, (_, i) => i + 1).map(week => (
           <option key={week} value={week}>
             Week {week}
@@ -32,7 +32,7 @@ export const WeekSelector: React.FC<WeekSelectorProps> = ({
         ))}
       </select>
       <p id="week-help" className="text-xs text-gray-500 mt-1">
-        Override the AI-detected week if needed.
+        Override the current week if needed.
       </p>
     </div>
   );

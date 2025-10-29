@@ -36,6 +36,12 @@ const Header = () => {
               >
                 Home
               </Link>
+              <Link
+                to="/records"
+                className="text-sm text-gray-400 hover:text-white transition-colors font-medium"
+              >
+                Team Records
+              </Link>
               {user && (
                 <Link
                   to="/admin"

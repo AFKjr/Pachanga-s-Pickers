@@ -13,6 +13,7 @@ interface PicksDisplayProps {
   showWeekFilter?: boolean;
   showBestBets?: boolean;
   bestBetsThreshold?: number;
+  onLoadComplete?: () => void;
 }
 
 /**
@@ -56,10 +57,10 @@ const ConfidenceLegend: React.FC = () => {
 const PicksDisplay: React.FC<PicksDisplayProps> = ({ 
   showWeekFilter = true,
   showBestBets = true,
-  bestBetsThreshold = 7
+  bestBetsThreshold = 7,
+  onLoadComplete
 }) => {
   const [picks, setPicks] = useState<BettingPick[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
   const [showLegend, setShowLegend] = useState(true);
@@ -82,7 +83,6 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
 
   const loadPicks = async () => {
     try {
-      setLoading(true);
       const { data, error } = await picksApi.getAll();
       
       if (error) {
@@ -118,7 +118,7 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
     } catch (error) {
       console.error('Error loading picks:', error);
     } finally {
-      setLoading(false);
+      onLoadComplete?.();  // Notify parent that loading is complete
     }
   };
 
@@ -135,18 +135,6 @@ const PicksDisplay: React.FC<PicksDisplayProps> = ({
       bestBetsThreshold
     )
   ) : [];
-
-  if (loading) {
-    return (
-      <div className="bg-gray-800 rounded-lg p-6">
-        <div className="animate-pulse space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-24 bg-gray-700 rounded"></div>
-          ))}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-8">
