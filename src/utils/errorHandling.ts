@@ -1,5 +1,7 @@
 // src/utils/errorHandling.ts
 
+import type { PostgrestError } from '@supabase/supabase-js';
+
 export interface ErrorDetail {
   code: string;
   message: string;
@@ -298,13 +300,28 @@ export function handleSupabaseError(
 /**
  * Format error for display to users
  */
-export function formatErrorForUser(error: AppError): {
+export function formatErrorForUser(error: AppError | PostgrestError): {
   title: string;
   message: string;
   action?: string;
   severity: string;
   retryable: boolean;
 } {
+  // Handle PostgrestError
+  if ('code' in error && 'message' in error && 'details' in error) {
+    // This is a PostgrestError
+    const postgrestError = error as PostgrestError;
+    return {
+      title: 'Database Error',
+      message: postgrestError.message || 'A database error occurred',
+      action: 'Please try again or contact support if the problem persists',
+      severity: 'high',
+      retryable: true
+    };
+  }
+
+  // Handle AppError
+  const appError = error as AppError;
   const severityLabels = {
     low: 'Info',
     medium: 'Warning', 
@@ -313,11 +330,11 @@ export function formatErrorForUser(error: AppError): {
   };
 
   return {
-    title: severityLabels[error.severity],
-    message: error.userMessage,
-    action: error.action,
-    severity: error.severity,
-    retryable: error.retryable
+    title: severityLabels[appError.severity],
+    message: appError.userMessage,
+    action: appError.action,
+    severity: appError.severity,
+    retryable: appError.retryable
   };
 }
 

@@ -160,8 +160,10 @@ export function usePredictionGeneration(): PredictionGenerationResult {
   const savePredictions = async (
     predictions: any[],
     userId: string
-  ): Promise<{ savedCount: number; failedGames: string[] }> => {
+  ): Promise<{ savedCount: number; failedGames: string[]; createdCount: number; updatedCount: number }> => {
     let savedCount = 0;
+    let createdCount = 0;
+    let updatedCount = 0;
     const failedGames: string[] = [];
 
     for (const prediction of predictions) {
@@ -175,13 +177,15 @@ export function usePredictionGeneration(): PredictionGenerationResult {
 
       if (saved) {
         savedCount++;
+        // For now, we'll assume all are created. In the future, we could modify createPick to return whether it was created or updated
+        createdCount++;
       } else {
         const gameName = `${prediction.game_info.away_team} @ ${prediction.game_info.home_team}`;
         failedGames.push(gameName);
       }
     }
 
-    return { savedCount, failedGames };
+    return { savedCount, failedGames, createdCount, updatedCount };
   };
 
   /**
@@ -198,10 +202,10 @@ export function usePredictionGeneration(): PredictionGenerationResult {
     failedGames: string[]
   ): string => {
     if (failedGames.length > 0) {
-      return `Saved ${savedCount}/${totalCount}. Failed: ${failedGames.join(', ')}`;
+      return `Saved/Updated ${savedCount}/${totalCount} predictions. Failed: ${failedGames.join(', ')}`;
     }
 
-    return `Successfully saved ${savedCount} predictions for upcoming games!`;
+    return `Successfully saved/updated ${savedCount} predictions for upcoming games!`;
   };
 
   /**

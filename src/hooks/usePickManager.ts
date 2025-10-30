@@ -8,12 +8,13 @@ import { Pick, NFLWeek } from '../types';
 import { AppError } from '../utils/errorHandling';
 import { globalEvents } from '../lib/events';
 import * as pickService from '../services/pickManagement';
+import type { PostgrestError } from '@supabase/supabase-js';
 
 export interface UsePickManagerReturn {
   // State
   picks: Pick[];
   loading: boolean;
-  error: AppError | null;
+  error: AppError | PostgrestError | null;
   
   // Actions
   loadPicks: () => Promise<void>;
@@ -36,7 +37,7 @@ export interface UsePickManagerReturn {
 export function usePickManager(): UsePickManagerReturn {
   const [picks, setPicks] = useState<Pick[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<AppError | null>(null);
+  const [error, setError] = useState<AppError | PostgrestError | null>(null);
 
   /**
    * Load all picks from database

@@ -2,9 +2,10 @@
 
 import React from 'react';
 import { AppError, formatErrorForUser } from '../utils/errorHandling';
+import type { PostgrestError } from '@supabase/supabase-js';
 
 interface ErrorNotificationProps {
-  error: AppError | null;
+  error: AppError | PostgrestError | null;
   onClose: () => void;
   onRetry?: () => void;
 }

@@ -346,7 +346,7 @@ const StatsDashboard: React.FC<StatsDashboardProps> = ({ onLoadComplete }) => {
     try {
       // Load moneyline stats and picks
       const [moneylineResult, picksResult] = await Promise.all([
-        agentStatsApi.getOverallStats(),
+        agentStatsApi.getAllTime(),
         picksApi.getAll()
       ]);
 
@@ -430,14 +430,14 @@ const StatsDashboard: React.FC<StatsDashboardProps> = ({ onLoadComplete }) => {
       // Create all-time stats object
       const allTimeStatsData: AllTimeStats = {
         moneyline: {
-          wins: moneylineStats.wins,
-          losses: moneylineStats.losses,
-          pushes: moneylineStats.pushes,
-          winRate: moneylineStats.winRate,
-          units: moneylineStats.wins * 0.9 - moneylineStats.losses * 1.0
+          wins: moneylineStats.moneyline.wins,
+          losses: moneylineStats.moneyline.losses,
+          pushes: 0, // Moneyline doesn't have pushes
+          winRate: moneylineStats.moneyline.winRate,
+          units: moneylineStats.moneyline.wins * 0.9 - moneylineStats.moneyline.losses * 1.0
         },
         ats: {
-          wins: atsRecord.ats.wins,
+          wins: moneylineStats.ats.wins,
           losses: atsRecord.ats.losses,
           pushes: atsRecord.ats.pushes,
           winRate: atsRecord.ats.winRate,
@@ -451,8 +451,8 @@ const StatsDashboard: React.FC<StatsDashboardProps> = ({ onLoadComplete }) => {
           units: atsRecord.overUnder.wins * 0.9 - atsRecord.overUnder.losses * 1.0
         },
         totalPicks: picks.length,
-        totalUnits: (moneylineStats.wins + atsRecord.ats.wins + atsRecord.overUnder.wins) * 0.9 -
-                   (moneylineStats.losses + atsRecord.ats.losses + atsRecord.overUnder.losses) * 1.0
+        totalUnits: (moneylineStats.moneyline.wins + moneylineStats.ats.wins + moneylineStats.overUnder.wins) * 0.9 -
+                   (moneylineStats.moneyline.losses + moneylineStats.ats.losses + moneylineStats.overUnder.losses) * 1.0
       };
 
       setWeekStats(currentWeekStats);

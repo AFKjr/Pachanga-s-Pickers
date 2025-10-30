@@ -1,4 +1,4 @@
-﻿import { supabase } from './supabase';
+import { supabase } from './supabase';
 import { validatePickData } from '../utils/inputValidation';
 import { handleSupabaseError, createAppError, AppError } from '../utils/errorHandling';
 import type { Pick } from '../types';
@@ -8,7 +8,7 @@ const verifyAdminUser = async (): Promise<{ isAdmin: boolean; user: any; error?:
   try {
     // Get current authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-
+    
     if (authError || !user) {
       const appError = handleSupabaseError(authError, {
         operation: 'verifyAdminUser',
@@ -48,30 +48,44 @@ const verifyAdminUser = async (): Promise<{ isAdmin: boolean; user: any; error?:
     }
 
     return { isAdmin, user };
-  } catch (error) {
-    const appError = createAppError(error, {
+  } catch (err) {
+    const appError = createAppError(err, {
       operation: 'verifyAdminUser',
       component: 'api.verifyAdminUser'
-    }, 'AUTH_REQUIRED');
+    });
     return { isAdmin: false, user: null, error: appError };
   }
 };
 
-// Picks API - handles all pick-related operations
-const picksApi = {
+// Picks API
+export const picksApi = {
   getAll: async () => {
     try {
-      // First get picks
+      // First get all picks
       const { data: picksData, error: picksError } = await supabase
         .from('picks')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (picksError) return { data: null, error: picksError };
+      if (picksError) {
+        throw handleSupabaseError(picksError, {
+          operation: 'getAllPicks',
+          component: 'api.getAll'
+        });
+      }
 
       // Then get profile information for each pick
       const picksWithProfiles = await Promise.all(
         (picksData || []).map(async (pick) => {
+          // Skip profile fetch if user_id is null
+          if (!pick.user_id) {
+            return {
+              ...pick,
+              author_username: 'Anonymous',
+              comments_count: 0
+            };
+          }
+
           const { data: profile } = await supabase
             .from('profiles')
             .select('username')
@@ -135,139 +149,117 @@ const picksApi = {
       .select('*')
       .eq('id', id)
       .single();
-
-    if (error) {
-      const appError = handleSupabaseError(error, {
-        operation: 'getPickById',
-        component: 'api.getById'
-      });
-      return { data: null, error: appError };
-    }
-
-    // Get profile information
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('username')
-      .eq('id', data.user_id)
-      .single();
-
-    return {
-      data: {
-        ...data,
-        author_username: profile?.username || 'Anonymous'
-      },
-      error: null
-    };
+    return { data, error };
   },
 
-  create: async (pickData: any) => {
+  create: async (pick: Omit<Pick, 'id' | 'created_at' | 'updated_at'>) => {
     try {
+      // Verify admin privileges
       const { isAdmin, user, error: adminError } = await verifyAdminUser();
-      if (adminError || !isAdmin) {
-        console.error('Admin verification failed:', adminError);
-        return { data: null, error: adminError || createAppError(new Error('Admin required'), { operation: 'createPick', component: 'api.create' }, 'ADMIN_REQUIRED') };
+      if (!isAdmin) {
+        const error = adminError || createAppError(
+          new Error('Admin privileges required'),
+          { operation: 'createPick', component: 'api.create' },
+          'ADMIN_REQUIRED'
+        );
+        console.error('❌ Admin verification failed:', error);
+        return { data: null, error };
       }
 
-      console.log('Creating pick for user:', user.id);
-      console.log('Pick data game_info:', pickData.game_info);
-
-      // Transform pick data to validation format
-      const validationData = {
-        homeTeam: pickData.game_info?.home_team || '',
-        awayTeam: pickData.game_info?.away_team || '',
-        prediction: pickData.prediction || '',
-        reasoning: pickData.reasoning || '',
-        confidence: pickData.confidence || 0,
-        week: pickData.week || 1,
-        gameDate: pickData.game_info?.game_date || ''
-      };
+      console.log('✅ Admin verified:', user.email);
 
       // Validate pick data
-      const validation = validatePickData(validationData);
+      const validation = validatePickData({
+        homeTeam: pick.game_info.home_team,
+        awayTeam: pick.game_info.away_team,
+        prediction: pick.prediction,
+        reasoning: pick.reasoning,
+        confidence: pick.confidence as number,
+        week: pick.week as number,
+        gameDate: pick.game_info.game_date
+      });
+
       if (!validation.isValid) {
-        console.error('Validation failed:', validation.errors);
-        const appError = createAppError(
-          new Error('Invalid pick data'),
-          {
-            operation: 'validatePickData',
+        console.error('❌ Validation failed:', {
+          errors: validation.errors,
+          originalData: {
+            homeTeam: pick.game_info.home_team,
+            awayTeam: pick.game_info.away_team,
+            prediction: pick.prediction,
+            confidence: pick.confidence,
+            week: pick.week,
+            gameDate: pick.game_info.game_date
+          }
+        });
+        const error = createAppError(
+          new Error(`Invalid pick data: ${validation.errors.join(', ')}`),
+          { 
+            operation: 'createPick', 
             component: 'api.create',
             metadata: { validationErrors: validation.errors }
           },
           'VALIDATION_FAILED'
         );
-        return { data: null, error: appError };
-      }
-
-      // Check if a pick already exists for this game and user
-      console.log('Checking for existing pick with:', {
-        user_id: user.id,
-        home_team: pickData.game_info.home_team,
-        away_team: pickData.game_info.away_team,
-        game_date: pickData.game_info.game_date
-      });
-
-      // Get all picks for this user and filter in JavaScript
-      const { data: allUserPicks, error: fetchError } = await supabase
-        .from('picks')
-        .select('id, game_info')
-        .eq('user_id', user.id);
-
-      if (fetchError) {
-        console.error('Fetch user picks error:', fetchError);
-        const appError = handleSupabaseError(fetchError, {
-          operation: 'fetchUserPicks',
-          component: 'api.create'
-        });
-        return { data: null, error: appError };
-      }
-
-      // Find existing pick for this game
-      const existingPick = allUserPicks?.find(pick => 
-        pick.game_info.home_team === pickData.game_info.home_team &&
-        pick.game_info.away_team === pickData.game_info.away_team &&
-        pick.game_info.game_date === pickData.game_info.game_date
-      );
-
-      console.log('Existing pick found:', existingPick ? existingPick.id : 'none');
-
-      let result;
-      if (existingPick) {
-        // Update existing pick
-        console.log('Updating existing pick:', existingPick.id);
-        const existingId = existingPick.id;
-        result = await supabase
-          .from('picks')
-          .update({ ...pickData, updated_at: new Date().toISOString() })
-          .eq('id', existingId)
-          .select()
-          .single();
-      } else {
-        // Create new pick
-        console.log('Creating new pick');
-        result = await supabase
-          .from('picks')
-          .insert([{ ...pickData, user_id: user.id }])
-          .select()
-          .single();
-      }
-
-      if (result.error) {
-        console.error('Insert/update error:', result.error);
-        const appError = handleSupabaseError(result.error, {
-          operation: 'createOrUpdatePick',
-          component: 'api.create'
-        });
-        return { data: null, error: appError };
-      }
-
-      console.log('Pick created/updated successfully:', result.data.id);
-      return { data: result.data, error: null };
-    } catch (error) {
-      console.error('Unexpected error in create:', error);
-      if (error instanceof AppError) {
         return { data: null, error };
       }
-      const appError = createAppError(error, {
+
+      console.log('✅ Validation passed');
+
+      // Use sanitized data for database insertion
+      const sanitizedPick = {
+        ...pick,
+        game_info: {
+          ...pick.game_info,
+          home_team: validation.sanitizedData.homeTeam,
+          away_team: validation.sanitizedData.awayTeam,
+          game_date: validation.sanitizedData.gameDate
+        },
+        prediction: validation.sanitizedData.prediction,
+        reasoning: validation.sanitizedData.reasoning,
+        confidence: validation.sanitizedData.confidence ?? 50,
+        week: validation.sanitizedData.week,
+        user_id: pick.user_id || user.id,
+        result: pick.result || 'pending',
+        // FIX: Always provide 'pending' for ats_result and ou_result, never undefined
+        ats_result: pick.ats_result || 'pending',
+        ou_result: pick.ou_result || 'pending'
+      };
+
+      console.log('📝 Attempting to save pick:', {
+        game: `${sanitizedPick.game_info.away_team} @ ${sanitizedPick.game_info.home_team}`,
+        week: sanitizedPick.week,
+        hasSpread: !!sanitizedPick.spread_prediction,
+        hasOU: !!sanitizedPick.ou_prediction,
+        hasMonteCarlo: !!sanitizedPick.monte_carlo_results,
+        hasWeather: !!sanitizedPick.weather
+      });
+
+      const { data, error } = await supabase
+        .from('picks')
+        .insert([sanitizedPick])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Supabase insert error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        const appError = handleSupabaseError(error, {
+          operation: 'createPick',
+          component: 'api.create',
+          metadata: { pickData: sanitizedPick }
+        });
+        return { data: null, error: appError };
+      }
+
+      console.log('✅ Pick saved successfully:', data.id);
+      return { data, error: null };
+    } catch (error) {
+      console.error('❌ Unexpected error in create:', error);
+      const appError = error instanceof AppError ? error : createAppError(error, {
         operation: 'createPick',
         component: 'api.create'
       }, 'PICK_SAVE_FAILED');
@@ -275,17 +267,22 @@ const picksApi = {
     }
   },
 
-  update: async (id: string, updates: any) => {
+  update: async (id: string, updates: Partial<Pick>) => {
     try {
-      // Verify admin status
+      // Verify admin privileges
       const { isAdmin, error: adminError } = await verifyAdminUser();
-      if (adminError || !isAdmin) {
-        return { data: null, error: adminError || createAppError(new Error('Admin required'), { operation: 'updatePick', component: 'api.update' }, 'ADMIN_REQUIRED') };
+      if (!isAdmin) {
+        const error = adminError || createAppError(
+          new Error('Admin privileges required'),
+          { operation: 'updatePick', component: 'api.update', metadata: { pickId: id } },
+          'ADMIN_REQUIRED'
+        );
+        return { data: null, error };
       }
 
       const { data, error } = await supabase
         .from('picks')
-        .update(updates)
+        .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
         .select()
         .single();
@@ -293,16 +290,18 @@ const picksApi = {
       if (error) {
         const appError = handleSupabaseError(error, {
           operation: 'updatePick',
-          component: 'api.update'
+          component: 'api.update',
+          metadata: { pickId: id, updates }
         });
         return { data: null, error: appError };
       }
 
       return { data, error: null };
     } catch (error) {
-      const appError = createAppError(error, {
+      const appError = error instanceof AppError ? error : createAppError(error, {
         operation: 'updatePick',
-        component: 'api.update'
+        component: 'api.update',
+        metadata: { pickId: id }
       }, 'PICK_UPDATE_FAILED');
       return { data: null, error: appError };
     }
@@ -310,10 +309,15 @@ const picksApi = {
 
   delete: async (id: string) => {
     try {
-      // Verify admin status
+      // Verify admin privileges
       const { isAdmin, error: adminError } = await verifyAdminUser();
-      if (adminError || !isAdmin) {
-        return { data: null, error: adminError || createAppError(new Error('Admin required'), { operation: 'deletePick', component: 'api.delete' }, 'ADMIN_REQUIRED') };
+      if (!isAdmin) {
+        const error = adminError || createAppError(
+          new Error('Admin privileges required'),
+          { operation: 'deletePick', component: 'api.delete', metadata: { pickId: id } },
+          'ADMIN_REQUIRED'
+        );
+        return { error };
       }
 
       const { error } = await supabase
@@ -324,62 +328,126 @@ const picksApi = {
       if (error) {
         const appError = handleSupabaseError(error, {
           operation: 'deletePick',
-          component: 'api.delete'
+          component: 'api.delete',
+          metadata: { pickId: id }
         });
-        return { data: null, error: appError };
+        return { error: appError };
       }
 
-      return { data: { success: true }, error: null };
+      return { error: null };
     } catch (error) {
-      const appError = createAppError(error, {
+      const appError = error instanceof AppError ? error : createAppError(error, {
         operation: 'deletePick',
-        component: 'api.delete'
+        component: 'api.delete',
+        metadata: { pickId: id }
       }, 'PICK_DELETE_FAILED');
-      return { data: null, error: appError };
+      return { error: appError };
     }
+  },
+
+  subscribeToPicks: (callback: (payload: any) => void) => {
+    return supabase
+      .channel('picks')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'picks' }, callback)
+      .subscribe();
   }
 };
 
-// Agent Stats API - handles statistics calculations
-const agentStatsApi = {
-  getWeekly: async (week?: number) => {
+// Agent Statistics API
+export const agentStatsApi = {
+  getOverallStats: async () => {
+    // Get all picks to calculate statistics
+    const { data: picks, error } = await supabase
+      .from('picks')
+      .select('result, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error) return { data: null, error };
+
+    // Calculate statistics
+    const stats = {
+      totalPicks: picks?.length || 0,
+      wins: picks?.filter(pick => pick.result === 'win').length || 0,
+      losses: picks?.filter(pick => pick.result === 'loss').length || 0,
+      pushes: picks?.filter(pick => pick.result === 'push').length || 0,
+      pending: picks?.filter(pick => pick.result === 'pending').length || 0,
+      winRate: 0,
+      totalResolved: 0
+    };
+
+    stats.totalResolved = stats.wins + stats.losses + stats.pushes;
+    // For moneyline win rate, exclude pushes since they are neither wins nor losses
+    const resolvedForWinRate = stats.wins + stats.losses;
+    stats.winRate = resolvedForWinRate > 0 ? (stats.wins / resolvedForWinRate) * 100 : 0;
+
+    return { data: stats, error: null };
+  },
+
+  getRecentPerformance: async (limit: number = 10) => {
+    // Get recent picks with results
+    const { data: picks, error } = await supabase
+      .from('picks')
+      .select('result, created_at, game_info')
+      .not('result', 'eq', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) return { data: null, error };
+
+    return { data: picks, error: null };
+  }
+};
+
+// Public Stats API - No authentication required
+export const publicStatsApi = {
+  getCurrentWeekStats: async () => {
     try {
-      // Use dynamic import to avoid circular dependencies
-      const { calculateStatsForWeek } = await import('../services/statsCalculation');
+      // Import dynamically to avoid circular dependencies
+      const { getCurrentNFLWeek } = await import('../utils/nflWeeks');
+      const { calculatePickStatistics, createEmptyStats } = await import('../services/statsCalculator');
 
-      // Fetch picks for the specified week (or current week if not specified)
-      const targetWeek = week || Math.ceil((new Date().getTime() - new Date('2024-09-01').getTime()) / (7 * 24 * 60 * 60 * 1000));
+      const currentWeek = getCurrentNFLWeek();
 
+      // Return empty stats if no current week
+      if (!currentWeek) {
+        return {
+          data: createEmptyStats(null),
+          error: null
+        };
+      }
+
+      // Fetch completed picks for current week
       const { data: picks, error } = await supabase
         .from('picks')
         .select('result, ats_result, ou_result, game_info, prediction, spread_prediction, ou_prediction')
-        .eq('week', targetWeek);
+        .eq('week', currentWeek)
+        .neq('result', 'pending');
 
       if (error) {
         const appError = handleSupabaseError(error, {
-          operation: 'getWeeklyStats',
-          component: 'api.agentStatsApi'
+          operation: 'getCurrentWeekStats',
+          component: 'api.publicStatsApi'
         });
         return { data: null, error: appError };
       }
 
       // Calculate statistics using service
-      const stats = calculateStatsForWeek(picks as Pick[] || [], targetWeek as any);
+      const stats = await calculatePickStatistics(picks as Pick[] || [], currentWeek);
 
       return { data: stats, error: null };
     } catch (error) {
       const appError = createAppError(error, {
-        operation: 'getWeeklyStats',
-        component: 'api.agentStatsApi'
+        operation: 'getCurrentWeekStats',
+        component: 'api.publicStatsApi'
       }, 'PICK_LOAD_FAILED');
       return { data: null, error: appError };
     }
   },
 
-  getAllTime: async () => {
+  getAllTimeStats: async () => {
     try {
-      // Use dynamic import to avoid circular dependencies
-      const { calculateOverallStats } = await import('../services/statsCalculation');
+      // Import service functions
+      const { calculatePickStatistics } = await import('../services/statsCalculator');
 
       // Fetch ALL completed picks
       const { data: picks, error } = await supabase
@@ -396,76 +464,7 @@ const agentStatsApi = {
       }
 
       // Calculate statistics using service (no week parameter for all-time)
-      const stats = calculateOverallStats(picks as Pick[] || []);
-
-      return { data: stats, error: null };
-    } catch (error) {
-      const appError = createAppError(error, {
-        operation: 'getAllTimeStats',
-        component: 'api.publicStatsApi'
-      }, 'PICK_LOAD_FAILED');
-      return { data: null, error: appError };
-    }
-  }
-};
-
-// Public Stats API - handles public statistics
-const publicStatsApi = {
-  getWeekly: async (week?: number) => {
-    try {
-      // Use dynamic import to avoid circular dependencies
-      const { calculateStatsForWeek } = await import('../services/statsCalculation');
-
-      // Fetch picks for the specified week (or current week if not specified)
-      const targetWeek = week || Math.ceil((new Date().getTime() - new Date('2024-09-01').getTime()) / (7 * 24 * 60 * 60 * 1000));
-
-      const { data: picks, error } = await supabase
-        .from('picks')
-        .select('result, ats_result, ou_result, game_info, prediction, spread_prediction, ou_prediction')
-        .eq('week', targetWeek);
-
-      if (error) {
-        const appError = handleSupabaseError(error, {
-          operation: 'getWeeklyStats',
-          component: 'api.publicStatsApi'
-        });
-        return { data: null, error: appError };
-      }
-
-      // Calculate statistics using service
-      const stats = calculateStatsForWeek(picks as Pick[] || [], targetWeek as any);
-
-      return { data: stats, error: null };
-    } catch (error) {
-      const appError = createAppError(error, {
-        operation: 'getWeeklyStats',
-        component: 'api.publicStatsApi'
-      }, 'PICK_LOAD_FAILED');
-      return { data: null, error: appError };
-    }
-  },
-
-  getAllTime: async () => {
-    try {
-      // Use dynamic import to avoid circular dependencies
-      const { calculateOverallStats } = await import('../services/statsCalculation');
-
-      // Fetch ALL completed picks
-      const { data: picks, error } = await supabase
-        .from('picks')
-        .select('result, ats_result, ou_result, game_info, prediction, spread_prediction, ou_prediction')
-        .neq('result', 'pending');
-
-      if (error) {
-        const appError = handleSupabaseError(error, {
-          operation: 'getAllTimeStats',
-          component: 'api.publicStatsApi'
-        });
-        return { data: null, error: appError };
-      }
-
-      // Calculate statistics using service (no week parameter for all-time)
-      const stats = calculateOverallStats(picks as Pick[] || []);
+      const stats = await calculatePickStatistics(picks as Pick[] || []);
 
       return { data: stats, error: null };
     } catch (error) {
@@ -523,15 +522,6 @@ const injuryApi = {
           component: 'api.injuryApi'
         });
         return { data: null, error: appError };
-      }
-
-      return { data, error: null };
-    } catch (error) {
-      const appError = createAppError(error, {
-        operation: 'getInjuryImpactByGameDate',
-        component: 'api.injuryApi'
-      }, 'PICK_LOAD_FAILED');
-      return { data: null, error: appError };
     }
   },
 
@@ -567,7 +557,7 @@ const injuryApi = {
       const appError = createAppError(error, {
         operation: 'getTeamInjuries',
         component: 'api.injuryApi'
-      }, 'PICK_LOAD_FAILED');
+      }, 'TEAM_INJURY_LOAD_FAILED');
       return { data: null, error: appError };
     }
   },
@@ -578,7 +568,7 @@ const injuryApi = {
       // Verify admin status
       const { isAdmin, error: adminError } = await verifyAdminUser();
       if (adminError || !isAdmin) {
-        return { data: null, error: adminError || createAppError(new Error('Admin required'), { operation: 'calculateGameImpact', component: 'api.injuryApi' }, 'ADMIN_REQUIRED') };
+        return { data: null, error: adminError || createAppError(new Error('Admin required'), {}, 'ADMIN_REQUIRED') };
       }
 
       // Get injury data for both teams
@@ -601,6 +591,7 @@ const injuryApi = {
       // Mock game data for calculation (would need real odds in production)
       const mockGameData = {
         openingLine: 0, // Would need to fetch from odds API
+        favoriteTeam: homeTeam, // Would need to determine from odds
         homeTeam,
         awayTeam,
         homeInjuries: homeInjuriesResult.data || [],
@@ -624,7 +615,7 @@ const injuryApi = {
       const appError = createAppError(error, {
         operation: 'calculateGameImpact',
         component: 'api.injuryApi'
-      }, 'PICK_LOAD_FAILED');
+      }, 'INJURY_CALCULATION_FAILED');
       return { data: null, error: appError };
     }
   },
@@ -635,7 +626,7 @@ const injuryApi = {
       // Verify admin status
       const { isAdmin, error: adminError } = await verifyAdminUser();
       if (adminError || !isAdmin) {
-        return { data: null, error: adminError || createAppError(new Error('Admin required'), { operation: 'importInjuries', component: 'api.injuryApi' }, 'ADMIN_REQUIRED') };
+        return { data: null, error: adminError || createAppError(new Error('Admin required'), {}, 'ADMIN_REQUIRED') };
       }
 
       // Import player injuries
@@ -677,7 +668,7 @@ const injuryApi = {
       const appError = createAppError(error, {
         operation: 'importInjuries',
         component: 'api.injuryApi'
-      }, 'PICK_LOAD_FAILED');
+      }, 'INJURY_IMPORT_FAILED');
       return { data: null, error: appError };
     }
   }
@@ -690,6 +681,3 @@ export const api = {
   publicStats: publicStatsApi,
   injuries: injuryApi
 };
-
-// Also export individual APIs for backward compatibility
-export { picksApi, agentStatsApi, publicStatsApi, injuryApi };

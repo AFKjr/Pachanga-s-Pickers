@@ -4,18 +4,22 @@ import { SIMULATION_ITERATIONS } from '../constants.ts';
 import { applyWeatherAdjustments } from '../weather/weather-adjustments.ts';
 import { calculateOffensiveStrength, calculateDefensiveStrength } from './strength-calculator.ts';
 import { simulatePossession } from './possession-simulator.ts';
+import { calculateInjuryVarianceMultiplier } from '../enhanced-injury-integration.ts';
 
-/**
- * Add variance to strength scores to simulate coaching, motivation, execution variance
- * NFL teams don't perform at exactly their average every game
- */
-function applyGameDayVariance(baseStrength: number): number {
-  // Apply ±15% variance (roughly 7-15 points on 50 scale)
-  // INCREASED from 10% to 15% to add more upset potential
+// Add variance to strength scores to simulate coaching, motivation, execution variance
+// NFL teams don't perform at exactly their average every game
+function applyGameDayVariance(
+  baseStrength: number,
+  injuryVarianceMultiplier: number = 1.0
+): number {
+  // Apply ±12.4% variance (calibrated for 38.8% underdog win rate)
+  // REDUCED from 15% to 12.4% to match historical underdog performance
   // This simulates: coaching decisions, motivation, execution, matchup factors
-  const VARIANCE_PERCENT = 0.15;
+
+  // ENHANCED: Increase variance when injuries are present
+  const VARIANCE_PERCENT = 0.124 * injuryVarianceMultiplier;
   const variance = (Math.random() * 2 - 1) * baseStrength * VARIANCE_PERCENT;
-  
+
   return Math.max(10, Math.min(90, baseStrength + variance));
 }
 
@@ -33,6 +37,8 @@ function simulateSingleGame(
     baseAwayDefense: number;
     homeWeatherAdj: any;
     awayWeatherAdj: any;
+    homeInjuryVariance: number;  // ADD THIS
+    awayInjuryVariance: number;  // ADD THIS
     // HOME_FIELD_BOOST: number; // Removed - now using flat 3-point boost
   }
 ): { homeScore: number; awayScore: number } {
@@ -56,10 +62,11 @@ function simulateSingleGame(
 
   // === USE CACHED GAME-DAY VARIANCE TO TEAM STRENGTHS ===
   // Teams don't play at exactly their season average every game
-  const gameHomeOffense = applyGameDayVariance(cached.baseHomeOffense);
-  const gameAwayOffense = applyGameDayVariance(cached.baseAwayOffense);
-  const gameHomeDefense = applyGameDayVariance(cached.baseHomeDefense);
-  const gameAwayDefense = applyGameDayVariance(cached.baseAwayDefense);
+  // ENHANCED: Apply injury variance multipliers
+  const gameHomeOffense = applyGameDayVariance(cached.baseHomeOffense, cached.homeInjuryVariance);
+  const gameAwayOffense = applyGameDayVariance(cached.baseAwayOffense, cached.awayInjuryVariance);
+  const gameHomeDefense = applyGameDayVariance(cached.baseHomeDefense, cached.homeInjuryVariance);
+  const gameAwayDefense = applyGameDayVariance(cached.baseAwayDefense, cached.awayInjuryVariance);
 
   console.log('=== STRENGTH CALCULATIONS ===');
   console.log('Base home offense:', cached.baseHomeOffense);
@@ -191,7 +198,9 @@ export function runMonteCarloSimulation(
   spread: number,
   total: number,
   weather: GameWeather | null,
-  favoriteIsHome: boolean
+  favoriteIsHome: boolean,
+  homeInjuryImpact?: any,  // Add injury data
+  awayInjuryImpact?: any   // Add injury data
 ): SimulationResult {
   console.log('=== TEAM STATS DEBUG ===');
   console.log('Home team stats:', {
@@ -238,6 +247,15 @@ export function runMonteCarloSimulation(
     }
   ) : null;
 
+  // Calculate injury variance multipliers
+  const homeInjuryVariance = calculateInjuryVarianceMultiplier(homeInjuryImpact);
+  const awayInjuryVariance = calculateInjuryVarianceMultiplier(awayInjuryImpact);
+
+  console.log('🎲 Injury variance multipliers:', {
+    home: homeInjuryVariance.toFixed(2),
+    away: awayInjuryVariance.toFixed(2)
+  });
+
   const homeScores: number[] = [];
   const awayScores: number[] = [];
   let homeWins = 0;
@@ -256,8 +274,9 @@ export function runMonteCarloSimulation(
       baseHomeDefense,
       baseAwayDefense,
       homeWeatherAdj,
-      awayWeatherAdj
-      
+      awayWeatherAdj,
+      homeInjuryVariance,  // ADD THIS
+      awayInjuryVariance   // ADD THIS
     });
     
     homeScores.push(gameResult.homeScore);

@@ -8,6 +8,7 @@ import { Pick, NFLWeek } from '../types';
 import { getPickWeek } from '../utils/nflWeeks';
 import { calculateAllResultsFromScores } from '../utils/atsCalculator';
 import { calculatePickEdges } from '../utils/edgeCalculator';
+import type { PostgrestError } from '@supabase/supabase-js';
 import { AppError, createAppError } from '../utils/errorHandling';
 
 export interface PicksByWeek {
@@ -24,7 +25,7 @@ export interface PickUpdatePayload {
 /**
  * Load all picks from the database
  */
-export async function loadAllPicks(): Promise<{ data: Pick[] | null; error: AppError | null }> {
+export async function loadAllPicks(): Promise<{ data: Pick[] | null; error: AppError | PostgrestError | null }> {
   try {
     const { data, error } = await picksApi.getAll();
     
@@ -167,7 +168,7 @@ export async function deletePick(
 export async function deleteAllPicks(): Promise<{ 
   success: boolean; 
   deletedCount: number;
-  error: AppError | null 
+  error: AppError | PostgrestError | null 
 }> {
   try {
     const { data: allPicks, error: fetchError } = await loadAllPicks();

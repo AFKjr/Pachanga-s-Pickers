@@ -70,14 +70,16 @@ export function calculateOffensiveStrength(stats: TeamStats): number {
     scoringComponent
   );
   
-  // Normalize to 0-100 scale
+  // Normalize to 0-100 scale, then clamp to conservative range
   const MINIMUM_EXPECTED_RAW = 15;
   const MAXIMUM_EXPECTED_RAW = 85;
-  
-  const normalized = ((rawStrength - MINIMUM_EXPECTED_RAW) / 
+
+  const normalized = ((rawStrength - MINIMUM_EXPECTED_RAW) /
                      (MAXIMUM_EXPECTED_RAW - MINIMUM_EXPECTED_RAW)) * 100;
-  
-  return Math.max(0, Math.min(100, normalized));
+
+  // CONSERVATIVE SCALING: Clamp to 35-65 range
+  // This makes predictions more cautious by reducing extreme team ratings
+  return Math.max(35, Math.min(65, normalized));
 }
 
 /**
@@ -156,7 +158,7 @@ export function calculateDefensiveStrength(stats: TeamStats): number {
     turnoverCreation
   );
 
-  // Normalize to 0-100 scale
+  // Normalize to 0-100 scale, then clamp to conservative range
   // Based on observed NFL ranges (15-85 raw becomes 0-100)
   const MINIMUM_EXPECTED_RAW = 15;
   const MAXIMUM_EXPECTED_RAW = 85;
@@ -164,8 +166,9 @@ export function calculateDefensiveStrength(stats: TeamStats): number {
   const normalized = ((rawStrength - MINIMUM_EXPECTED_RAW) /
                      (MAXIMUM_EXPECTED_RAW - MINIMUM_EXPECTED_RAW)) * 100;
 
-  // Clamp to 0-100 range
-  return Math.max(0, Math.min(100, normalized));
+  // CONSERVATIVE SCALING: Clamp to 35-65 range
+  // This makes predictions more cautious by reducing extreme team ratings
+  return Math.max(35, Math.min(65, normalized));
 }
 
 /**

@@ -9,6 +9,64 @@ import { generateReasoningForPick } from '../utils/reasoning-generator.ts';
 import { extractOddsFromGame, type ExtractedOdds } from '../odds/fetch-odds.ts';
 import { validateMoneylineWithFallback } from '../utils/odds-converter.ts';
 
+// Import enhanced injury functions
+import {
+  applyEnhancedInjuryAdjustments,
+  getInjurySummary
+} from '../enhanced-injury-integration.ts';
+
+// Injury impact calculation utilities
+interface InjuryImpact {
+  total_impact_points: number;
+  individual_impacts: any[];
+  cluster_multipliers: Record<string, number>;
+}
+
+async function fetchInjuryImpact(
+  teamName: string,
+  gameDate: string,
+  supabaseUrl: string,
+  supabaseKey: string
+): Promise<InjuryImpact | null> {
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/team_injury_impact`, {
+      method: 'GET',
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.warn(`⚠️ Failed to fetch injury data for ${teamName}: ${response.status}`);
+      return null;
+    }
+
+    const injuryData = await response.json();
+
+    // Find the most recent injury impact for this team and game date
+    const teamInjury = injuryData
+      .filter((impact: any) => impact.team_name === teamName && impact.game_date === gameDate)
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+
+    if (!teamInjury) {
+      console.log(`ℹ️ No injury data found for ${teamName} on ${gameDate}`);
+      return null;
+    }
+
+    console.log(`🏥 ${teamName} injury impact: ${teamInjury.total_impact_points} points`);
+    return {
+      total_impact_points: teamInjury.total_impact_points || 0,
+      individual_impacts: teamInjury.individual_impacts || [],
+      cluster_multipliers: teamInjury.cluster_multipliers || {}
+    };
+  } catch (error) {
+    console.warn(`⚠️ Error fetching injury data for ${teamName}:`, error);
+    return null;
+  }
+}
+
 export interface LivePredictionsResult {
   predictions: any[];
   errors: any[];
@@ -227,8 +285,8 @@ export async function generateLivePredictions(
       console.log(`\n🏈 [${gameIndex + 1}/${gamesToProcess.length}] Processing: ${game.away_team} @ ${game.home_team}`);
 
       // Fetch team stats (latest available)
-  const homeStats = await fetchTeamStatsWithFallback(game.home_team, supabaseUrl, supabaseKey);
-  const awayStats = await fetchTeamStatsWithFallback(game.away_team, supabaseUrl, supabaseKey);
+      const homeStats = await fetchTeamStatsWithFallback(game.home_team, supabaseUrl, supabaseKey);
+      const awayStats = await fetchTeamStatsWithFallback(game.away_team, supabaseUrl, supabaseKey);
 
       // Warn if using default stats (FIX FOR BUG #7)
       if (homeStats.team !== game.home_team) {
@@ -241,7 +299,21 @@ export async function generateLivePredictions(
       console.log(`📈 ${game.home_team} stats: 3D%=${homeStats.thirdDownConversionRate}, RZ%=${homeStats.redZoneEfficiency}`);
       console.log(`📈 ${game.away_team} stats: 3D%=${awayStats.thirdDownConversionRate}, RZ%=${awayStats.redZoneEfficiency}`);
 
-      // Fetch weather if API key available
+      // Fetch injury impact data for both teams
+      const gameDate = game.commence_time.split('T')[0];
+      const homeInjuryImpact = await fetchInjuryImpact(game.home_team, gameDate, supabaseUrl, supabaseKey);
+      const awayInjuryImpact = await fetchInjuryImpact(game.away_team, gameDate, supabaseUrl, supabaseKey);
+
+      // Apply enhanced injury adjustments with position-specific impacts
+      const adjustedHomeStats = applyEnhancedInjuryAdjustments(homeStats, homeInjuryImpact);
+      const adjustedAwayStats = applyEnhancedInjuryAdjustments(awayStats, awayInjuryImpact);
+
+      // Log injury summaries for visibility
+      if (homeInjuryImpact || awayInjuryImpact) {
+        console.log('🏥 Injury Summary:');
+        console.log(`  ${getInjurySummary(game.home_team, homeInjuryImpact)}`);
+        console.log(`  ${getInjurySummary(game.away_team, awayInjuryImpact)}`);
+      }      // Fetch weather if API key available
       let gameWeather: GameWeather | null = null;
       let weatherImpact = 'No weather data';
 
@@ -276,15 +348,17 @@ export async function generateLivePredictions(
       );
       console.log(`🏆 Favorite: ${favoriteInfo.favoriteIsHome ? game.home_team : game.away_team} (${favoriteInfo.favoriteIsHome ? 'home' : 'away'})`)
 
-      // Run Monte Carlo simulation with validated odds
+      // Run Monte Carlo simulation with validated odds and injury-adjusted stats
       console.log(`⚙️ Running ${SIMULATION_ITERATIONS.toLocaleString()} Monte Carlo simulations...`);
       const simResult = runMonteCarloSimulation(
-        homeStats,
-        awayStats,
+        adjustedHomeStats,
+        adjustedAwayStats,
         validatedOdds.homeSpread,
         validatedOdds.total,
         gameWeather,
-        favoriteInfo.favoriteIsHome
+        favoriteInfo.favoriteIsHome,
+        homeInjuryImpact,  // ADD THIS
+        awayInjuryImpact   // ADD THIS
       );
 
       // Verify Monte Carlo Output format - add logging to confirm probability scale
@@ -445,7 +519,12 @@ export async function generateLivePredictions(
               condition: gameWeather.condition,
               impact_rating: gameWeather.impactRating,
               description: gameWeather.description
-            } : undefined
+            } : undefined,
+            injury_impact: {
+              home_team_impact: homeInjuryImpact?.total_impact_points || 0,
+              away_team_impact: awayInjuryImpact?.total_impact_points || 0,
+              net_injury_impact: (awayInjuryImpact?.total_impact_points || 0) - (homeInjuryImpact?.total_impact_points || 0)
+            }
           } as any, // Partial pick object for reasoning generation
           'moneyline' // Generate reasoning for the moneyline bet
         ),
