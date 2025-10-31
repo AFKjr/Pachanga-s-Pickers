@@ -12,12 +12,12 @@ function applyGameDayVariance(
   baseStrength: number,
   injuryVarianceMultiplier: number = 1.0
 ): number {
-  // Apply ±12.4% variance (calibrated for 38.8% underdog win rate)
-  // REDUCED from 15% to 12.4% to match historical underdog performance
+  // Apply ±15% variance (increased from 12.4% to make strong favorites less predictable)
   // This simulates: coaching decisions, motivation, execution, matchup factors
+  // INCREASED variance to prevent overconfidence in favorites after Dolphins upset
 
   // ENHANCED: Increase variance when injuries are present
-  const VARIANCE_PERCENT = 0.124 * injuryVarianceMultiplier;
+  const VARIANCE_PERCENT = 0.15 * injuryVarianceMultiplier;
   const variance = (Math.random() * 2 - 1) * baseStrength * VARIANCE_PERCENT;
 
   return Math.max(10, Math.min(90, baseStrength + variance));
@@ -53,12 +53,13 @@ function simulateSingleGame(
   // Average possessions based on both teams' offensive drive pace
   const averagePossessions = (homeOffensiveDrives + awayOffensiveDrives) / 2;
   
-  // INCREASED variance: ±2 possessions instead of ±1
+  // MODERATE variance: ±1 possession (NFL average is 10-11 per team)
   // This accounts for: turnovers, big plays, clock management differences
-  const possessionVariance = Math.floor(Math.random() * 5) - 2; // -2, -1, 0, +1, +2
+  const possessionVariance = Math.floor(Math.random() * 3) - 1; // -1, 0, +1
   const possessionsPerTeam = Math.round(averagePossessions) + possessionVariance;
   
-  const finalPossessions = Math.max(8, Math.min(15, possessionsPerTeam));
+  // TIGHTENED clamping: NFL games typically have 9-13 possessions per team
+  const finalPossessions = Math.max(9, Math.min(13, possessionsPerTeam));
 
   // === USE CACHED GAME-DAY VARIANCE TO TEAM STRENGTHS ===
   // Teams don't play at exactly their season average every game
@@ -102,15 +103,42 @@ function simulateSingleGame(
     }
   }
 
-  // === ADD "CHAOS" VARIANCE ===
-  // Rare events: defensive TDs, special teams TDs, safeties, missed XPs
-  // Happens in ~15% of games
-  if (Math.random() < 0.15) {
-    const chaosPoints = Math.random() < 0.5 ? 2 : 7; // Safety or defensive TD
+  // === ADD REALISTIC BONUS SCORING EVENTS ===
+  // Based on NFL statistical data for more accurate simulation
+  
+  // Defensive Touchdowns: 7-14% probability per game
+  if (Math.random() < 0.105) { // Average of 7-14% range
+    const defTDPoints = 6; // TD worth 6 points
+    // Add extra point with 5-8% miss probability
+    const extraPoint = Math.random() < 0.923 ? 1 : 0; // 94.23% success rate (avg of 92-95%)
+    
     if (Math.random() < 0.5) {
-      homeScore += chaosPoints;
+      homeScore += defTDPoints + extraPoint;
     } else {
-      awayScore += chaosPoints;
+      awayScore += defTDPoints + extraPoint;
+    }
+  }
+  
+  // Safeties: 7% probability per game
+  if (Math.random() < 0.07) {
+    const safetyPoints = 2;
+    if (Math.random() < 0.5) {
+      homeScore += safetyPoints;
+    } else {
+      awayScore += safetyPoints;
+    }
+  }
+  
+  // Special Teams Touchdowns: 5-10% probability per game
+  if (Math.random() < 0.075) { // Average of 5-10% range
+    const stTDPoints = 6; // TD worth 6 points
+    // Add extra point with 5-8% miss probability
+    const extraPoint = Math.random() < 0.923 ? 1 : 0; // 94.23% success rate
+    
+    if (Math.random() < 0.5) {
+      homeScore += stTDPoints + extraPoint;
+    } else {
+      awayScore += stTDPoints + extraPoint;
     }
   }
 

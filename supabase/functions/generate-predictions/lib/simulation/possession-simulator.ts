@@ -76,8 +76,9 @@ export function simulatePossession(
 
   // Single random roll for scoring type
   if (Math.random() < tdProbability) {
-    // Touchdown - simplified extra point logic
-    return Math.random() < 0.03 ? 6 : 7;  // 3% chance of missed XP
+    // Touchdown - realistic extra point success rate (92-95%)
+    const extraPointSuccess = Math.random() < 0.936; // Average of 92-95% success rate
+    return extraPointSuccess ? 7 : 6;  // 7 points with XP, 6 without
   }
 
   // Field Goal - simplified accuracy
